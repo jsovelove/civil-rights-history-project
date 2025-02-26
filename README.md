@@ -1,6 +1,6 @@
 # Civil Rights History Project
 
-A React-based web application powered by Large Language Models (LLMs) for analyzing, exploring, and creating playlists from {civil rights oral history interviews](https://www.loc.gov/collections/civil-rights-history-project)
+A React-based web application powered by Large Language Models (LLMs) for analyzing, exploring, and creating playlists from civil rights oral history interviews: https://www.loc.gov/collections/civil-rights-history-project
 
 ## Overview
 
