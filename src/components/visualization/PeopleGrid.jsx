@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
+import { useNavigate } from 'react-router-dom'
 import { db } from '../../services/firebase'
 
 export default function PeopleGrid() {
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [hoveredPerson, setHoveredPerson] = useState(null)
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [selectedPerson, setSelectedPerson] = useState(null)
+
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchPeople()
@@ -46,17 +53,37 @@ export default function PeopleGrid() {
     }
   }
 
-  // Photo Card component with hover effect - extra small with info panel
+  // Updated PhotoCard component
   const PhotoCard = ({ person }) => {
+    const isSelected = selectedPerson?.id === person.id
+
     return (
-      <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-md overflow-visible shadow-sm group cursor-pointer">
-        {/* Photo container with zoom effect */}
-        <div className="w-full h-full overflow-hidden rounded-md">
+      <button 
+        type="button"
+        className={`relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden shadow-sm cursor-pointer focus:outline-none transition-all ${
+          isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
+        }`}
+        onMouseEnter={(e) => {
+          setHoveredPerson(person)
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltipPosition({ 
+            x: rect.left + (rect.width / 2), 
+            y: rect.top 
+          })
+        }}
+        onMouseLeave={() => setHoveredPerson(null)}
+        onClick={() => {
+          setSelectedPerson(person)
+          console.log('Clicked:', person.name) // Debug log
+        }}
+      >
+        <div className="w-full h-full aspect-square overflow-hidden">
           {person.thumbnailUrl ? (
             <img
               src={person.thumbnailUrl}
-              alt={`${person.name}`}
-              className="w-full h-full object-cover object-center scale-125 group-hover:scale-150 transition-transform duration-300"
+              alt={person.name}
+              className="w-full h-full object-cover object-center scale-[1.5] transition-transform duration-300 hover:scale-[1.75]"
+              draggable={false}
             />
           ) : (
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -64,27 +91,13 @@ export default function PeopleGrid() {
             </div>
           )}
         </div>
-        
-        {/* Hover Panel - With guaranteed solid white background */}
-        <div style={{backgroundColor: 'white'}} className="absolute inset-x-0 top-full opacity-0 group-hover:opacity-100 shadow-md transition-all duration-200 p-2 border border-gray-200 z-20 pointer-events-none group-hover:pointer-events-auto">
-          <div style={{backgroundColor: 'white', opacity: 1}} className="w-full">
-            <h3 className="text-gray-900 font-bold text-xs leading-tight mb-1">{person.name}</h3>
-            <p className="text-gray-600 text-xs mb-1">{person.role}</p>
-            <a
-              href={`/accordion?documentName=${encodeURIComponent(person.id)}`}
-              className="text-blue-600 text-xs hover:text-blue-800 inline-block"
-            >
-              View Interview
-            </a>
-          </div>
-        </div>
-      </div>
+      </button>
     )
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
       </div>
     )
@@ -92,7 +105,7 @@ export default function PeopleGrid() {
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="flex justify-center items-center h-screen">
         <div className="text-red-500">{error}</div>
       </div>
     )
@@ -100,18 +113,93 @@ export default function PeopleGrid() {
 
   if (people.length === 0) {
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="flex justify-center items-center h-screen">
         <div className="text-gray-500">No interview subjects found</div>
       </div>
     )
   }
 
+  // 🔥 Filter people based on search term
+  const filteredPeople = people.filter(person =>
+    person.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-        {people.map((person) => (
-          <PhotoCard key={person.id} person={person} />
-        ))}
+    <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8 min-h-screen">
+      {/* Left: Thumbnails Grid */}
+      <div className="flex-1">
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name..."
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
+          />
+        </div>
+
+        {/* People Grid */}
+        <div className="relative">
+          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-14 gap-2">
+            {filteredPeople.map((person) => (
+              <PhotoCard key={person.id} person={person} />
+            ))}
+          </div>
+
+          {/* Hover Tooltip (Only displays name) */}
+          {hoveredPerson && (
+            <div
+              style={{
+                position: 'absolute',
+                left: tooltipPosition.x + 8,
+                top: tooltipPosition.y - 20,
+                background: 'rgba(0,0,0,0.85)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                pointerEvents: 'none',
+                fontSize: '14px',
+                zIndex: 50,
+              }}
+            >
+              <strong>{hoveredPerson.name}</strong>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Selected Person Info Panel */}
+      <div className="w-full md:w-72 bg-white dark:bg-gray-800 p-4 shadow-md rounded-lg border border-gray-200 dark:border-gray-700 h-fit">
+        {selectedPerson ? (
+          <div className="space-y-4">
+            {selectedPerson.thumbnailUrl && (
+              <div className="w-full aspect-video rounded-lg overflow-hidden">
+                <img 
+                  src={selectedPerson.thumbnailUrl} 
+                  alt={selectedPerson.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedPerson.name}</h2>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">{selectedPerson.role}</p>
+            </div>
+            <button
+              onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(selectedPerson.id)}`)}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
+            >
+              View Interview
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400">
+              Select a person to view their details
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

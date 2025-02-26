@@ -8,6 +8,9 @@ import PlaylistBuilder from './pages/PlaylistBuilder'
 import PlaylistEditor from './pages/PlaylistEditor'
 import KeywordDirectory from './pages/KeywordDirectory'
 import TranscriptSummary from './pages/TranscriptSummary'
+import SearchPage from './pages/SearchPage'
+import InterviewPlayer from './pages/InterviewPlayer'
+
 
 export default function App() {
   return (
@@ -23,7 +26,7 @@ export default function App() {
           </Layout>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/playlist-builder" element={
         <ProtectedRoute>
           <Layout>
@@ -31,7 +34,7 @@ export default function App() {
           </Layout>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/playlist-editor" element={
         <ProtectedRoute>
           <Layout>
@@ -39,7 +42,7 @@ export default function App() {
           </Layout>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/keyword-directory" element={
         <ProtectedRoute>
           <Layout>
@@ -47,11 +50,27 @@ export default function App() {
           </Layout>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/transcript-summary" element={
         <ProtectedRoute>
           <Layout>
             <TranscriptSummary />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/search" element={
+        <ProtectedRoute>
+          <Layout>
+            <SearchPage />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/interview-player" element={
+        <ProtectedRoute>
+          <Layout>
+            <InterviewPlayer />
           </Layout>
         </ProtectedRoute>
       } />

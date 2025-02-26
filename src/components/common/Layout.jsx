@@ -1,4 +1,4 @@
-import Navbar from './Navbar'
+import Sidebar from './Sidebar'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function Layout({ children }) {
@@ -13,11 +13,18 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+    <div className="flex flex-row h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+      {/* Fixed width sidebar */}
+      <div className="flex-none w-60">
+        <Sidebar />
+      </div>
+      
+      {/* Main Content - scrollable */}
+      <div className="flex-grow overflow-y-auto">
+        <main className="py-6 px-6">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

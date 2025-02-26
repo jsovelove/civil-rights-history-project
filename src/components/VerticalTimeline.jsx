@@ -6,13 +6,14 @@ const VerticalThumbnailTimeline = ({ videoQueue, currentVideoIndex, setCurrentVi
   if (!videoQueue.length) return null; // Prevent errors if empty
 
   return (
-    <div className="w-1/4 flex flex-col items-center space-y-4 pr-4">
-      <h2 className="text-lg font-bold">Playlist Timeline</h2>
-      <div className="relative flex flex-col items-center">
-        {/* 📍 Vertical Grey Line */}
-        <div className="absolute w-1 h-full bg-gray-300 left-1/2 transform -translate-x-1/2"></div>
+    <div className="w-1/4 flex flex-col items-center pr-4 relative">
+      <h2 className="text-lg font-bold mb-4">Playlist Timeline</h2>
 
-        {/* 🖼️ Thumbnails as Timeline Dots */}
+      <div className="relative flex flex-col items-center space-y-6">
+        {/* 📍 Vertical Connecting Line */}
+        <div className="absolute w-[4px] h-full bg-gray-300 left-1/2 transform -translate-x-1/2"></div>
+
+        {/* 🎥 Thumbnails as Circular Timeline Dots */}
         {videoQueue.map((video, index) => {
           const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
           const duration = endSeconds - startSeconds;
@@ -20,13 +21,13 @@ const VerticalThumbnailTimeline = ({ videoQueue, currentVideoIndex, setCurrentVi
           const isActive = index === currentVideoIndex;
 
           return (
-            <div key={video.id} className="relative z-10">
-              {/* 🔗 Connector Line */}
+            <div key={video.id} className="relative flex flex-col items-center">
+              {/* 🔗 Connector Line Above Thumbnail */}
               {index !== 0 && (
-                <div className="absolute top-0 left-1/2 w-1 h-8 bg-gray-400 transform -translate-x-1/2"></div>
+                <div className="absolute top-[-30px] left-1/2 w-[4px] h-6 bg-gray-400 transform -translate-x-1/2"></div>
               )}
 
-              {/* 🖼️ Tooltip + Circular Thumbnail */}
+              {/* 🎥 Thumbnail as a Perfect Circle */}
               <Tooltip
                 title={
                   <div className="text-left">
@@ -38,13 +39,13 @@ const VerticalThumbnailTimeline = ({ videoQueue, currentVideoIndex, setCurrentVi
                 placement="right"
               >
                 <div
-                  className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center cursor-pointer ${
-                    isActive ? "border-4 border-blue-300 shadow-lg scale-110" : "border-0 hover:scale-105"
+                  className={`w-20 h-20 rounded-full overflow-hidden flex items-center justify-center cursor-pointer transition-transform ${
+                    isActive ? "border-4 border-blue-500 shadow-lg scale-110" : "border-2 border-gray-300 hover:scale-105"
                   }`}
                   onClick={() => setCurrentVideoIndex(index)}
                 >
                   <img
-                    src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`} // Using 'mqdefault' for a zoomed image
+                    src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
                     alt={video.name}
                     className="w-full h-full object-cover rounded-full"
                   />
@@ -52,7 +53,7 @@ const VerticalThumbnailTimeline = ({ videoQueue, currentVideoIndex, setCurrentVi
               </Tooltip>
 
               {/* ⏳ Duration Below Thumbnail */}
-              <p className={`text-xs mt-1 ${isActive ? "text-blue-600 font-semibold" : "text-gray-500"}`}>
+              <p className={`text-sm mt-2 ${isActive ? "text-blue-600 font-semibold" : "text-gray-500"}`}>
                 {formatTime(duration)}
               </p>
             </div>

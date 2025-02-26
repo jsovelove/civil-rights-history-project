@@ -1,33 +1,78 @@
 import React from "react";
-import { MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious } from "react-icons/md/index.js";
 
-const PlayerControls = ({ isPlaying, setIsPlaying, handleNext, handlePrevious, currentVideoIndex, videoQueue }) => {
+const PlayerControls = ({ onPrevious, onPlay, onPause, onNext, isPlaying, hasPrevious, hasNext }) => {
   return (
-    <div className="flex justify-center space-x-4 mt-4">
-      {/* ⏮ Previous Button */}
+    <div 
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '24px',
+        padding: '12px',
+        backgroundColor: '#f3f4f6',
+        borderRadius: '8px',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+        margin: '20px auto',
+        border: '2px solid #d1d5db',
+        maxWidth: '320px'
+      }}
+    >
       <button
-        onClick={handlePrevious}
-        disabled={currentVideoIndex === 0}
-        className="p-3 bg-gray-300 hover:bg-gray-400 rounded-full disabled:opacity-50"
+        onClick={onPrevious}
+        disabled={!hasPrevious}
+        style={{
+          padding: '12px',
+          borderRadius: '9999px',
+          backgroundColor: hasPrevious ? '#3b82f6' : '#9ca3af',
+          color: 'white',
+          border: 'none',
+          cursor: hasPrevious ? 'pointer' : 'not-allowed',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}
       >
-        <MdSkipPrevious size={24} />
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
       </button>
-
-      {/* ▶️ Play / Pause Toggle */}
+      
       <button
-        onClick={() => setIsPlaying(!isPlaying)}
-        className="p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full"
+        onClick={isPlaying ? onPause : onPlay}
+        style={{
+          padding: '16px',
+          borderRadius: '9999px',
+          backgroundColor: '#3b82f6',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}
       >
-        {isPlaying ? <MdPause size={28} /> : <MdPlayArrow size={28} />}
+        {isPlaying ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          </svg>
+        )}
       </button>
-
-      {/* ⏭ Skip (Next) Button */}
+      
       <button
-        onClick={handleNext}
-        disabled={currentVideoIndex >= videoQueue.length - 1}
-        className="p-3 bg-gray-300 hover:bg-gray-400 rounded-full disabled:opacity-50"
+        onClick={onNext}
+        disabled={!hasNext}
+        style={{
+          padding: '12px',
+          borderRadius: '9999px',
+          backgroundColor: hasNext ? '#3b82f6' : '#9ca3af',
+          color: 'white',
+          border: 'none',
+          cursor: hasNext ? 'pointer' : 'not-allowed',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}
       >
-        <MdSkipNext size={24} />
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </button>
     </div>
   );

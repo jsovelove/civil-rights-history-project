@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { collection, doc, setDoc } from 'firebase/firestore'
 import { db } from '../services/firebase'
+import { FileText, Upload, Clock, Tag, ChevronRight } from 'lucide-react'
 
 export default function TranscriptSummary() {
   const [loading, setLoading] = useState(false)
@@ -8,6 +9,7 @@ export default function TranscriptSummary() {
   const [summaries, setSummaries] = useState(null)
   const audioRef = useRef(null)
   const [audioUrl, setAudioUrl] = useState(null)
+  const [step, setStep] = useState(1) // 1: Upload, 2: Results
 
   const handleFileUpload = async (transcriptFile, audioFile) => {
     try {
@@ -34,6 +36,7 @@ export default function TranscriptSummary() {
       await saveProcessedTranscript(documentName.trim(), summaries)
       
       setSummaries(summaries)
+      setStep(2) // Move to results view
     } catch (error) {
       console.error("Error processing files:", error)
       setError("Failed to process transcript")
@@ -173,95 +176,206 @@ export default function TranscriptSummary() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Transcript Summarizer</h1>
-
-      <div className="space-y-4 mb-8">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Transcript File
-          </label>
-          <input
-            type="file"
-            accept=".txt"
-            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], null)}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Audio File (optional)
-          </label>
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={(e) => e.target.files?.[0] && setAudioUrl(URL.createObjectURL(e.target.files[0]))}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
-          />
-        </div>
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+          Transcript Summarizer
+        </h1>
+        <p className="mt-3 text-gray-600 dark:text-gray-300">
+          Upload interview transcripts to generate AI-powered summaries with timestamps and keywords
+        </p>
       </div>
 
-      {audioUrl && (
-        <audio 
-          ref={audioRef}
-          src={audioUrl}
-          controls
-          className="w-full mb-8"
-        />
-      )}
-
-      {loading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-8">
-          {error}
-        </div>
-      )}
-
-      {summaries && (
-        <div className="space-y-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold mb-4">Overall Summary</h2>
-            <p className="text-gray-700">{summaries.overallSummary}</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold mb-4">Key Points</h2>
-            <div className="space-y-6">
-              {summaries.keyPoints.map((point, index) => (
-                <div key={index} className="border-b border-gray-200 pb-4">
-                  <h3 className="text-xl font-semibold mb-2">{point.topic}</h3>
-                  <p 
-                    className="text-blue-600 cursor-pointer mb-2 hover:text-blue-800"
-                    onClick={() => jumpToTimestamp(point.timestamp)}
-                  >
-                    🕒 {point.timestamp}
-                  </p>
-                  <p className="text-gray-600 mb-2">
-                    Keywords: {point.keywords}
-                  </p>
-                  <p className="text-gray-700">{point.summary}</p>
+      {/* Main Content */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        {/* Step 1: Upload Files */}
+        {step === 1 && (
+          <div className="p-8">
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
+                <FileText className="mr-2 text-blue-600" size={20} />
+                Upload Interview Files
+              </h2>
+              
+              <div className="space-y-6">
+                <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
+                    Transcript File (.txt)
+                  </label>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/60 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Upload your interview transcript file (TXT)</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        accept=".txt" 
+                        className="hidden" 
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], null)}
+                      />
+                    </label>
+                  </div>
                 </div>
-              ))}
+
+                <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
+                    Audio File (optional)
+                  </label>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/60 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">MP3, WAV, or other audio formats</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        accept="audio/*" 
+                        className="hidden" 
+                        onChange={(e) => e.target.files?.[0] && setAudioUrl(URL.createObjectURL(e.target.files[0]))}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {audioUrl && (
+              <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-6 mb-6">
+                <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-white">Audio Preview</h3>
+                <audio 
+                  ref={audioRef}
+                  src={audioUrl}
+                  controls
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col justify-center items-center py-20">
+            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-300 animate-pulse">Processing transcript...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="m-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 text-red-700 dark:text-red-300 px-6 py-4 rounded-xl">
+            <div className="flex">
+              <svg className="w-6 h-6 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
+              </svg>
+              <div>
+                <p className="font-medium">Error</p>
+                <p className="text-sm">{error}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Step 2: Results */}
+        {step === 2 && summaries && (
+          <div>
+            {/* Audio Player (if available) */}
+            {audioUrl && (
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+                <audio 
+                  ref={audioRef}
+                  src={audioUrl}
+                  controls
+                  className="w-full"
+                />
+              </div>
+            )}
+            
+            {/* Overall Summary */}
+            <div className="p-8 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
+                Overall Summary
+              </h2>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                {summaries.overallSummary}
+              </p>
+            </div>
+
+            {/* Key Points */}
+            <div className="p-8">
+              <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+                Key Points
+              </h2>
+              
+              <div className="space-y-8">
+                {summaries.keyPoints.map((point, index) => (
+                  <div 
+                    key={index} 
+                    className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 transition-all duration-300 hover:shadow-md"
+                  >
+                    <div className="flex items-start mb-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 mr-3 flex-shrink-0">
+                        {index + 1}
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+                        {point.topic}
+                      </h3>
+                    </div>
+                    
+                    <div 
+                      className="flex items-center mb-4 text-blue-600 dark:text-blue-400 cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors" 
+                      onClick={() => jumpToTimestamp(point.timestamp)}
+                    >
+                      <Clock size={16} className="mr-2" />
+                      <span className="font-medium">{point.timestamp}</span>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <div className="flex items-start mb-2">
+                        <Tag size={16} className="mr-2 text-gray-500 dark:text-gray-400 mt-0.5" />
+                        <div className="flex flex-wrap gap-2">
+                          {point.keywords.split(',').map((keyword, idx) => (
+                            <span 
+                              key={idx}
+                              className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full"
+                            >
+                              {keyword.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {point.summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Reset button */}
+            <div className="p-8 border-t border-gray-100 dark:border-gray-700 flex justify-center">
+              <button
+                onClick={() => {
+                  setStep(1)
+                  setSummaries(null)
+                  setAudioUrl(null)
+                  setError(null)
+                }}
+                className="flex items-center px-6 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 mr-2 rotate-180" />
+                Process Another Transcript
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

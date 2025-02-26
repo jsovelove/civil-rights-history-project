@@ -1,222 +1,427 @@
 // src/pages/KeywordDirectory.jsx
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
-import { db } from '../services/firebase'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 export default function KeywordDirectory() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [keywordData, setKeywordData] = useState([])
-  const [expandedKeyword, setExpandedKeyword] = useState(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [keywordData, setKeywordData] = useState([]);
+  const [expandedKeyword, setExpandedKeyword] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchAndProcessKeywords()
-  }, [])
+    fetchAndProcessKeywords();
+  }, []);
 
+  // The original logic functions remain unchanged
   const fetchAndProcessKeywords = async () => {
     try {
-      setLoading(true)
-      const keywordCounts = {}
-      const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"))
+      setLoading(true);
+      const keywordCounts = {};
+      const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
 
       // Process interviews
       for (const interviewDoc of interviewsSnapshot.docs) {
-        const interviewId = interviewDoc.id
-        const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries")
-        const subSummariesSnapshot = await getDocs(subSummariesRef)
+        const interviewId = interviewDoc.id;
+        const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
+        const subSummariesSnapshot = await getDocs(subSummariesRef);
 
         subSummariesSnapshot.forEach((doc) => {
-          const subSummary = doc.data()
+          const subSummary = doc.data();
           if (subSummary.keywords) {
-            const keywords = subSummary.keywords.split(",").map(kw => kw.trim().toLowerCase())
+            const keywords = subSummary.keywords.split(",").map(kw => kw.trim().toLowerCase());
             keywords.forEach(keyword => {
               if (!keywordCounts[keyword]) {
-                keywordCounts[keyword] = { count: 0, summaries: [] }
+                keywordCounts[keyword] = { count: 0, summaries: [] };
               }
-              keywordCounts[keyword].count++
-              keywordCounts[keyword].summaries.push(subSummary)
-            })
+              keywordCounts[keyword].count++;
+              keywordCounts[keyword].summaries.push(subSummary);
+            });
           }
-        })
+        });
       }
 
       // Transform data for display
       const processedData = Object.entries(keywordCounts)
         .map(([keyword, details]) => {
-          let totalLengthSeconds = 0
+          let totalLengthSeconds = 0;
           details.summaries.forEach(subSummary => {
             if (subSummary.timestamp && subSummary.timestamp.includes(" - ")) {
-              const start = extractStartTimestamp(subSummary.timestamp)
-              const end = extractStartTimestamp(subSummary.timestamp.split(" - ")[1])
-              totalLengthSeconds += Math.max(0, convertTimestampToSeconds(end) - convertTimestampToSeconds(start))
+              const start = extractStartTimestamp(subSummary.timestamp);
+              const end = extractStartTimestamp(subSummary.timestamp.split(" - ")[1]);
+              totalLengthSeconds += Math.max(0, convertTimestampToSeconds(end) - convertTimestampToSeconds(start));
             }
-          })
+          });
           return {
             keyword,
             count: details.count,
             totalLengthSeconds,
             summaries: details.summaries
-          }
+          };
         })
-        .sort((a, b) => b.count - a.count)
+        .sort((a, b) => b.count - a.count);
 
-      setKeywordData(processedData)
-      setLoading(false)
+      setKeywordData(processedData);
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching keywords:", error)
-      setError("Failed to load keyword data")
-      setLoading(false)
+      console.error("Error fetching keywords:", error);
+      setError("Failed to load keyword data");
+      setLoading(false);
     }
-  }
+  };
 
   const extractStartTimestamp = (rawTimestamp) => {
     const match = rawTimestamp.match(/(?:\[)?(\d{1,2}:\d{2}(?::\d{2})?)/);
     return match ? match[1] : "00:00";
-  }
+  };
 
   const convertTimestampToSeconds = (timestamp) => {
-    const parts = timestamp.split(":").map(Number)
-    if (parts.length === 2) return parts[0] * 60 + parts[1]
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
-    return 0
-  }
+    const parts = timestamp.split(":").map(Number);
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return 0;
+  };
 
   const formatTime = (seconds) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     return hrs > 0
       ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-      : `${mins}:${secs.toString().padStart(2, "0")}`
-  }
+      : `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   const toggleKeyword = (keyword) => {
     if (expandedKeyword === keyword) {
-      setExpandedKeyword(null)
+      setExpandedKeyword(null);
     } else {
-      setExpandedKeyword(keyword)
+      setExpandedKeyword(keyword);
     }
-  }
+  };
 
   const handleViewPlaylist = (keyword) => {
-    navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)
-  }
+    navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`);
+  };
   
   const handleEditPlaylist = (keyword) => {
-    navigate(`/playlist-editor?keywords=${encodeURIComponent(keyword)}`)
-  }
+    navigate(`/playlist-editor?keywords=${encodeURIComponent(keyword)}`);
+  };
 
   const filteredKeywords = searchTerm 
     ? keywordData.filter(item => 
         item.keyword.toLowerCase().includes(searchTerm.toLowerCase()))
-    : keywordData
+    : keywordData;
 
+  // Loading state
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundColor: '#f9fafb'
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid #e5e7eb',
+          borderTopColor: '#3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
-    )
+    );
   }
 
+  // Error state
   if (error) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-md">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundColor: '#f9fafb'
+      }}>
+        <div style={{
+          backgroundColor: '#fee2e2',
+          border: '1px solid #ef4444',
+          color: '#b91c1c',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
           {error}
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Keyword Directory</h1>
-        <p className="text-lg text-gray-600 max-w-3xl">
+    <div style={{
+      maxWidth: '1280px',
+      margin: '0 auto',
+      padding: '24px',
+      backgroundColor: '#f9fafb',
+      minHeight: '100vh',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    }}>
+      {/* Page header */}
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '28px',
+          fontWeight: '700',
+          color: '#111827',
+          margin: '0 0 16px 0'
+        }}>
+          Keyword Directory
+        </h1>
+        <p style={{
+          fontSize: '16px',
+          lineHeight: '1.6',
+          color: '#4b5563',
+          maxWidth: '800px'
+        }}>
           Browse all keywords from the interview collection. Click on any keyword to see details,
           or create a custom playlist based on specific keywords.
         </p>
       </div>
 
       {/* Search filter */}
-      <div className="mb-8">
-        <div className="max-w-md">
-          <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ maxWidth: '400px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#374151',
+            marginBottom: '8px'
+          }}>
             Filter Keywords
           </label>
           <input
             type="text"
-            id="search"
             placeholder="Type to filter..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            style={{
+              width: '100%',
+              padding: '10px 16px',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s, box-shadow 0.2s'
+            }}
           />
         </div>
       </div>
 
       {/* Stats summary */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-3xl font-bold text-blue-700 mb-2">
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        padding: '24px',
+        marginBottom: '24px'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '16px',
+            backgroundColor: '#eff6ff',
+            borderRadius: '8px'
+          }}>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#1e40af',
+              marginBottom: '8px'
+            }}>
               {keywordData.length}
             </div>
-            <div className="text-sm text-gray-600">Total Keywords</div>
+            <div style={{
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              Total Keywords
+            </div>
           </div>
-          <div className="flex flex-col items-center p-4 bg-green-50 rounded-lg">
-            <div className="text-3xl font-bold text-green-700 mb-2">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '16px',
+            backgroundColor: '#ecfdf5',
+            borderRadius: '8px'
+          }}>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#047857',
+              marginBottom: '8px'
+            }}>
               {keywordData.reduce((sum, item) => sum + item.count, 0)}
             </div>
-            <div className="text-sm text-gray-600">Total Mentions</div>
+            <div style={{
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              Total Mentions
+            </div>
           </div>
-          <div className="flex flex-col items-center p-4 bg-purple-50 rounded-lg">
-            <div className="text-3xl font-bold text-purple-700 mb-2">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '16px',
+            backgroundColor: '#f5f3ff',
+            borderRadius: '8px'
+          }}>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#6d28d9',
+              marginBottom: '8px'
+            }}>
               {formatTime(keywordData.reduce((sum, item) => sum + item.totalLengthSeconds, 0))}
             </div>
-            <div className="text-sm text-gray-600">Total Content Duration</div>
+            <div style={{
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              Total Content Duration
+            </div>
           </div>
         </div>
       </div>
 
       {/* Keywords list */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        overflow: 'hidden'
+      }}>
         {filteredKeywords.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
+          <div style={{
+            padding: '24px',
+            textAlign: 'center',
+            color: '#6b7280'
+          }}>
             No keywords found matching your search.
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul style={{ 
+            listStyle: 'none', 
+            margin: 0, 
+            padding: 0,
+            borderTop: '1px solid #f3f4f6' 
+          }}>
             {filteredKeywords.map((item) => (
-              <li key={item.keyword} className="group hover:bg-gray-50">
-                <div className="p-6">
-                  <div className="sm:flex sm:items-center sm:justify-between">
+              <li 
+                key={item.keyword} 
+                style={{ 
+                  borderBottom: '1px solid #f3f4f6',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <div style={{ padding: '24px' }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    '@media (min-width: 640px)': {
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }
+                  }}>
                     <div>
                       <h3 
-                        className="text-lg font-semibold text-blue-700 cursor-pointer hover:text-blue-900 group-hover:underline"
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          color: '#2563eb',
+                          margin: '0 0 8px 0',
+                          cursor: 'pointer',
+                          transition: 'color 0.2s'
+                        }}
                         onClick={() => toggleKeyword(item.keyword)}
+                        onMouseEnter={(e) => e.target.style.color = '#1e40af'}
+                        onMouseLeave={(e) => e.target.style.color = '#2563eb'}
                       >
                         {item.keyword}
                       </h3>
-                      <div className="mt-1 text-sm text-gray-600">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 mr-2">
+                      <div style={{ margin: '8px 0' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          backgroundColor: '#dbeafe',
+                          color: '#1e40af',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          marginRight: '8px'
+                        }}>
                           {item.count} mentions
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          backgroundColor: '#dcfce7',
+                          color: '#047857',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}>
                           {formatTime(item.totalLengthSeconds)} total length
                         </span>
                       </div>
                     </div>
-                    <div className="mt-4 sm:mt-0 flex space-x-2">
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px'
+                    }}>
                       <button
                         onClick={() => handleViewPlaylist(item.keyword)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: '#2563eb',
+                          color: '#ffffff',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ marginRight: '6px' }}>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -224,9 +429,23 @@ export default function KeywordDirectory() {
                       </button>
                       <button
                         onClick={() => handleEditPlaylist(item.keyword)}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          backgroundColor: '#ffffff',
+                          color: '#4b5563',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ marginRight: '6px' }}>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         Edit
@@ -236,22 +455,55 @@ export default function KeywordDirectory() {
 
                   {/* Expanded content */}
                   {expandedKeyword === item.keyword && (
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h4 className="text-md font-medium text-gray-700 mb-4">Recent Mentions:</h4>
-                      <div className="space-y-4">
+                    <div style={{
+                      marginTop: '24px',
+                      paddingTop: '24px',
+                      borderTop: '1px solid #e5e7eb'
+                    }}>
+                      <h4 style={{
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        color: '#4b5563',
+                        marginBottom: '16px'
+                      }}>Recent Mentions:</h4>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px'
+                      }}>
                         {item.summaries.slice(0, 3).map((summary, idx) => (
-                          <div key={idx} className="bg-gray-50 rounded-md p-4">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 text-sm">
+                          <div key={idx} style={{
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '8px',
+                            padding: '16px'
+                          }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}>
+                              <span style={{
+                                fontSize: '13px',
+                                color: '#6b7280'
+                              }}>
                                 {summary.timestamp}
                               </span>
                               {summary.documentName && (
-                                <span className="text-sm font-medium text-blue-600">
+                                <span style={{
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  color: '#2563eb'
+                                }}>
                                   {summary.documentName}
                                 </span>
                               )}
                             </div>
-                            <p className="mt-2 text-gray-700">
+                            <p style={{
+                              marginTop: '8px',
+                              color: '#4b5563',
+                              fontSize: '14px',
+                              lineHeight: '1.6'
+                            }}>
                               {summary.summary.substring(0, 200)}
                               {summary.summary.length > 200 ? '...' : ''}
                             </p>
@@ -259,10 +511,23 @@ export default function KeywordDirectory() {
                         ))}
                       </div>
                       {item.summaries.length > 3 && (
-                        <div className="mt-4 text-right">
+                        <div style={{
+                          marginTop: '16px',
+                          textAlign: 'right'
+                        }}>
                           <button
                             onClick={() => handleViewPlaylist(item.keyword)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            style={{
+                              color: '#2563eb',
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = '#1e40af'}
+                            onMouseLeave={(e) => e.target.style.color = '#2563eb'}
                           >
                             View all {item.summaries.length} mentions →
                           </button>
@@ -277,5 +542,5 @@ export default function KeywordDirectory() {
         )}
       </div>
     </div>
-  )
+  );
 }

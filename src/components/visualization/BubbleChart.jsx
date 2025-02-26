@@ -2,13 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Group } from '@visx/group';
 import { Pack } from '@visx/hierarchy';
 import { hierarchy } from 'd3-hierarchy';
-import { scaleOrdinal } from '@visx/scale';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { Zoom } from '@visx/zoom';
 import KeywordPlaylistLink from '../common/KeywordPlaylistLink';
 
 const defaultMargin = { top: 20, right: 20, bottom: 20, left: 20 };
+
+/**
+ * Splits a given text into lines not exceeding maxChars per line.
+ */
+function wrapText(text, maxChars) {
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  words.forEach((word) => {
+    if ((currentLine + ' ' + word).trim().length > maxChars && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = currentLine ? `${currentLine} ${word}` : word;
+    }
+  });
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
 
 export default function BubbleChartVisx() {
   const [data, setData] = useState(null);
@@ -78,15 +96,6 @@ export default function BubbleChartVisx() {
   }
   if (!data) return null;
 
-  // Define a color scale for bubbles
-  const colorScale = scaleOrdinal({
-    domain: data.children.map((d) => d.name),
-    range: [
-      '#ff6361', '#bc5090', '#58508d', '#003f5c', '#ffa600', 
-      '#dd5182', '#36a2eb', '#c2f970', '#f95d6a', '#2f4b7c'
-    ],
-  });
-
   // Create d3-hierarchy root node, summing by keyword count
   const root = hierarchy(data)
     .sum((d) => d.value)
@@ -108,7 +117,7 @@ export default function BubbleChartVisx() {
         value: circle.data.value,
         x: circle.x,
         y: circle.y,
-        r: circle.r
+        r: circle.r,
       });
     }
   };
@@ -120,7 +129,7 @@ export default function BubbleChartVisx() {
         <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-4 max-w-xs">
           <div className="flex justify-between items-start">
             <h3 className="text-lg font-semibold">{selectedBubble.name}</h3>
-            <button 
+            <button
               onClick={() => setSelectedBubble(null)}
               className="text-gray-500 hover:text-gray-700"
             >
@@ -131,7 +140,7 @@ export default function BubbleChartVisx() {
             This topic appears {selectedBubble.value} times across all interviews.
           </p>
           <div className="mt-4">
-            <KeywordPlaylistLink 
+            <KeywordPlaylistLink
               keyword={selectedBubble.name}
               buttonText="Watch related segments"
               className="w-full justify-center"
@@ -149,91 +158,90 @@ export default function BubbleChartVisx() {
         scaleYMax={3}
       >
         {(zoom) => (
-          <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', touchAction: 'none' }}>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+              position: 'relative',
+              touchAction: 'none',
+            }}
+          >
             <svg width="100%" height="100%" ref={zoom.containerRef}>
               {/* Background */}
-              <rect width="100%" height="100%" fill="#ffffff" rx={14} onClick={() => {
-                zoom.reset();
-                setSelectedBubble(null);
-              }} />
+              <rect
+                width="100%"
+                height="100%"
+                fill="#ffffff"
+                rx={14}
+                onClick={() => {
+                  zoom.reset();
+                  setSelectedBubble(null);
+                }}
+              />
               <Pack root={root} size={[packWidth, packHeight]} padding={12}>
                 {(packData) => {
+                  // Filter to only show leaf nodes (bubbles without children)
                   const circles = packData.descendants().filter((d) => !d.children);
                   return (
                     <Group transform={zoom.toString()} top={defaultMargin.top} left={defaultMargin.left}>
                       {circles.map((circle, i) => {
-                        const radius = Math.max(circle.r * 1.1, 10); // Normalize sizes
+                        // Use computed circle radius (with a minimum value)
+                        const radius = Math.max(circle.r, 20);
                         const isSelected = selectedBubble && selectedBubble.name === circle.data.name;
-                        
+
+                        // Determine font size based on radius (capped)
+                        const fontSize = Math.min(radius / 3.5, 14);
+                        // Use a maximum characters per line based on the radius
+                        const maxChars = Math.max(5, Math.floor(radius / 3));
+                        const lines = wrapText(circle.data.name, maxChars);
+                        // Calculate vertical offset to center the text
+                        const lineHeight = fontSize;
+                        const dyOffset = lines.length > 1 ? -((lines.length - 1) * lineHeight) / 2 : 0;
+
                         return (
-                          <g 
-                            key={`circle-${i}`} 
+                          <g
+                            key={`circle-${i}`}
                             transform={`translate(${circle.x}, ${circle.y})`}
-                            onMouseEnter={(e) => setHoveredBubble({ 
-                              name: circle.data.name, 
-                              value: circle.data.value, 
-                              x: e.clientX, 
-                              y: e.clientY 
-                            })}
+                            onMouseEnter={(e) =>
+                              setHoveredBubble({
+                                name: circle.data.name,
+                                value: circle.data.value,
+                                x: e.clientX,
+                                y: e.clientY,
+                              })
+                            }
                             onMouseLeave={() => setHoveredBubble(null)}
                             onClick={() => handleBubbleClick(circle)}
                             style={{ cursor: 'pointer' }}
                           >
-                            {/* Selection ring */}
-                            {isSelected && (
-                              <circle
-                                r={radius + 4}
-                                fill="none"
-                                stroke="#2563eb"
-                                strokeWidth={2}
-                                strokeDasharray="4,2"
-                                opacity={0.8}
-                              />
-                            )}
-                            
-                            {/* Main bubble */}
                             <circle
                               r={radius}
-                              fill={colorScale(circle.data.name)}
-                              opacity={isSelected ? 1 : 0.85}
-                              stroke={isSelected ? "#2563eb" : "white"}
-                              strokeWidth={isSelected ? 2 : 0.5}
+                              fill="white"
+                              stroke="black"
+                              strokeWidth={1}
                               className="transition-all duration-200"
                             />
-                            
-                            {/* Text inside bubble */}
                             <text
                               textAnchor="middle"
-                              dy=".33em"
-                              fontSize={Math.min(radius / 3.5, 14)}
-                              fontWeight={isSelected ? "bold" : "normal"}
-                              fill={isSelected ? "black" : "rgba(0,0,0,0.8)"}
+                              fontSize={fontSize}
+                              fontWeight={isSelected ? 'bold' : 'normal'}
+                              fill="black"
                               pointerEvents="none"
                               style={{
-                                textShadow: '0 0 3px rgba(255,255,255,0.5)'
+                                textShadow: '0 0 3px rgba(255,255,255,0.5)',
                               }}
                             >
-                              {circle.data.name}
+                              {lines.map((line, index) => (
+                                <tspan
+                                  key={index}
+                                  x="0"
+                                  dy={index === 0 ? dyOffset : lineHeight}
+                                >
+                                  {line}
+                                </tspan>
+                              ))}
                             </text>
-                            
-                            {/* Play icon (only for larger bubbles) */}
-                            {radius > 25 && (
-                              <g
-                                className="play-icon"
-                                opacity={isSelected || hoveredBubble?.name === circle.data.name ? 1 : 0}
-                                transform={`translate(0, ${radius * 0.55})`}
-                              >
-                                <circle
-                                  r={radius / 4}
-                                  fill="rgba(255,255,255,0.9)"
-                                />
-                                <path
-                                  d="M-3,-5 L5,0 L-3,5 Z"
-                                  fill="#2563eb"
-                                  transform="translate(1, 0)"
-                                />
-                              </g>
-                            )}
                           </g>
                         );
                       })}
@@ -242,7 +250,7 @@ export default function BubbleChartVisx() {
                 }}
               </Pack>
             </svg>
-            
+
             {/* Tooltip */}
             {hoveredBubble && !selectedBubble && (
               <div
@@ -256,7 +264,7 @@ export default function BubbleChartVisx() {
                   borderRadius: '6px',
                   pointerEvents: 'none',
                   fontSize: '14px',
-                  zIndex: 50
+                  zIndex: 50,
                 }}
               >
                 <strong>{hoveredBubble.name}</strong>: {hoveredBubble.value} mentions
@@ -266,7 +274,7 @@ export default function BubbleChartVisx() {
           </div>
         )}
       </Zoom>
-      
+
       {/* Help text */}
       <div className="absolute bottom-4 right-4 bg-white bg-opacity-70 px-3 py-2 rounded-md text-xs text-gray-600">
         <p>Scroll to zoom • Drag to pan • Click bubble to select</p>
