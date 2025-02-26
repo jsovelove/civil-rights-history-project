@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Home, 
-  List, 
-  PlayCircle, 
-  FileText, 
-  LogOut, 
+import {
+  Home,
+  List,
+  PlayCircle,
+  FileText,
+  LogOut,
   Settings,
   Search,
   ShoppingBag,
@@ -35,230 +35,116 @@ export default function Sidebar() {
     return location.pathname === path;
   };
 
-  // Hamburger button styles
-  const hamburgerButtonStyle = {
-    position: 'fixed',
-    top: '16px',
-    left: '16px',
-    width: '48px',
-    height: '48px',
-    borderRadius: '8px',
-    backgroundColor: '#ffffff',
-    border: 'none',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    cursor: 'pointer',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    color: '#4b5563',
-    zIndex: 51, // higher than sidebar
-    transition: 'background-color 0.2s ease'
-  };
-
-  // Sidebar container styles
-  const sidebarStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    height: '100vh',
-    width: '260px',
-    backgroundColor: '#ffffff',
-    borderRight: '1px solid #e5e7eb',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    transition: 'transform 0.3s ease',
-    transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
-    zIndex: 50,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '16px'
-  };
-
-  // Overlay style for mobile (clicking outside closes the sidebar)
-  const overlayStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    opacity: isOpen ? 1 : 0,
-    visibility: isOpen ? 'visible' : 'hidden',
-    transition: 'opacity 0.3s ease, visibility 0.3s ease',
-    zIndex: 49 // lower than sidebar but higher than content
-  };
-
-  // Close button style (inside sidebar)
-  const closeButtonStyle = {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    padding: '8px',
-    borderRadius: '6px',
-    backgroundColor: '#f3f4f6',
-    border: 'none',
-    cursor: 'pointer',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    color: '#4b5563'
-  };
-
-  // Logo container styles
-  const logoContainerStyle = {
-    padding: '20px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '16px'
-  };
-
-  // Logo icon styles
-  const logoIconStyle = {
-    width: '40px',
-    height: '40px',
-    background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  };
-
-  // Navigation section styles
-  const navSectionStyle = {
-    flex: 1,
-    overflow: 'auto',
-    marginTop: '40px' // Space for the close button
-  };
-
-  // Navigation link styles
-  const getLinkStyle = (isActive) => ({
-    display: 'flex',
-    alignItems: 'center',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    backgroundColor: isActive ? '#eef2ff' : 'transparent',
-    color: isActive ? '#1e40af' : '#6b7280',
-    fontWeight: isActive ? 600 : 400,
-    marginBottom: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    textDecoration: 'none'
-  });
-
-  // Link icon container style
-  const linkIconStyle = {
-    display: 'flex',
-    marginRight: '12px',
-    color: 'inherit'
-  };
-
-  // Divider style
-  const dividerStyle = {
-    height: '1px',
-    backgroundColor: '#e5e7eb',
-    margin: '16px 0'
-  };
-
   return (
     <>
       {/* Hamburger Button (always visible) */}
-      <button style={hamburgerButtonStyle} onClick={toggleSidebar}>
+      <button
+        className="fixed top-4 left-4 w-12 h-12 rounded-lg bg-white border-none shadow-sm cursor-pointer flex justify-center items-center text-gray-600 z-[51] transition-colors duration-200 ease-in-out"
+        onClick={toggleSidebar}
+      >
         <Menu size={24} />
       </button>
 
       {/* Overlay (visible when sidebar is open) */}
-      <div style={overlayStyle} onClick={toggleSidebar}></div>
+      <div
+        className={`fixed inset-0 z-[49] transition-opacity duration-300 ease-in-out ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        onClick={toggleSidebar}
+      ></div>
 
       {/* Sidebar */}
-      <div style={sidebarStyle}>
+      <div
+        className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 ease-in-out z-50 flex flex-col p-4 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         {/* Close Button */}
-        <button style={closeButtonStyle} onClick={toggleSidebar}>
+        <button
+          className="absolute top-4 right-4 p-2 rounded-md bg-gray-100 border-none cursor-pointer flex justify-center items-center text-gray-600"
+          onClick={toggleSidebar}
+        >
           <X size={20} />
         </button>
 
-        {/* Logo Section */}
-        <div style={logoContainerStyle}>
-          <div style={logoIconStyle}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 4L4 8L12 12L20 8L12 4Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M4 16L12 20L20 16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M4 12L12 16L20 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        </div>
-
         {/* Navigation Links */}
-        <div style={navSectionStyle}>
+        <div className="flex-1 overflow-auto mt-10">
           {/* Main Navigation */}
           <div>
             {navLinks.map((link) => (
-              <Link 
-                key={link.path} 
-                to={link.path} 
-                style={getLinkStyle(isActiveLink(link.path))}
-                onClick={() => setIsOpen(false)} // Close sidebar when a link is clicked
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink(link.path)
+                    ? 'bg-indigo-50 text-blue-800 font-semibold'
+                    : 'bg-transparent text-gray-500 font-normal'
+                  }`}
+                onClick={() => setIsOpen(false)}
               >
-                <span style={linkIconStyle}>{link.icon}</span>
+                <span className="flex mr-3 text-inherit">{link.icon}</span>
                 <span>{link.label}</span>
               </Link>
             ))}
-            
-            <Link 
-              to="/search" 
-              style={getLinkStyle(isActiveLink('/search'))}
+
+            <Link
+              to="/search"
+              className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/search')
+                  ? 'bg-indigo-50 text-blue-800 font-semibold'
+                  : 'bg-transparent text-gray-500 font-normal'
+                }`}
               onClick={() => setIsOpen(false)}
             >
-              <span style={linkIconStyle}><Search size={20} /></span>
+              <span className="flex mr-3 text-inherit"><Search size={20} /></span>
               <span>Search</span>
             </Link>
-            
-            <Link 
-              to="/playlists" 
-              style={getLinkStyle(isActiveLink('/playlists'))}
+
+            <Link
+              to="/playlists"
+              className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/playlists')
+                  ? 'bg-indigo-50 text-blue-800 font-semibold'
+                  : 'bg-transparent text-gray-500 font-normal'
+                }`}
               onClick={() => setIsOpen(false)}
             >
-              <span style={linkIconStyle}><ShoppingBag size={20} /></span>
+              <span className="flex mr-3 text-inherit"><ShoppingBag size={20} /></span>
               <span>Playlists</span>
             </Link>
-            
-            <Link 
-              to="/favorites" 
-              style={getLinkStyle(isActiveLink('/favorites'))}
+
+            <Link
+              to="/favorites"
+              className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/favorites')
+                  ? 'bg-indigo-50 text-blue-800 font-semibold'
+                  : 'bg-transparent text-gray-500 font-normal'
+                }`}
               onClick={() => setIsOpen(false)}
             >
-              <span style={linkIconStyle}><Heart size={20} /></span>
+              <span className="flex mr-3 text-inherit"><Heart size={20} /></span>
               <span>Favorites</span>
             </Link>
           </div>
 
           {/* Divider */}
-          <div style={dividerStyle}></div>
+          <div className="h-px bg-gray-200 my-4"></div>
 
           {/* Settings & Logout */}
           <div>
-            <Link 
-              to="/settings" 
-              style={getLinkStyle(isActiveLink('/settings'))}
+            <Link
+              to="/settings"
+              className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/settings')
+                  ? 'bg-indigo-50 text-blue-800 font-semibold'
+                  : 'bg-transparent text-gray-500 font-normal'
+                }`}
               onClick={() => setIsOpen(false)}
             >
-              <span style={linkIconStyle}><Settings size={20} /></span>
+              <span className="flex mr-3 text-inherit"><Settings size={20} /></span>
               <span>Settings</span>
             </Link>
-            
+
             {user && (
               <button
                 onClick={() => {
                   logout();
                   setIsOpen(false);
                 }}
-                style={{
-                  ...getLinkStyle(false),
-                  width: '100%',
-                  textAlign: 'left',
-                  border: 'none',
-                  backgroundColor: 'transparent'
-                }}
+                className="flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out text-gray-500 font-normal w-full text-left border-none bg-transparent"
               >
-                <span style={linkIconStyle}><LogOut size={20} /></span>
+                <span className="flex mr-3 text-inherit"><LogOut size={20} /></span>
                 <span>Logout</span>
               </button>
             )}

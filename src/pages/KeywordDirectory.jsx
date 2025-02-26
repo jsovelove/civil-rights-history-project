@@ -16,7 +16,6 @@ export default function KeywordDirectory() {
     fetchAndProcessKeywords();
   }, []);
 
-  // The original logic functions remain unchanged
   const fetchAndProcessKeywords = async () => {
     try {
       setLoading(true);
@@ -118,21 +117,8 @@ export default function KeywordDirectory() {
   // Loading state
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#f9fafb'
-      }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          border: '4px solid #e5e7eb',
-          borderTopColor: '#3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
         <style>{`
           @keyframes spin {
             to { transform: rotate(360deg); }
@@ -145,21 +131,8 @@ export default function KeywordDirectory() {
   // Error state
   if (error) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#f9fafb'
-      }}>
-        <div style={{
-          backgroundColor: '#fee2e2',
-          border: '1px solid #ef4444',
-          color: '#b91c1c',
-          padding: '16px 24px',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="bg-red-100 border border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
           {error}
         </div>
       </div>
@@ -167,45 +140,22 @@ export default function KeywordDirectory() {
   }
 
   return (
-    <div style={{
-      maxWidth: '1280px',
-      margin: '0 auto',
-      padding: '24px',
-      backgroundColor: '#f9fafb',
-      minHeight: '100vh',
-      fontFamily: 'Inter, system-ui, sans-serif'
-    }}>
+    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
       {/* Page header */}
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: '700',
-          color: '#111827',
-          margin: '0 0 16px 0'
-        }}>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
           Keyword Directory
         </h1>
-        <p style={{
-          fontSize: '16px',
-          lineHeight: '1.6',
-          color: '#4b5563',
-          maxWidth: '800px'
-        }}>
+        <p className="text-base text-gray-600 max-w-3xl leading-relaxed">
           Browse all keywords from the interview collection. Click on any keyword to see details,
           or create a custom playlist based on specific keywords.
         </p>
       </div>
 
       {/* Search filter */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ maxWidth: '400px' }}>
-          <label style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#374151',
-            marginBottom: '8px'
-          }}>
+      <div className="mb-6">
+        <div className="max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Filter Keywords
           </label>
           <input
@@ -213,99 +163,35 @@ export default function KeywordDirectory() {
             placeholder="Type to filter..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 16px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s, box-shadow 0.2s'
-            }}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
       </div>
 
       {/* Stats summary */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        padding: '24px',
-        marginBottom: '24px'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '24px'
-        }}>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '16px',
-            backgroundColor: '#eff6ff',
-            borderRadius: '8px'
-          }}>
-            <div style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#1e40af',
-              marginBottom: '8px'
-            }}>
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-800 mb-2">
               {keywordData.length}
             </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280'
-            }}>
+            <div className="text-sm text-gray-500">
               Total Keywords
             </div>
           </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '16px',
-            backgroundColor: '#ecfdf5',
-            borderRadius: '8px'
-          }}>
-            <div style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#047857',
-              marginBottom: '8px'
-            }}>
+          <div className="flex flex-col items-center p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-800 mb-2">
               {keywordData.reduce((sum, item) => sum + item.count, 0)}
             </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280'
-            }}>
+            <div className="text-sm text-gray-500">
               Total Mentions
             </div>
           </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '16px',
-            backgroundColor: '#f5f3ff',
-            borderRadius: '8px'
-          }}>
-            <div style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#6d28d9',
-              marginBottom: '8px'
-            }}>
+          <div className="flex flex-col items-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-2xl font-bold text-purple-800 mb-2">
               {formatTime(keywordData.reduce((sum, item) => sum + item.totalLengthSeconds, 0))}
             </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280'
-            }}>
+            <div className="text-sm text-gray-500">
               Total Content Duration
             </div>
           </div>
@@ -313,115 +199,42 @@ export default function KeywordDirectory() {
       </div>
 
       {/* Keywords list */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        overflow: 'hidden'
-      }}>
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {filteredKeywords.length === 0 ? (
-          <div style={{
-            padding: '24px',
-            textAlign: 'center',
-            color: '#6b7280'
-          }}>
+          <div className="p-6 text-center text-gray-500">
             No keywords found matching your search.
           </div>
         ) : (
-          <ul style={{ 
-            listStyle: 'none', 
-            margin: 0, 
-            padding: 0,
-            borderTop: '1px solid #f3f4f6' 
-          }}>
+          <ul className="list-none m-0 p-0 border-t border-gray-100">
             {filteredKeywords.map((item) => (
               <li 
                 key={item.keyword} 
-                style={{ 
-                  borderBottom: '1px solid #f3f4f6',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                className="border-b border-gray-100 transition-colors hover:bg-gray-50"
               >
-                <div style={{ padding: '24px' }}>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '16px',
-                    '@media (min-width: 640px)': {
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }
-                  }}>
+                <div className="p-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 
-                        style={{
-                          fontSize: '18px',
-                          fontWeight: '600',
-                          color: '#2563eb',
-                          margin: '0 0 8px 0',
-                          cursor: 'pointer',
-                          transition: 'color 0.2s'
-                        }}
+                        className="text-lg font-semibold text-blue-600 mb-2 cursor-pointer transition-colors hover:text-blue-800"
                         onClick={() => toggleKeyword(item.keyword)}
-                        onMouseEnter={(e) => e.target.style.color = '#1e40af'}
-                        onMouseLeave={(e) => e.target.style.color = '#2563eb'}
                       >
                         {item.keyword}
                       </h3>
-                      <div style={{ margin: '8px 0' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '4px 10px',
-                          borderRadius: '9999px',
-                          backgroundColor: '#dbeafe',
-                          color: '#1e40af',
-                          fontSize: '13px',
-                          fontWeight: '500',
-                          marginRight: '8px'
-                        }}>
+                      <div className="my-2">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium mr-2">
                           {item.count} mentions
                         </span>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '4px 10px',
-                          borderRadius: '9999px',
-                          backgroundColor: '#dcfce7',
-                          color: '#047857',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
                           {formatTime(item.totalLengthSeconds)} total length
                         </span>
                       </div>
                     </div>
-                    <div style={{
-                      display: 'flex',
-                      gap: '8px'
-                    }}>
+                    <div className="flex gap-2">
                       <button
                         onClick={() => handleViewPlaylist(item.keyword)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '8px 12px',
-                          border: 'none',
-                          borderRadius: '6px',
-                          backgroundColor: '#2563eb',
-                          color: '#ffffff',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
+                        className="inline-flex items-center px-3 py-2 border-0 rounded-md bg-blue-600 text-white text-sm font-medium cursor-pointer transition-colors hover:bg-blue-700"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ marginRight: '6px' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mr-1.5">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -429,23 +242,9 @@ export default function KeywordDirectory() {
                       </button>
                       <button
                         onClick={() => handleEditPlaylist(item.keyword)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          backgroundColor: '#ffffff',
-                          color: '#4b5563',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-600 text-sm font-medium cursor-pointer transition-colors hover:bg-gray-50"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ marginRight: '6px' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mr-1.5">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         Edit
@@ -455,55 +254,24 @@ export default function KeywordDirectory() {
 
                   {/* Expanded content */}
                   {expandedKeyword === item.keyword && (
-                    <div style={{
-                      marginTop: '24px',
-                      paddingTop: '24px',
-                      borderTop: '1px solid #e5e7eb'
-                    }}>
-                      <h4 style={{
-                        fontSize: '16px',
-                        fontWeight: '500',
-                        color: '#4b5563',
-                        marginBottom: '16px'
-                      }}>Recent Mentions:</h4>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '16px'
-                      }}>
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-base font-medium text-gray-600 mb-4">
+                        Recent Mentions:
+                      </h4>
+                      <div className="flex flex-col gap-4">
                         {item.summaries.slice(0, 3).map((summary, idx) => (
-                          <div key={idx} style={{
-                            backgroundColor: '#f9fafb',
-                            borderRadius: '8px',
-                            padding: '16px'
-                          }}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between'
-                            }}>
-                              <span style={{
-                                fontSize: '13px',
-                                color: '#6b7280'
-                              }}>
+                          <div key={idx} className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500">
                                 {summary.timestamp}
                               </span>
                               {summary.documentName && (
-                                <span style={{
-                                  fontSize: '13px',
-                                  fontWeight: '500',
-                                  color: '#2563eb'
-                                }}>
+                                <span className="text-xs font-medium text-blue-600">
                                   {summary.documentName}
                                 </span>
                               )}
                             </div>
-                            <p style={{
-                              marginTop: '8px',
-                              color: '#4b5563',
-                              fontSize: '14px',
-                              lineHeight: '1.6'
-                            }}>
+                            <p className="mt-2 text-gray-600 text-sm leading-relaxed">
                               {summary.summary.substring(0, 200)}
                               {summary.summary.length > 200 ? '...' : ''}
                             </p>
@@ -511,23 +279,10 @@ export default function KeywordDirectory() {
                         ))}
                       </div>
                       {item.summaries.length > 3 && (
-                        <div style={{
-                          marginTop: '16px',
-                          textAlign: 'right'
-                        }}>
+                        <div className="mt-4 text-right">
                           <button
                             onClick={() => handleViewPlaylist(item.keyword)}
-                            style={{
-                              color: '#2563eb',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              transition: 'color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.color = '#1e40af'}
-                            onMouseLeave={(e) => e.target.style.color = '#2563eb'}
+                            className="text-blue-600 text-sm font-medium bg-transparent border-0 cursor-pointer transition-colors hover:text-blue-800"
                           >
                             View all {item.summaries.length} mentions →
                           </button>

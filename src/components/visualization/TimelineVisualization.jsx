@@ -69,14 +69,16 @@ export default function TimelineVisualization() {
         data.keywords.split(",").map(kw => kw.trim()) : 
         [];
       
-      // Create description text with embedded button
+      // Create description text with embedded button - styled to match our design system
       const descriptionWithButton = `
         ${data.description || ""}
         <br><br>
         <button 
           class="relevant-interviews-button" 
           data-keywords="${encodeURIComponent(eventKeywords.join(","))}"
-          style="background-color: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; font-family: inherit; font-size: 14px;"
+          style="background-color: #2563eb; color: white; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; font-family: inherit; font-size: 14px; font-weight: 500; transition: background-color 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
+          onmouseover="this.style.backgroundColor = '#1d4ed8'"
+          onmouseout="this.style.backgroundColor = '#2563eb'"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width: 20px; height: 20px; margin-right: 8px;">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
@@ -120,24 +122,49 @@ export default function TimelineVisualization() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      <div className="flex justify-center items-center h-96 bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">{error}</div>;
+    return (
+      <div className="bg-red-100 border border-red-500 text-red-700 px-6 py-4 rounded-lg text-center mx-auto my-6 max-w-xl">
+        {error}
+      </div>
+    );
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      <div 
-        ref={timelineRef} 
-        id="timeline-embed" 
-        className="timeline-container" 
-        style={{ height: "600px" }} 
-      />
+    <div className="w-full max-w-7xl mx-auto p-6 bg-gray-50 font-sans">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Civil Rights Timeline
+        </h2>
+        <p className="text-base leading-relaxed text-gray-600">
+          Explore key events from the Civil Rights Movement, with links to relevant interview recordings.
+        </p>
+      </div>
+      
+      <div className="bg-white rounded-xl shadow-md overflow-hidden p-0 mb-6">
+        <div 
+          ref={timelineRef} 
+          id="timeline-embed" 
+          style={{ height: "600px", width: "100%", position: "relative" }} 
+        />
+      </div>
+      
+      <div className="bg-indigo-50 rounded-xl p-4 px-6 border-l-4 border-indigo-500">
+        <p className="text-sm leading-relaxed text-indigo-800 m-0">
+          <strong>Tip:</strong> Click on any event to see details, and use the "Relevant Interviews" button to find related interview recordings.
+        </p>
+      </div>
     </div>
   );
 }

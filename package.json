@@ -16,7 +16,7 @@
     "@mui/lab": "^6.0.0-beta.28",
     "@mui/material": "^6.4.5",
     "@nivo/circle-packing": "^0.88.0",
-    "@tailwindcss/vite": "^4.0.7",
+    "@tailwindcss/vite": "^4.0.9",
     "@visx/group": "^3.12.0",
     "@visx/hierarchy": "^3.12.0",
     "@visx/scale": "^3.12.0",
@@ -54,7 +54,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.5.2",
-    "tailwindcss": "^4.0.7",
+    "tailwindcss": "^4.0.9",
     "vite": "^5.1.0"
   }
 }

@@ -13,7 +13,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="flex flex-row h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-row h-screen w-full overflow-hidden bg-white">
       {/* Fixed width sidebar */}
       <div className="flex-none w-60">
         <Sidebar />

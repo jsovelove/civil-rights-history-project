@@ -6,77 +6,33 @@ export default function Home() {
   // Set default active tab to "timeline"
   const [activeTab, setActiveTab] = useState('timeline');
   const { user } = useAuth();
-
+  
   // Reorder the tab array so that "timeline" is first.
   const tabs = ['timeline', 'keywords', 'map', 'people'];
-
+  
   return (
-    <div style={{
-      maxWidth: '1280px',
-      margin: '0 auto',
-      padding: '24px',
-      backgroundColor: '#f9fafb',
-      minHeight: '100vh',
-      fontFamily: 'Inter, system-ui, sans-serif'
-    }}>
+    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
       {/* Hero Section */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '32px'
-      }}>
-        <h1 style={{
-          fontSize: '36px',
-          fontWeight: '700',
-          background: 'linear-gradient(to right, #2563eb, #4f46e5)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          color: 'transparent',
-          margin: '0 0 24px 0'
-        }}>
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text mb-6">
           Civil Rights History Project
         </h1>
       </div>
-
+      
       {/* Visualization Section */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        marginBottom: '24px'
-      }}>
+      <div className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 mb-6">
         {/* Tabs */}
-        <div style={{
-          borderBottom: '1px solid #e5e7eb'
-        }}>
-          <ul style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            margin: 0,
-            padding: 0,
-            listStyle: 'none'
-          }}>
+        <div className="border-b border-gray-200">
+          <ul className="flex flex-wrap m-0 p-0 list-none">
             {tabs.map((tab) => (
-              <li key={tab} style={{
-                flex: '1'
-              }}>
+              <li key={tab} className="flex-1">
                 <button
                   onClick={() => setActiveTab(tab)}
-                  style={{
-                    width: '100%',
-                    padding: '16px 4px',
-                    fontSize: '15px',
-                    textAlign: 'center',
-                    transition: 'all 0.3s ease',
-                    backgroundColor: activeTab === tab ? '#eef2ff' : 'transparent',
-                    color: activeTab === tab ? '#1e40af' : '#6b7280',
-                    fontWeight: activeTab === tab ? '600' : '400',
-                    borderBottom: activeTab === tab ? '2px solid #2563eb' : 'none',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
+                  className={`w-full py-4 px-1 text-sm text-center transition-all duration-300 cursor-pointer border-0 ${
+                    activeTab === tab 
+                      ? 'bg-indigo-50 text-blue-800 font-semibold border-b-2 border-blue-600' 
+                      : 'bg-transparent text-gray-500 font-normal border-b-0'
+                  }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
@@ -84,11 +40,9 @@ export default function Home() {
             ))}
           </ul>
         </div>
-
+        
         {/* Render the active visualization */}
-        <div style={{
-          padding: '24px'
-        }}>
+        <div className="p-6">
           <VisualizationContainer activeVisualization={activeTab} />
         </div>
       </div>

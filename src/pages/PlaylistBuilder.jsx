@@ -430,53 +430,24 @@ const PlaylistBuilder = () => {
   const hasVideos = videoQueue.length > 0;
 
   return (
-    <div style={{
-      maxWidth: '1280px',
-      margin: '0 auto',
-      padding: '24px',
-      backgroundColor: '#f9fafb',
-      minHeight: '100vh',
-      fontFamily: 'Inter, system-ui, sans-serif'
-    }}>
+    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
       {/* Page header */}
-      <div style={{
-        marginBottom: '24px'
-      }}>
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: '700',
-          color: '#111827',
-          margin: '0 0 8px 0'
-        }}>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Keyword Playlist
         </h1>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <span style={{
-            backgroundColor: '#dbeafe',
-            color: '#1e40af',
-            fontSize: '14px',
-            fontWeight: '600',
-            padding: '4px 12px',
-            borderRadius: '6px'
-          }}>
+        <div className="flex items-center">
+          <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-md">
             {keyword}
           </span>
         </div>
       </div>
 
       {/* Main content area */}
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         {/* UpNext Box positioned to the right */}
         {nextKeyword && (
-          <div style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            zIndex: '10'
-          }}>
+          <div className="absolute top-0 right-0 z-10">
             <UpNextBox
               nextKeyword={nextKeyword}
               thumbnailUrl={nextKeywordThumbnail}
@@ -486,24 +457,9 @@ const PlaylistBuilder = () => {
         )}
 
         {/* Video Player Container */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          padding: '24px',
-          marginBottom: '24px'
-        }}>
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           {/* Video player */}
-          <div style={{
-            width: '100%',
-            maxWidth: '720px',
-            height: '480px',
-            backgroundColor: '#000000',
-            margin: '0 auto',
-            position: 'relative',
-            borderRadius: '8px',
-            overflow: 'hidden'
-          }}>
+          <div className="w-full max-w-2xl h-120 bg-black mx-auto relative rounded-lg overflow-hidden">
             {currentVideo ? (
               <iframe
                 ref={iframeRef}
@@ -514,24 +470,10 @@ const PlaylistBuilder = () => {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 title="YouTube video player"
-                style={{
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  width: '100%',
-                  height: '100%'
-                }}
+                className="absolute top-0 left-0 w-full h-full"
               ></iframe>
             ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                height: '100%',
-                color: '#ffffff',
-                fontWeight: '500'
-              }}>
+              <div className="flex items-center justify-center w-full h-full text-white font-medium">
                 No videos available
               </div>
             )}
@@ -539,13 +481,7 @@ const PlaylistBuilder = () => {
 
           {/* Timeline */}
           {hasVideos && (
-            <div style={{
-              marginTop: '24px',
-              marginBottom: '16px',
-              width: '100%',
-              maxWidth: '720px',
-              margin: '24px auto 0'
-            }}>
+            <div className="mt-6 mb-4 w-full max-w-2xl mx-auto">
               <IntegratedTimeline
                 videoQueue={videoQueue}
                 currentVideoIndex={currentVideoIndex}
@@ -557,14 +493,7 @@ const PlaylistBuilder = () => {
           )}
           
           {/* Integrated player controls */}
-          <div style={{
-            width: '100%',
-            maxWidth: '720px',
-            margin: '20px auto 0',
-            display: 'flex',
-            justifyContent: 'center',
-            padding: '12px 0'
-          }}>
+          <div className="w-full max-w-2xl mx-auto flex justify-center py-3 mt-5">
             <PlayerControls
               onPrevious={handlePrevious}
               onPlay={handlePlayVideo}
@@ -579,41 +508,15 @@ const PlaylistBuilder = () => {
 
         {/* Video info card */}
         {currentVideo && (
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-            padding: '24px',
-            marginBottom: '24px'
-          }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: '0 0 8px 0'
-            }}>
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
               {currentVideo.name}
             </h2>
-            <p style={{
-              fontSize: '14px',
-              fontStyle: 'italic',
-              color: '#6b7280',
-              margin: '0 0 16px 0'
-            }}>
+            <p className="text-sm italic text-gray-500 mb-4">
               {currentVideo.role}
             </p>
-            <div style={{
-              backgroundColor: '#f9fafb',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <p style={{
-                margin: '0',
-                fontSize: '15px',
-                lineHeight: '1.6',
-                color: '#374151'
-              }}>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <p className="m-0 text-base leading-relaxed text-gray-700">
                 {currentVideo.summary}
               </p>
             </div>
