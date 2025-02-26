@@ -49,7 +49,6 @@ const IntegratedTimeline = ({
 
   return (
     <div>
-      <h3 style={{ marginBottom: '10px', fontWeight: 'bold' }}>Video Timeline</h3>
 
       {/* Thumbnail Row */}
       <div 

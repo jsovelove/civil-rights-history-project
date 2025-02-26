@@ -54,12 +54,12 @@ export default function TranscriptSummary() {
       reader.readAsText(file);
     });
   };
+  console.log(import.meta.env.VITE_OPENAI_API_KEY)
 
-  const getSummariesFromChatGPT = async (transcript) => {
+  const getSummariesFromChatGPT = async (transcript, retries = 3, delay = 2000) => {
     try {
-      // Note: Replace with your actual API key mechanism
       const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      
+  
       const systemMessage = `
         You are an assistant that processes interview transcripts into structured summaries with timestamps and keywords.
         
@@ -73,7 +73,7 @@ export default function TranscriptSummary() {
            Keywords: [Comma-separated list of keywords]
            Summary: [Provide a short summary of the first key topic.]
       `;
-
+  
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -81,7 +81,7 @@ export default function TranscriptSummary() {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "gpt-4",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: `Here is a transcript:\n${transcript}\n\nGenerate an overall summary, key points with timestamps, and keywords.` },
@@ -89,11 +89,16 @@ export default function TranscriptSummary() {
           max_tokens: 1000,
         }),
       });
-
+  
       if (!response.ok) {
+        if (response.status === 429 && retries > 0) {
+          console.warn(`Rate limit exceeded. Retrying in ${delay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before retrying
+          return getSummariesFromChatGPT(transcript, retries - 1, delay * 2); // Retry with increased delay
+        }
         throw new Error(`API request failed: ${response.statusText}`);
       }
-
+  
       const data = await response.json();
       return parseGPTResponse(data.choices[0].message.content);
     } catch (error) {
@@ -101,6 +106,7 @@ export default function TranscriptSummary() {
       throw error;
     }
   };
+  
 
   const parseGPTResponse = (response) => {
     const overallSummaryMatch = response.match(/Overall Summary:\s*(.+)/i);

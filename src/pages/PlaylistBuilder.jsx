@@ -6,6 +6,8 @@ import { parseKeywords, extractVideoId, convertTimestampToSeconds, extractStartT
 import IntegratedTimeline from "../components/IntegratedTimeline";
 import PlayerControls from "../components/PlayerControls";
 import UpNextBox from "../components/UpNextBox";
+import ShuffleButton from "../components/ShuffleButton";
+import ConfirmationModal from "../components/ConfirmationModel";
 
 const PlaylistBuilder = () => {
   const [searchParams] = useSearchParams();
@@ -19,6 +21,9 @@ const PlaylistBuilder = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [playlistTime, setPlaylistTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
+  const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
+
+
 
   // New state for Up Next feature
   const [availableKeywords, setAvailableKeywords] = useState([]);
@@ -32,7 +37,6 @@ const PlaylistBuilder = () => {
   const autoplayTimeoutRef = useRef(null);
 
   useEffect(() => {
-    // Debug total duration calculation
     if (videoQueue.length > 0) {
       const calculatedDuration = videoQueue.reduce((total, video) => {
         const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
@@ -43,7 +47,6 @@ const PlaylistBuilder = () => {
     }
   }, [videoQueue]);
 
-  // Get keyword from URL
   useEffect(() => {
     const keywordParam = searchParams.get("keywords");
     if (keywordParam) {
@@ -256,6 +259,23 @@ const PlaylistBuilder = () => {
     if (nextKeyword) {
       navigate(`?keywords=${encodeURIComponent(nextKeyword)}`);
     }
+  };
+
+  // Handle the initial shuffle button click
+  const handleShuffleClick = () => {
+    setShowShuffleConfirmation(true);
+  };
+
+  // Handle shuffle confirmation
+  const handleShuffleConfirm = () => {
+    setShowShuffleConfirmation(false);
+    // Use the existing search function which already includes shuffle logic
+    searchVideos();
+  };
+
+  // Handle cancellation
+  const handleShuffleCancel = () => {
+    setShowShuffleConfirmation(false);
   };
 
   // Utility function to shuffle an array
@@ -491,9 +511,9 @@ const PlaylistBuilder = () => {
               />
             </div>
           )}
-          
+
           {/* Integrated player controls */}
-          <div className="w-full max-w-2xl mx-auto flex justify-center py-3 mt-5">
+          <div className="w-full max-w-2xl mx-auto flex justify-center items-center py-3 mt-5">
             <PlayerControls
               onPrevious={handlePrevious}
               onPlay={handlePlayVideo}
@@ -503,28 +523,40 @@ const PlaylistBuilder = () => {
               hasPrevious={currentVideoIndex > 0}
               hasNext={currentVideoIndex < videoQueue.length - 1}
             />
-          </div>
-        </div>
-
-        {/* Video info card */}
-        {currentVideo && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {currentVideo.name}
-            </h2>
-            <p className="text-sm italic text-gray-500 mb-4">
-              {currentVideo.role}
-            </p>
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <p className="m-0 text-base leading-relaxed text-gray-700">
-                {currentVideo.summary}
-              </p>
+            <div className="ml-4">
+              <ShuffleButton onClick={handleShuffleClick} />
             </div>
           </div>
-        )}
+
+          {/* Video info card */}
+          {currentVideo && (
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {currentVideo.name}
+              </h2>
+              <p className="text-sm italic text-gray-500 mb-4">
+                {currentVideo.role}
+              </p>
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p className="m-0 text-base leading-relaxed text-gray-700">
+                  {currentVideo.summary}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Add the ConfirmationModal right before the closing div */}
+      <ConfirmationModal
+        isOpen={showShuffleConfirmation}
+        onConfirm={handleShuffleConfirm}
+        onCancel={handleShuffleCancel}
+        message="Are you sure you want to hear a new set of clips on this topic?"
+      />
     </div>
   );
+
 };
 
 export default PlaylistBuilder;

@@ -42,7 +42,7 @@ export default function Sidebar() {
         className="fixed top-4 left-4 w-12 h-12 rounded-lg bg-white border-none shadow-sm cursor-pointer flex justify-center items-center text-gray-600 z-[51] transition-colors duration-200 ease-in-out"
         onClick={toggleSidebar}
       >
-        <Menu size={24} />
+        <Menu size={24} />  
       </button>
 
       {/* Overlay (visible when sidebar is open) */}
