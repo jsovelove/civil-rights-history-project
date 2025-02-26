@@ -66,28 +66,3 @@ This project provides a dynamic interface for users to engage with oral history 
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Key Components
-
-### `PlaylistBuilder`
-
-Allows users to search for and play interviews based on keywords. Creates playlists of interview segments and provides an interactive timeline for navigation.
-
-### `IntegratedTimeline`
-
-Displays a visual timeline of video segments with thumbnails and timestamps, allowing users to see the current position and navigate through the playlist.
-
-### `InterviewPlayer`
-
-Plays specific interviews with a responsive YouTube player and displays an accordion of timestamped segments.
-
-### `BubbleChart`
-
-Visualizes keywords as interactive bubbles, with size indicating frequency across all interviews.
-
-### `MapVisualization`
-
-Shows the birthplaces of interview subjects on an interactive map using Leaflet.
-
-### `TranscriptSummary`
-
-Allows users to upload interview transcripts for AI-powered summarization using the OpenAI API.
