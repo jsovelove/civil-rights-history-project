@@ -1,14 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import "timelinejs3/compiled/css/timeline.css";
 import { Timeline } from "@knight-lab/timelinejs";
+import { useNavigate } from 'react-router-dom';
 
 export default function TimelineVisualization() {
   const timelineRef = useRef(null);
   const [timelineData, setTimelineData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  // Store navigate function in a ref to access it in the event listener
+  const navigateRef = useRef();
+  navigateRef.current = navigate;
 
   useEffect(() => {
     async function fetchTimelineEvents() {
@@ -114,7 +120,8 @@ export default function TimelineVisualization() {
         e.stopPropagation();
         const keywords = this.dataset.keywords;
         if (keywords) {
-          window.location.href = `/playlist-builder?keywords=${keywords}`;
+          // Use the navigateRef to access the current navigate function
+          navigateRef.current(`/playlist-builder?keywords=${keywords}`);
         }
       });
     });

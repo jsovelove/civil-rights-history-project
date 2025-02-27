@@ -1,4 +1,3 @@
-// src/pages/KeywordDirectory.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
@@ -184,7 +183,7 @@ export default function KeywordDirectory() {
               {keywordData.reduce((sum, item) => sum + item.count, 0)}
             </div>
             <div className="text-sm text-gray-500">
-              Total Mentions
+              Total Clips
             </div>
           </div>
           <div className="flex flex-col items-center p-4 bg-purple-50 rounded-lg">
@@ -222,7 +221,7 @@ export default function KeywordDirectory() {
                       </h3>
                       <div className="my-2">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium mr-2">
-                          {item.count} mentions
+                          {item.count} clips
                         </span>
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
                           {formatTime(item.totalLengthSeconds)} total length
@@ -256,7 +255,7 @@ export default function KeywordDirectory() {
                   {expandedKeyword === item.keyword && (
                     <div className="mt-6 pt-6 border-t border-gray-200">
                       <h4 className="text-base font-medium text-gray-600 mb-4">
-                        Recent Mentions:
+                        Recent Clips:
                       </h4>
                       <div className="flex flex-col gap-4">
                         {item.summaries.slice(0, 3).map((summary, idx) => (
@@ -284,7 +283,7 @@ export default function KeywordDirectory() {
                             onClick={() => handleViewPlaylist(item.keyword)}
                             className="text-blue-600 text-sm font-medium bg-transparent border-0 cursor-pointer transition-colors hover:text-blue-800"
                           >
-                            View all {item.summaries.length} mentions →
+                            View all {item.summaries.length} clips →
                           </button>
                         </div>
                       )}

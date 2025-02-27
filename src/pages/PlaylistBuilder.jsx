@@ -8,6 +8,8 @@ import PlayerControls from "../components/PlayerControls";
 import UpNextBox from "../components/UpNextBox";
 import ShuffleButton from "../components/ShuffleButton";
 import ConfirmationModal from "../components/ConfirmationModel";
+import MetadataPanel from "../components/MetadataPanel"; // Import the new component
+import RelatedClips from "../components/RelatedClips"; // Import the related clips component
 
 const PlaylistBuilder = () => {
   const [searchParams] = useSearchParams();
@@ -22,8 +24,6 @@ const PlaylistBuilder = () => {
   const [playlistTime, setPlaylistTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
-
-
 
   // New state for Up Next feature
   const [availableKeywords, setAvailableKeywords] = useState([]);
@@ -277,6 +277,19 @@ const PlaylistBuilder = () => {
   const handleShuffleCancel = () => {
     setShowShuffleConfirmation(false);
   };
+  
+  // Handle metadata updates from the MetadataPanel
+  const handleMetadataUpdate = (updatedMetadata) => {
+    // Update the video in the queue
+    setVideoQueue(prevQueue => {
+      const newQueue = [...prevQueue];
+      newQueue[currentVideoIndex] = {
+        ...newQueue[currentVideoIndex],
+        ...updatedMetadata
+      };
+      return newQueue;
+    });
+  };
 
   // Utility function to shuffle an array
   const shuffleArray = (array) => {
@@ -300,6 +313,13 @@ const PlaylistBuilder = () => {
       if (results.length > 0) {
         // Shuffle and pick up to 3 random videos
         results = shuffleArray(results).slice(0, 3);
+        
+        // Make sure we have thumbnails for all videos (should be handled by fetchRelevantSegments now)
+        results.forEach(result => {
+          if (!result.thumbnailUrl) {
+            console.log("Missing thumbnail for clip:", result.id, "in document:", result.documentName);
+          }
+        });
 
         console.log(`Selected ${results.length} random videos`);
         setVideoQueue(results);
@@ -329,6 +349,12 @@ const PlaylistBuilder = () => {
     for (const interviewDoc of interviewsSnapshot.docs) {
       const interviewId = interviewDoc.id;
       const interviewData = interviewDoc.data();
+      
+      // Get the parent document's videoEmbedLink for thumbnails
+      const parentVideoEmbedLink = interviewData.videoEmbedLink;
+      const thumbnailUrl = parentVideoEmbedLink ? 
+        `https://img.youtube.com/vi/${extractVideoId(parentVideoEmbedLink)}/mqdefault.jpg` : null;
+      
       const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
       const querySnapshot = await getDocs(subSummariesRef);
 
@@ -341,7 +367,8 @@ const PlaylistBuilder = () => {
             id: docSnapshot.id,
             documentName: interviewId,
             ...subSummary,
-            ...interviewData
+            ...interviewData,
+            thumbnailUrl // Use the parent document's videoEmbedLink for thumbnails
           });
         }
       });
@@ -527,27 +554,43 @@ const PlaylistBuilder = () => {
               <ShuffleButton onClick={handleShuffleClick} />
             </div>
           </div>
-
-          {/* Video info card */}
-          {currentVideo && (
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                {currentVideo.name}
-              </h2>
-              <p className="text-sm italic text-gray-500 mb-4">
-                {currentVideo.role}
-              </p>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <p className="m-0 text-base leading-relaxed text-gray-700">
-                  {currentVideo.summary}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Add the Metadata Panel with edit capability */}
+        {currentVideo && (
+          <MetadataPanel 
+            metadata={currentVideo} 
+            onMetadataUpdate={handleMetadataUpdate}
+          />
+        )}
+
+        {/* Video info card */}
+        {currentVideo && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {currentVideo.name}
+            </h2>
+            <p className="text-sm italic text-gray-500 mb-4">
+              {currentVideo.role}
+            </p>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <p className="m-0 text-base leading-relaxed text-gray-700">
+                {currentVideo.summary}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add the ConfirmationModal right before the closing div */}
+      {/* Related Clips Section */}
+      {keyword && videoQueue.length > 0 && (
+        <RelatedClips
+          currentKeyword={keyword}
+          excludeIds={videoQueue.map(video => video.id)}
+        />
+      )}
+      
       <ConfirmationModal
         isOpen={showShuffleConfirmation}
         onConfirm={handleShuffleConfirm}
@@ -556,7 +599,6 @@ const PlaylistBuilder = () => {
       />
     </div>
   );
-
 };
 
 export default PlaylistBuilder;

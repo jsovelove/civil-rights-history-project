@@ -6,6 +6,8 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { Zoom } from '@visx/zoom';
 import KeywordPlaylistLink from '../common/KeywordPlaylistLink';
+import { useNavigate } from 'react-router-dom';
+
 
 const defaultMargin = { top: 40, right: 40, bottom: 40, left: 40 };
 
@@ -39,6 +41,7 @@ export default function BubbleChartVisx() {
     height: window.innerHeight
   });
 
+  const navigate = useNavigate();
   // Update dimensions on window resize
   useEffect(() => {
     const handleResize = () => {
@@ -109,7 +112,7 @@ export default function BubbleChartVisx() {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50 px-6">
@@ -119,7 +122,7 @@ export default function BubbleChartVisx() {
       </div>
     );
   }
-  
+
   if (!data) return null;
 
   // Create d3-hierarchy root node, summing by keyword count
@@ -186,8 +189,8 @@ export default function BubbleChartVisx() {
             This topic appears <strong>{selectedBubble.value}</strong> times across all interviews.
           </p>
           <div>
-            <button 
-              onClick={() => window.location.href = `/playlist-builder?keywords=${encodeURIComponent(selectedBubble.name)}`}
+            <button
+              onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(selectedBubble.name)}`)}
               className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium text-sm rounded-lg cursor-pointer flex items-center justify-center hover:bg-blue-700 transition-colors shadow-sm"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-2">
@@ -206,20 +209,20 @@ export default function BubbleChartVisx() {
         scaleXMax={3}
         scaleYMin={0.5}
         scaleYMax={3}
-        initialTransformMatrix={{ 
-          scaleX: 1, 
-          scaleY: 1, 
-          translateX: 0, 
-          translateY: 0, 
-          skewX: 0, 
-          skewY: 0 
+        initialTransformMatrix={{
+          scaleX: 1,
+          scaleY: 1,
+          translateX: 0,
+          translateY: 0,
+          skewX: 0,
+          skewY: 0
         }}
       >
         {(zoom) => (
           <div className="w-full h-full overflow-hidden relative touch-none flex justify-center items-center">
-            <svg 
-              width="100%" 
-              height="100%" 
+            <svg
+              width="100%"
+              height="100%"
               ref={zoom.containerRef}
               className="bg-white rounded-xl shadow-md mx-4 my-4 mt-20" // Margin top for header
             >
@@ -234,17 +237,17 @@ export default function BubbleChartVisx() {
                   setSelectedBubble(null);
                 }}
               />
-              
+
               {/* Center the visualization */}
               <Pack root={root} size={[packWidth, packHeight]} padding={16}>
                 {(packData) => {
                   // Filter to only show leaf nodes (bubbles without children)
                   const circles = packData.descendants().filter((d) => !d.children);
                   return (
-                    <Group 
-                      transform={zoom.toString()} 
-                      top={defaultMargin.top + (packHeight/2 - packData.r)} 
-                      left={defaultMargin.left + (packWidth/2 - packData.r)}
+                    <Group
+                      transform={zoom.toString()}
+                      top={defaultMargin.top + (packHeight / 2 - packData.r)}
+                      left={defaultMargin.left + (packWidth / 2 - packData.r)}
                     >
                       {circles.map((circle, i) => {
                         // Use computed circle radius (with a minimum value)
@@ -259,7 +262,7 @@ export default function BubbleChartVisx() {
                         // Calculate vertical offset to center the text
                         const lineHeight = fontSize;
                         const dyOffset = lines.length > 1 ? -((lines.length - 1) * lineHeight) / 2 : 0;
-                        
+
                         // Set colors for bubbles
                         const strokeColor = isSelected ? '#2563eb' : '#d1d5db';
                         const strokeWidth = isSelected ? 3 : 1;
