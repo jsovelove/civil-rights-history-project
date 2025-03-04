@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Group } from '@visx/group';
 import { Pack } from '@visx/hierarchy';
 import { hierarchy } from 'd3-hierarchy';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { Zoom } from '@visx/zoom';
-import KeywordPlaylistLink from '../common/KeywordPlaylistLink';
 import { useNavigate } from 'react-router-dom';
-
+import debounce from 'lodash/debounce';
 
 const defaultMargin = { top: 40, right: 40, bottom: 40, left: 40 };
 
@@ -40,8 +39,20 @@ export default function BubbleChartVisx() {
     width: window.innerWidth,
     height: window.innerHeight
   });
+  const [visibleKeywords, setVisibleKeywords] = useState(150); // Default number of visible keywords
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterThreshold, setFilterThreshold] = useState(1); // Minimum frequency to display
 
   const navigate = useNavigate();
+
+  // Debounced version of setHoveredBubble
+  const debouncedSetHoveredBubble = useCallback(
+    debounce((bubble) => {
+      setHoveredBubble(bubble);
+    }, 50),
+    []
+  );
+
   // Update dimensions on window resize
   useEffect(() => {
     const handleResize = () => {
@@ -59,6 +70,7 @@ export default function BubbleChartVisx() {
     const fetchData = async () => {
       try {
         const keywordCounts = {};
+        // Consider using a more efficient query structure in Firestore
         const interviewsSnapshot = await getDocs(collection(db, 'interviewSummaries'));
 
         const fetchSubSummaries = interviewsSnapshot.docs.map(async (interviewDoc) => {
@@ -79,8 +91,8 @@ export default function BubbleChartVisx() {
         });
         await Promise.all(fetchSubSummaries);
 
-        // Convert data into hierarchy structure
-        const rootData = {
+        // Store the full dataset
+        const fullDataset = {
           name: 'keywords',
           children: Object.entries(keywordCounts).map(([keyword, count]) => ({
             name: keyword,
@@ -88,7 +100,7 @@ export default function BubbleChartVisx() {
           })),
         };
 
-        setData(rootData);
+        setData(fullDataset);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -99,6 +111,51 @@ export default function BubbleChartVisx() {
 
     fetchData();
   }, []);
+
+  // Filter and prepare data for visualization
+  const processedData = useMemo(() => {
+    if (!data) return null;
+
+    // Apply search filter if any
+    let filteredChildren = data.children;
+    
+    if (searchTerm) {
+      filteredChildren = filteredChildren.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply minimum threshold filter
+    filteredChildren = filteredChildren.filter(item => item.value >= filterThreshold);
+    
+    // Sort by value (frequency) in descending order
+    filteredChildren = [...filteredChildren].sort((a, b) => b.value - a.value);
+    
+    // Limit to top N keywords
+    const topKeywords = filteredChildren.slice(0, visibleKeywords);
+    
+    // If we have more than what we're showing, add an "Others" category
+    const otherKeywords = filteredChildren.slice(visibleKeywords);
+    
+    const result = {
+      name: 'keywords',
+      children: topKeywords,
+    };
+    
+    // Add "Others" group if needed and not searching
+    if (otherKeywords.length > 0 && !searchTerm) {
+      const otherCount = otherKeywords.reduce((sum, item) => sum + item.value, 0);
+      const otherKeywordCount = otherKeywords.length;
+      
+      result.children.push({
+        name: `${otherKeywordCount} more keywords`,
+        value: otherCount,
+        isOthers: true
+      });
+    }
+    
+    return result;
+  }, [data, visibleKeywords, searchTerm, filterThreshold]);
 
   if (loading) {
     return (
@@ -123,10 +180,10 @@ export default function BubbleChartVisx() {
     );
   }
 
-  if (!data) return null;
+  if (!processedData) return null;
 
   // Create d3-hierarchy root node, summing by keyword count
-  const root = hierarchy(data)
+  const root = hierarchy(processedData)
     .sum((d) => d.value)
     .sort((a, b) => b.value - a.value);
 
@@ -137,6 +194,12 @@ export default function BubbleChartVisx() {
 
   // Handle bubble click
   const handleBubbleClick = (circle) => {
+    // For "Others" bubble, show more items
+    if (circle.data.isOthers) {
+      setVisibleKeywords(prev => prev + 50);
+      return;
+    }
+    
     if (selectedBubble && selectedBubble.name === circle.data.name) {
       setSelectedBubble(null); // deselect if clicking the same bubble
     } else {
@@ -151,7 +214,8 @@ export default function BubbleChartVisx() {
   };
 
   // Calculate color based on bubble size
-  const getBubbleColor = (value, max) => {
+  const getBubbleColor = (value, max, isOthers) => {
+    if (isOthers) return "rgba(107, 114, 128, 0.3)"; // Gray for Others
     const intensity = Math.min(0.8, 0.3 + (value / max) * 0.5);
     return `rgba(37, 99, 235, ${intensity})`;
   };
@@ -161,19 +225,65 @@ export default function BubbleChartVisx() {
 
   return (
     <div className="w-full h-screen relative bg-gray-50 font-sans overflow-hidden">
-      {/* Header */}
-      <div className="absolute top-4 left-4 z-40 bg-white bg-opacity-90 p-3 rounded-lg shadow-sm max-w-md">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+      {/* Header with Controls */}
+      <div className="absolute top-4 left-4 z-40 bg-white bg-opacity-90 p-4 rounded-lg shadow-sm w-72">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">
           Keyword Visualization
         </h2>
-        <p className="text-sm leading-relaxed text-gray-600 m-0">
-          Explore keywords mentioned across all interviews. Bubble size indicates frequency of mentions.
+        
+        {/* Search box */}
+        <div className="mb-3">
+          <input
+            type="text"
+            placeholder="Search keywords..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          />
+        </div>
+        
+        {/* Controls */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Visible Keywords</label>
+            <select 
+              value={visibleKeywords} 
+              onChange={(e) => setVisibleKeywords(Number(e.target.value))}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="50">Top 50</option>
+              <option value="100">Top 100</option>
+              <option value="150">Top 150</option>
+              <option value="200">Top 200</option>
+              <option value="300">Top 300</option>
+              <option value="500">Top 500</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Min. Frequency</label>
+            <select 
+              value={filterThreshold} 
+              onChange={(e) => setFilterThreshold(Number(e.target.value))}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="5">5+</option>
+              <option value="10">10+</option>
+            </select>
+          </div>
+        </div>
+        
+        <p className="text-xs text-gray-500 mt-3">
+          Showing {root.children?.length || 0} keywords
+          {data && data.children && ` of ${data.children.length} total`}
         </p>
       </div>
 
       {/* Info panel for selected bubble */}
       {selectedBubble && (
-        <div className="absolute top-24 left-4 z-50 bg-white rounded-xl shadow-md p-4 max-w-xs border border-gray-200">
+        <div className="absolute top-36 left-4 z-50 bg-white rounded-xl shadow-md p-4 max-w-xs border border-gray-200">
           <div className="flex justify-between items-start">
             <h3 className="text-lg font-semibold text-gray-900 m-0">
               {selectedBubble.name}
@@ -253,6 +363,7 @@ export default function BubbleChartVisx() {
                         // Use computed circle radius (with a minimum value)
                         const radius = Math.max(circle.r, 20);
                         const isSelected = selectedBubble && selectedBubble.name === circle.data.name;
+                        const isOthers = circle.data.isOthers;
 
                         // Determine font size based on radius (capped)
                         const fontSize = Math.min(radius / 3.5, 14);
@@ -264,24 +375,25 @@ export default function BubbleChartVisx() {
                         const dyOffset = lines.length > 1 ? -((lines.length - 1) * lineHeight) / 2 : 0;
 
                         // Set colors for bubbles
-                        const strokeColor = isSelected ? '#2563eb' : '#d1d5db';
+                        const strokeColor = isSelected ? '#2563eb' : isOthers ? '#9ca3af' : '#d1d5db';
                         const strokeWidth = isSelected ? 3 : 1;
                         // Add very subtle color tint based on size
-                        const bubbleColor = isSelected ? '#f0f7ff' : '#ffffff';
+                        const bubbleColor = isSelected ? '#f0f7ff' : isOthers ? '#f3f4f6' : '#ffffff';
 
                         return (
                           <g
                             key={`circle-${i}`}
                             transform={`translate(${circle.x}, ${circle.y})`}
-                            onMouseEnter={(e) =>
-                              setHoveredBubble({
+                            onMouseEnter={() =>
+                              debouncedSetHoveredBubble({
                                 name: circle.data.name,
                                 value: circle.data.value,
-                                x: e.clientX,
-                                y: e.clientY,
+                                x: circle.x,
+                                y: circle.y,
+                                isOthers: circle.data.isOthers
                               })
                             }
-                            onMouseLeave={() => setHoveredBubble(null)}
+                            onMouseLeave={() => debouncedSetHoveredBubble(null)}
                             onClick={() => handleBubbleClick(circle)}
                             className="cursor-pointer"
                           >
@@ -296,7 +408,7 @@ export default function BubbleChartVisx() {
                               textAnchor="middle"
                               fontSize={fontSize}
                               fontWeight={isSelected ? 'bold' : 'normal'}
-                              fill="#111827"
+                              fill={isOthers ? "#6b7280" : "#111827"}
                               pointerEvents="none"
                               style={{
                                 fontFamily: 'Inter, system-ui, sans-serif'
@@ -326,14 +438,14 @@ export default function BubbleChartVisx() {
               <div
                 className="absolute bg-gray-900 bg-opacity-90 text-white p-2 px-3 rounded-lg pointer-events-none text-sm z-50 shadow-md max-w-xs"
                 style={{
-                  left: hoveredBubble.x + 8,
-                  top: hoveredBubble.y - 20,
+                  left: zoom.transformMatrix.translateX + hoveredBubble.x * zoom.transformMatrix.scaleX,
+                  top: zoom.transformMatrix.translateY + hoveredBubble.y * zoom.transformMatrix.scaleY - 20,
                 }}
               >
                 <div className="font-semibold">{hoveredBubble.name}</div>
                 <div>{hoveredBubble.value} mentions</div>
                 <div className="text-xs mt-1 text-blue-200">
-                  Click to explore
+                  {hoveredBubble.isOthers ? "Click to show more keywords" : "Click to explore"}
                 </div>
               </div>
             )}
