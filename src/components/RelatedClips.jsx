@@ -12,7 +12,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
     if (currentKeyword) {
       fetchRelatedClips(currentKeyword);
     }
-  }, [currentKeyword]);
+  }, [currentKeyword, excludeIds.toString()]); // Added excludeIds as a dependency
 
   const fetchRelatedClips = async (keyword) => {
     try {
@@ -36,12 +36,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
         const parentVideoEmbedLink = interviewData.videoEmbedLink;
         const parentThumbnailUrl = getThumbnailUrl(parentVideoEmbedLink);
         
-        // Log parent document info for debugging
-        if (parentVideoEmbedLink) {
-          console.log(`Parent document ${interviewId} has videoEmbedLink: ${parentVideoEmbedLink.substring(0, 50)}...`);
-        } else {
-          console.log(`Parent document ${interviewId} has no videoEmbedLink`);
-        }
+        
         
         const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
         const querySnapshot = await getDocs(subSummariesRef);
@@ -54,6 +49,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
           if (hasMatch && !excludeIds.includes(docSnapshot.id)) {
             results.push({
               id: docSnapshot.id,
+              documentId: `${interviewId}_${docSnapshot.id}`, // Create a truly unique ID
               documentName: interviewId,
               ...subSummary,
               ...interviewData,
@@ -69,8 +65,12 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
       const thumbnailCount = results.filter(r => r.thumbnailUrl).length;
       console.log(`Found thumbnails for ${thumbnailCount} out of ${results.length} clips`);
       
+      // Remove any duplicates by using a unique composite key
+      const uniqueResults = Array.from(new Map(
+        results.map(item => [`${item.id}_${item.documentName}`, item])
+      ).values());
       
-      setRelatedClips(results);
+      setRelatedClips(uniqueResults);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching related clips:", err);
@@ -159,9 +159,10 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
       
       <div className="overflow-x-auto pb-4">
         <div className="flex space-x-4" style={{ minWidth: 'min-content' }}>
-          {relatedClips.map(clip => (
+          {relatedClips.map((clip, index) => (
             <div 
-              key={clip.id} 
+              // Use a combination of index, id, and documentName to ensure uniqueness
+              key={`${clip.documentId || `${clip.id}_${clip.documentName}`}_${index}`}
               className="flex-shrink-0 w-64 bg-gray-50 rounded-md overflow-hidden shadow-sm"
             >
               {clip.thumbnailUrl ? (

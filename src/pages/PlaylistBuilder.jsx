@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../services/firebase";
-import { parseKeywords, extractVideoId, convertTimestampToSeconds, extractStartTimestamp, parseTimestampRange } from "../utils/timeUtils";
+import { parseKeywords, extractVideoId, parseTimestampRange } from "../utils/timeUtils";
 import IntegratedTimeline from "../components/IntegratedTimeline";
 import PlayerControls from "../components/PlayerControls";
 import UpNextBox from "../components/UpNextBox";
 import ShuffleButton from "../components/ShuffleButton";
 import ConfirmationModal from "../components/ConfirmationModel";
-import MetadataPanel from "../components/MetadataPanel"; // Import the new component
-import RelatedClips from "../components/RelatedClips"; // Import the related clips component
+import MetadataPanel from "../components/MetadataPanel";
+import RelatedClips from "../components/RelatedClips";
+import VideoPlayer from "../components/VideoPlayer";
 
 const PlaylistBuilder = () => {
   const [searchParams] = useSearchParams();
@@ -24,18 +25,17 @@ const PlaylistBuilder = () => {
   const [playlistTime, setPlaylistTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
+  const [seekToTime, setSeekToTime] = useState(null); // New state for seeking
 
-  // New state for Up Next feature
+  // Up Next feature state
   const [availableKeywords, setAvailableKeywords] = useState([]);
   const [nextKeyword, setNextKeyword] = useState("");
   const [nextKeywordThumbnail, setNextKeywordThumbnail] = useState("");
   const [playlistEnded, setPlaylistEnded] = useState(false);
 
-  const iframeRef = useRef(null);
-  const timerRef = useRef(null);
-  const lastTimeUpdateRef = useRef(Date.now());
   const autoplayTimeoutRef = useRef(null);
 
+  // Calculate total duration when videoQueue changes
   useEffect(() => {
     if (videoQueue.length > 0) {
       const calculatedDuration = videoQueue.reduce((total, video) => {
@@ -47,6 +47,7 @@ const PlaylistBuilder = () => {
     }
   }, [videoQueue]);
 
+  // Set keyword from URL params
   useEffect(() => {
     const keywordParam = searchParams.get("keywords");
     if (keywordParam) {
@@ -98,66 +99,11 @@ const PlaylistBuilder = () => {
     };
   }, [playlistEnded, nextKeyword, navigate]);
 
-  // Timer for tracking time
-  useEffect(() => {
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (videoQueue.length > 0 && isPlaying) {
-      console.log("Starting timer for manual time tracking");
-
-      timerRef.current = setInterval(() => {
-        setCurrentTime((prevTime) => {
-          const newTime = prevTime + 1; // Increment by 1 second
-
-          // Update playlist time based on elapsed time
-          setPlaylistTime(calculateElapsedTimeBeforeCurrent() + newTime);
-
-          // Auto-advance if the video reaches the end
-          const currentVideo = videoQueue[currentVideoIndex];
-          if (currentVideo) {
-            const { startSeconds, endSeconds } = parseTimestampRange(currentVideo.timestamp);
-            const duration = endSeconds - startSeconds;
-
-            if (newTime >= duration) {
-              console.log("End of video reached, auto-advancing");
-
-              // Check if this is the last video in the queue
-              if (currentVideoIndex === videoQueue.length - 1) {
-                console.log("Playlist ended, preparing to play next keyword");
-                setPlaylistEnded(true);
-                return newTime; // Keep the time to avoid auto-advancing
-              } else {
-                setTimeout(() => setCurrentVideoIndex((prev) => prev + 1), 500);
-                return 0; // Reset time for the next video
-              }
-            }
-          }
-
-          return newTime;
-        });
-      }, 1000); // Update every second
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [videoQueue, currentVideoIndex, isPlaying]);
-
-  // Update time tracking when changing videos
+  // Reset current time and seek state when changing videos
   useEffect(() => {
     if (videoQueue.length > 0) {
-      // Reset current time in this video
       setCurrentTime(0);
-
-      // But keep the playlist time, just update lastTimeUpdateRef
-      lastTimeUpdateRef.current = Date.now();
-
+      setSeekToTime(null); // Reset seek state when changing videos
       console.log("Video index changed to:", currentVideoIndex);
     }
   }, [currentVideoIndex]);
@@ -173,6 +119,20 @@ const PlaylistBuilder = () => {
     }
 
     return elapsed;
+  };
+
+  // Handle time updates from the video player
+  const handleTimeUpdate = (time) => {
+    setCurrentTime(time);
+    // Update playlist time based on elapsed time
+    setPlaylistTime(calculateElapsedTimeBeforeCurrent() + time);
+  };
+
+  // Handle seeking within current video
+  const handleSeek = (timeToSeek) => {
+    console.log(`Seeking to ${timeToSeek}s within current video`);
+    setSeekToTime(timeToSeek);
+    // No need to update currentTime here, it will be updated via handleTimeUpdate
   };
 
   // Fetch all available keywords from Firestore
@@ -296,6 +256,109 @@ const PlaylistBuilder = () => {
     return array.sort(() => Math.random() - 0.5);
   };
 
+  // Utility function to get video duration from YouTube
+  const getYouTubeVideoDuration = async (videoId) => {
+    // Use YouTube Data API if available, or fallback to loading video and checking
+    return new Promise((resolve) => {
+      try {
+        // Create a temporary player to check duration
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '-9999px';
+        document.body.appendChild(tempContainer);
+        
+        const tempPlayer = new window.YT.Player(tempContainer, {
+          height: '1',
+          width: '1',
+          videoId,
+          events: {
+            onReady: (event) => {
+              try {
+                const duration = event.target.getDuration();
+                console.log(`Got duration for video ${videoId}: ${duration}s`);
+                resolve(duration);
+              } catch (error) {
+                console.error(`Error getting duration for ${videoId}:`, error);
+                resolve(0); // On error, return 0 which will be handled appropriately
+              } finally {
+                // Clean up
+                if (tempPlayer) {
+                  try {
+                    tempPlayer.destroy();
+                  } catch (e) {
+                    console.error("Error destroying temp player:", e);
+                  }
+                }
+                if (tempContainer.parentNode) {
+                  document.body.removeChild(tempContainer);
+                }
+              }
+            },
+            onError: () => {
+              console.error(`Could not load video ${videoId} for duration check`);
+              if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
+              }
+              resolve(0);
+            }
+          }
+        });
+        
+        // Set timeout to avoid hanging
+        setTimeout(() => {
+          if (tempPlayer) {
+            try {
+              tempPlayer.destroy();
+            } catch (e) {
+              console.error("Error destroying temp player on timeout:", e);
+            }
+          }
+          if (tempContainer.parentNode) {
+            document.body.removeChild(tempContainer);
+          }
+          resolve(0);
+        }, 10000); // 10-second timeout
+        
+      } catch (error) {
+        console.error("Error in duration check:", error);
+        resolve(0);
+      }
+    });
+  };
+  
+  // Function to validate a video's timestamp against actual duration
+  const validateVideoTimestamp = async (video) => {
+    try {
+      const videoId = extractVideoId(video.videoEmbedLink);
+      if (!videoId) return false;
+      
+      const { startSeconds } = parseTimestampRange(video.timestamp);
+      if (isNaN(startSeconds) || startSeconds < 0) return false;
+      
+      // Ensure YouTube API is loaded
+      if (!window.YT || !window.YT.Player) {
+        console.warn("YouTube API not loaded yet, can't validate duration");
+        return true; // Skip validation if API not available
+      }
+      
+      // Get video duration
+      const duration = await getYouTubeVideoDuration(videoId);
+      
+      // Allow some margin (5 seconds) for timing differences
+      const isValid = duration > 0 && startSeconds < (duration - 5);
+      
+      if (!isValid) {
+        console.warn(`Invalid timestamp detected: ${video.timestamp} exceeds video duration ${duration}s for video ID ${videoId}`);
+      }
+      
+      return isValid;
+    } catch (error) {
+      console.error("Error validating video timestamp:", error);
+      return false;
+    }
+  };
+
   // Search for videos
   const searchVideos = async () => {
     try {
@@ -308,27 +371,86 @@ const PlaylistBuilder = () => {
         return;
       }
 
+      // Initial search with basic filtering
       let results = await fetchRelevantSegments(keywordsArray);
-
+      
       if (results.length > 0) {
-        // Shuffle and pick up to 3 random videos
-        results = shuffleArray(results).slice(0, 3);
-        
-        // Make sure we have thumbnails for all videos (should be handled by fetchRelevantSegments now)
-        results.forEach(result => {
-          if (!result.thumbnailUrl) {
-            console.log("Missing thumbnail for clip:", result.id, "in document:", result.documentName);
+        // Basic timestamp validation first (fast)
+        results = results.filter(video => {
+          try {
+            const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
+            
+            // Filter out clips with obviously invalid timestamps
+            if (isNaN(startSeconds) || startSeconds < 0) {
+              console.warn(`Filtering out video with invalid start time: ${video.id}, ${video.timestamp}`);
+              return false;
+            }
+            
+            // We can't fully validate against video duration yet (need to load video first)
+            // but we can check for basic validity
+            if (endSeconds && endSeconds <= startSeconds) {
+              console.warn(`Filtering out video with invalid time range: ${video.id}, ${video.timestamp}`);
+              return false;
+            }
+            
+            return true;
+          } catch (error) {
+            console.warn(`Filtering out video with unparseable timestamp: ${video.id}, ${video.timestamp}`);
+            return false;
           }
         });
-
-        console.log(`Selected ${results.length} random videos`);
-        setVideoQueue(results);
-        setCurrentVideoIndex(0);
-        setIsPlaying(true);
-        setCurrentTime(0);
-        setPlaylistTime(0);
-        lastTimeUpdateRef.current = Date.now();
-        setPlaylistEnded(false); // Reset playlist ended state
+        
+        // Shuffle and get more candidates than we need, in case some fail validation
+        const candidates = shuffleArray(results).slice(0, Math.min(10, results.length));
+        
+        console.log(`Checking durations for ${candidates.length} candidate videos...`);
+        
+        // Load YouTube API if needed
+        if (!window.YT || !window.YT.Player) {
+          console.log("Loading YouTube API...");
+          await new Promise((resolve) => {
+            const tag = document.createElement("script");
+            tag.src = "https://www.youtube.com/iframe_api";
+            
+            window.onYouTubeIframeAPIReady = () => {
+              console.log("YouTube API ready");
+              resolve();
+            };
+            
+            const firstScriptTag = document.getElementsByTagName("script")[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            
+            // Set timeout to resolve anyway after 5 seconds
+            setTimeout(resolve, 5000);
+          });
+        }
+        
+        // Advanced validation: check actual video durations
+        const validatedResults = [];
+        
+        for (const video of candidates) {
+          // Check if we already have enough valid videos
+          if (validatedResults.length >= 3) break;
+          
+          // Validate this video's timestamp against actual duration
+          const isValid = await validateVideoTimestamp(video);
+          
+          if (isValid) {
+            validatedResults.push(video);
+          }
+        }
+        
+        if (validatedResults.length > 0) {
+          console.log(`Selected ${validatedResults.length} valid videos from ${candidates.length} candidates`);
+          setVideoQueue(validatedResults);
+          setCurrentVideoIndex(0);
+          setIsPlaying(true);
+          setCurrentTime(0);
+          setPlaylistTime(0);
+          setPlaylistEnded(false); // Reset playlist ended state
+        } else {
+          setError("No videos with valid timestamps found for this keyword");
+        }
       } else {
         setError("No videos found for this keyword");
       }
@@ -391,40 +513,32 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Play/Pause control via postMessage API
+  // Video end handler
+  const handleVideoEnd = () => {
+    console.log(`Video end triggered for index ${currentVideoIndex}/${videoQueue.length - 1}`);
+    
+    // Add a short delay before advancing to prevent rapid transitions
+    // that might cause clips to be skipped
+    setTimeout(() => {
+      if (currentVideoIndex < videoQueue.length - 1) {
+        // Move to the next video in the queue
+        console.log(`Advancing to next video: ${currentVideoIndex + 1}`);
+        setCurrentVideoIndex(currentVideoIndex + 1);
+      } else {
+        // This was the last video in the playlist
+        console.log("Playlist ended, preparing to play next keyword");
+        setPlaylistEnded(true);
+      }
+    }, 500);
+  };
+
+  // Play/Pause control
   const handlePlayVideo = () => {
-    if (!iframeRef.current) return;
-
-    try {
-      console.log("Play requested");
-      const iframe = iframeRef.current;
-      iframe.contentWindow.postMessage(JSON.stringify({
-        event: 'command',
-        func: 'playVideo'
-      }), '*');
-
-      setIsPlaying(true);
-      lastTimeUpdateRef.current = Date.now(); // Reset time reference
-    } catch (err) {
-      console.error("Error playing video:", err);
-    }
+    setIsPlaying(true);
   };
 
   const handlePauseVideo = () => {
-    if (!iframeRef.current) return;
-
-    try {
-      console.log("Pause requested");
-      const iframe = iframeRef.current;
-      iframe.contentWindow.postMessage(JSON.stringify({
-        event: 'command',
-        func: 'pauseVideo'
-      }), '*');
-
-      setIsPlaying(false);
-    } catch (err) {
-      console.error("Error pausing video:", err);
-    }
+    setIsPlaying(false);
   };
 
   // Get current video information
@@ -433,24 +547,6 @@ const PlaylistBuilder = () => {
       return null;
     }
     return videoQueue[currentVideoIndex];
-  };
-
-  // Get YouTube embed URL with enablejsapi=1 for postMessage control
-  const getEmbedUrl = () => {
-    const video = getCurrentVideo();
-    if (!video) return '';
-
-    try {
-      const videoId = extractVideoId(video.videoEmbedLink);
-      const [startRaw] = video.timestamp.split(" - ");
-      const startSeconds = convertTimestampToSeconds(extractStartTimestamp(startRaw));
-
-      // Direct YouTube embed URL with autoplay and start time, plus JS API enabled
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${startSeconds}&controls=0&enablejsapi=1&origin=${window.location.origin}`;
-    } catch (err) {
-      console.error("Error getting embed URL:", err);
-      return '';
-    }
   };
 
   // Loading state
@@ -506,21 +602,19 @@ const PlaylistBuilder = () => {
         {/* Video Player Container */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           {/* Video player */}
-          <div className="w-full max-w-2xl h-120 bg-black mx-auto relative rounded-lg overflow-hidden">
+          <div className="w-full max-w-2xl mx-auto relative rounded-lg overflow-hidden">
             {currentVideo ? (
-              <iframe
-                ref={iframeRef}
-                src={getEmbedUrl()}
-                width="720"
-                height="480"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title="YouTube video player"
-                className="absolute top-0 left-0 w-full h-full"
-              ></iframe>
+              <VideoPlayer
+                video={currentVideo}
+                onVideoEnd={handleVideoEnd}
+                onPlay={handlePlayVideo}
+                onPause={handlePauseVideo}
+                onTimeUpdate={handleTimeUpdate}
+                isPlaying={isPlaying}
+                seekToTime={seekToTime}
+              />
             ) : (
-              <div className="flex items-center justify-center w-full h-full text-white font-medium">
+              <div className="flex items-center justify-center w-full h-64 bg-gray-200 rounded-lg text-gray-600 font-medium">
                 No videos available
               </div>
             )}
@@ -535,6 +629,7 @@ const PlaylistBuilder = () => {
                 setCurrentVideoIndex={setCurrentVideoIndex}
                 currentTime={currentTime}
                 totalDuration={totalDuration}
+                onSeek={handleSeek}
               />
             </div>
           )}
@@ -582,7 +677,6 @@ const PlaylistBuilder = () => {
         )}
       </div>
 
-      {/* Add the ConfirmationModal right before the closing div */}
       {/* Related Clips Section */}
       {keyword && videoQueue.length > 0 && (
         <RelatedClips
@@ -591,6 +685,7 @@ const PlaylistBuilder = () => {
         />
       )}
       
+      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={showShuffleConfirmation}
         onConfirm={handleShuffleConfirm}
