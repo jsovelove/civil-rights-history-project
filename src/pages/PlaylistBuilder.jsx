@@ -27,8 +27,11 @@ const PlaylistBuilder = () => {
   const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
   const [seekToTime, setSeekToTime] = useState(null); // New state for seeking
 
+  const [totalClipsForKeyword, setTotalClipsForKeyword] = useState(0);
+
   // Up Next feature state
   const [availableKeywords, setAvailableKeywords] = useState([]);
+  const [keywordCounts, setKeywordCounts] = useState({}); // Track count of clips per keyword
   const [nextKeyword, setNextKeyword] = useState("");
   const [nextKeywordThumbnail, setNextKeywordThumbnail] = useState("");
   const [playlistEnded, setPlaylistEnded] = useState(false);
@@ -56,13 +59,56 @@ const PlaylistBuilder = () => {
     }
   }, [searchParams]);
 
-  // Search videos when keyword changes
   useEffect(() => {
     if (keyword) {
+      // Only run searchVideos when the keyword changes, not when keywordCounts changes
       console.log(`Searching videos for: ${keyword}`);
       searchVideos();
     }
-  }, [keyword]);
+  }, [keyword]); 
+
+  useEffect(() => {
+    if (keyword && keywordCounts[keyword]) {
+      setTotalClipsForKeyword(keywordCounts[keyword]);
+    } else if (keyword) {
+      // If we don't have the count yet, we'll get it in fetchAvailableKeywords
+      countTotalClipsForKeyword(keyword);
+    }
+  }, [keyword, keywordCounts]);
+
+  const countTotalClipsForKeyword = async (keyword) => {
+    if (!keyword) return;
+
+    try {
+      let count = 0;
+      const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
+
+      for (const interviewDoc of interviewsSnapshot.docs) {
+        const interviewId = interviewDoc.id;
+        const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
+        const querySnapshot = await getDocs(subSummariesRef);
+
+        querySnapshot.forEach((docSnapshot) => {
+          const subSummary = docSnapshot.data();
+          const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
+          if (documentKeywords.includes(keyword.toLowerCase())) {
+            count++;
+          }
+        });
+      }
+
+      console.log(`Total clips for keyword "${keyword}": ${count}`);
+      setTotalClipsForKeyword(count);
+      
+      // Also update the keywordCounts state for future reference
+      setKeywordCounts(prev => ({
+        ...prev,
+        [keyword]: count
+      }));
+    } catch (err) {
+      console.error("Error counting clips:", err);
+    }
+  };
 
   // Fetch all available keywords when component mounts
   useEffect(() => {
@@ -74,7 +120,7 @@ const PlaylistBuilder = () => {
     if (availableKeywords.length > 0 && keyword) {
       selectRandomNextKeyword();
     }
-  }, [availableKeywords, keyword]);
+  }, [availableKeywords, keyword, keywordCounts]);
 
   // Auto-navigate to next keyword playlist when current playlist ends
   useEffect(() => {
@@ -135,10 +181,10 @@ const PlaylistBuilder = () => {
     // No need to update currentTime here, it will be updated via handleTimeUpdate
   };
 
-  // Fetch all available keywords from Firestore
+  // Fetch all available keywords from Firestore and count their occurrences
   const fetchAvailableKeywords = async () => {
     try {
-      const allKeywords = new Set();
+      const keywordCounter = {};
       const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
 
       for (const interviewDoc of interviewsSnapshot.docs) {
@@ -151,20 +197,27 @@ const PlaylistBuilder = () => {
           const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
 
           documentKeywords.forEach(keyword => {
-            if (keyword) allKeywords.add(keyword);
+            if (keyword) {
+              keywordCounter[keyword] = (keywordCounter[keyword] || 0) + 1;
+            }
           });
         });
       }
 
-      const keywordsArray = Array.from(allKeywords);
-      console.log(`Found ${keywordsArray.length} total keywords:`, keywordsArray);
-      setAvailableKeywords(keywordsArray);
+      // Filter to only include keywords with more than 1 occurrence
+      const keywordsWithMultipleClips = Object.keys(keywordCounter).filter(
+        keyword => keywordCounter[keyword] > 1
+      );
+
+      console.log(`Found ${keywordsWithMultipleClips.length} keywords with multiple clips out of ${Object.keys(keywordCounter).length} total keywords`);
+      setAvailableKeywords(keywordsWithMultipleClips);
+      setKeywordCounts(keywordCounter);
     } catch (err) {
       console.error("Error fetching available keywords:", err);
     }
   };
 
-  // Select a random keyword for "up next"
+  // Select a random keyword for "up next" that has more than 1 clip
   const selectRandomNextKeyword = () => {
     if (availableKeywords.length === 0) return;
 
@@ -177,7 +230,7 @@ const PlaylistBuilder = () => {
     const randomIndex = Math.floor(Math.random() * filteredKeywords.length);
     const selected = filteredKeywords[randomIndex];
 
-    console.log(`Selected next keyword: ${selected}`);
+    console.log(`Selected next keyword: ${selected} with ${keywordCounts[selected] || '?'} clips`);
     setNextKeyword(selected);
 
     // Try to get a thumbnail for this keyword
@@ -574,15 +627,29 @@ const PlaylistBuilder = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
-      {/* Page header */}
+      {/* Updated Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Keyword Playlist
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">
+          {keyword}
         </h1>
-        <div className="flex items-center">
-          <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-md">
-            {keyword}
-          </span>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center">
+            <span className="text-blue-800 font-medium">
+              {totalClipsForKeyword} total clip{totalClipsForKeyword !== 1 ? 's' : ''} available
+            </span>
+            <span className="mx-2 text-gray-400">•</span>
+            <span className="text-gray-600">
+              {videoQueue.length} clip{videoQueue.length !== 1 ? 's' : ''} in current playlist
+            </span>
+            {totalDuration > 0 && (
+              <>
+                <span className="mx-2 text-gray-400">•</span>
+                <span className="text-gray-600">
+                  {Math.floor(totalDuration / 60)}:{String(Math.floor(totalDuration % 60)).padStart(2, "0")} total duration
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

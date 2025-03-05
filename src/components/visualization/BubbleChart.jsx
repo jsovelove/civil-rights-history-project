@@ -41,7 +41,7 @@ export default function BubbleChartVisx() {
   });
   const [visibleKeywords, setVisibleKeywords] = useState(150); // Default number of visible keywords
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterThreshold, setFilterThreshold] = useState(1); // Minimum frequency to display
+  const [filterThreshold, setFilterThreshold] = useState(2); // Changed default minimum to 2 clips
 
   const navigate = useNavigate();
 
@@ -91,16 +91,21 @@ export default function BubbleChartVisx() {
         });
         await Promise.all(fetchSubSummaries);
 
-        // Store the full dataset
-        const fullDataset = {
+        // Filter out keywords with only 1 occurrence
+        const filteredKeywordCounts = Object.fromEntries(
+          Object.entries(keywordCounts).filter(([_, count]) => count > 1)
+        );
+
+        // Store the filtered dataset
+        const filteredDataset = {
           name: 'keywords',
-          children: Object.entries(keywordCounts).map(([keyword, count]) => ({
+          children: Object.entries(filteredKeywordCounts).map(([keyword, count]) => ({
             name: keyword,
             value: count,
           })),
         };
 
-        setData(fullDataset);
+        setData(filteredDataset);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -266,7 +271,6 @@ export default function BubbleChartVisx() {
               onChange={(e) => setFilterThreshold(Number(e.target.value))}
               className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
             >
-              <option value="1">1+</option>
               <option value="2">2+</option>
               <option value="3">3+</option>
               <option value="5">5+</option>
@@ -278,6 +282,8 @@ export default function BubbleChartVisx() {
         <p className="text-xs text-gray-500 mt-3">
           Showing {root.children?.length || 0} keywords
           {data && data.children && ` of ${data.children.length} total`}
+          <br/>
+          <span className="italic">Only keywords with multiple clips are included</span>
         </p>
       </div>
 

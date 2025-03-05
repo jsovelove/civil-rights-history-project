@@ -42,8 +42,9 @@ export default function KeywordDirectory() {
         });
       }
 
-      // Transform data for display
+      // Transform data for display and filter out keywords with only 1 clip
       const processedData = Object.entries(keywordCounts)
+        .filter(([_, details]) => details.count > 1) // Filter out keywords with only 1 occurrence
         .map(([keyword, details]) => {
           let totalLengthSeconds = 0;
           details.summaries.forEach(subSummary => {
@@ -146,8 +147,8 @@ export default function KeywordDirectory() {
           Keyword Directory
         </h1>
         <p className="text-base text-gray-600 max-w-3xl leading-relaxed">
-          Browse all keywords from the interview collection. Click on any keyword to see details,
-          or create a custom playlist based on specific keywords.
+          Browse all keywords from the interview collection. Keywords with multiple clips are shown.
+          Click on any keyword to see details, or create a custom playlist.
         </p>
       </div>
 
