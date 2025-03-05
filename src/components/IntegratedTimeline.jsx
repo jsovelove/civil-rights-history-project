@@ -258,13 +258,13 @@ const IntegratedTimeline = ({
         ))}
       </div>
 
-      {/* Bottom Timeline Bar with Playhead - FIXED WITH CONSISTENT COLOR */}
+      {/* Bottom Timeline Bar with Playhead - WITH CONSISTENT PROGRESS INDICATOR */}
       <div 
         style={{
           position: 'relative',
           width: '100%',
           height: '8px',
-          backgroundColor: '#d1d5db', // Consistent gray color for the entire bar
+          backgroundColor: '#d1d5db', // Base gray color
           borderRadius: '4px',
           overflow: 'hidden',
           marginBottom: '10px',
@@ -308,34 +308,34 @@ const IntegratedTimeline = ({
           }
         }}
       >
-        {/* Show segment divisions with subtle borders, but keep color consistent */}
+        {/* Show segment divisions with subtle borders */}
         {segments.map(segment => (
           <div 
             key={`bar-${segment.id}`}
             style={{
               width: `${segment.width}%`,
               height: '100%',
-              backgroundColor: '#d1d5db', // Use the same color as the parent
-              borderRight: segment.id < segments.length - 1 ? '1px solid #c4c4c4' : 'none', // Just show borders between segments
-              position: 'relative'
+              backgroundColor: 'transparent', // Make segments transparent to show the progress bar underneath
+              borderRight: segment.id < segments.length - 1 ? '1px solid #c4c4c4' : 'none',
+              position: 'relative',
+              zIndex: 2 // Set a higher z-index for segment dividers
             }}
-          >
-            {/* Only show the blue progress indicator within the current segment */}
-            {segment.isActive && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  height: '100%',
-                  width: `${(currentTime / segment.duration) * 100}%`,
-                  backgroundColor: '#3b82f6', // Blue progress indicator
-                  transition: 'width 0.2s linear'
-                }}
-              />
-            )}
-          </div>
+          />
         ))}
+
+        {/* Single continuous blue progress bar - this spans the entire timeline */}
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: `${playheadLeft}%`, // Use the same percentage as the playhead position
+            backgroundColor: '#3b82f6', // Blue progress indicator
+            transition: 'width 0.2s linear',
+            zIndex: 1 // Set a lower z-index so segment dividers appear on top
+          }}
+        />
 
         {/* Playhead Indicator on Bottom Bar */}
         <div 
@@ -349,7 +349,7 @@ const IntegratedTimeline = ({
             height: '14px',
             backgroundColor: 'red',
             borderRadius: '2px',
-            zIndex: 9999,
+            zIndex: 10, // Highest z-index to appear on top
             transition: 'left 0.1s linear'
           }}
         >
