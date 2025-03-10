@@ -269,25 +269,20 @@ export default function InterviewPlayer() {
     setSeekToTime(timeToSeek)
   }
 
-  // --- Accordion Item Component ---
   const AccordionItem = ({ summary, index, isOpen, isActive }) => {
     const contentRef = useRef(null)
     const [contentHeight, setContentHeight] = useState(0)
-
-    // Only update content height when isOpen changes, not on every render
+  
     useEffect(() => {
       if (isOpen && contentRef.current) {
-        // Set a fixed height value once when opening
         setContentHeight(contentRef.current.scrollHeight)
       }
-    }, [isOpen]) // Only depend on isOpen, not on summary
-
+    }, [isOpen])
+  
     const timestampSeconds = convertTimestampToSeconds(summary.timestamp)
     const keywordsList = formatKeywords(summary.keywords)
-    
-    // Calculate if this is the active segment based on current time
     const isCurrentSegment = index === currentSegmentIndex
-
+  
     return (
       <div className={`accordion-item border-b border-gray-200 ${isCurrentSegment ? 'border-l-4 border-l-blue-500' : ''}`}>
         <button
@@ -296,15 +291,13 @@ export default function InterviewPlayer() {
             isOpen
               ? 'bg-blue-50 text-blue-700'
               : isCurrentSegment
-                ? 'bg-blue-50/50 text-blue-600' 
+                ? 'bg-blue-50/50 text-blue-600'
                 : 'text-gray-800 hover:bg-gray-50'
           }`}
         >
           <div className="flex items-center">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold mr-3 ${
-              isCurrentSegment 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-blue-100 text-blue-700'
+              isCurrentSegment ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700'
             }`}>
               {index + 1}
             </span>
@@ -312,12 +305,13 @@ export default function InterviewPlayer() {
           </div>
           {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
+  
         <div
           style={{
             height: isOpen ? (contentHeight || 'auto') : 0,
             overflow: 'hidden',
             transition: isOpen ? 'height 0.3s ease' : 'height 0.3s ease',
-            maxHeight: isOpen ? '1000px' : '0', // Add a max-height for safety
+            maxHeight: isOpen ? '1000px' : '0',
           }}
         >
           <div ref={contentRef} className="p-4 bg-gray-50">
@@ -338,15 +332,16 @@ export default function InterviewPlayer() {
                   : 'Unknown time'}
               </span>
             </button>
+  
             {keywordsList.length > 0 && (
               <div className="mb-4 text-sm flex flex-wrap">
                 {keywordsList.map((keyword, idx) => (
-                  <span 
-                    key={idx} 
+                  <span
+                    key={idx}
                     className="mr-2 mb-2 px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs cursor-pointer hover:bg-blue-200 transition-colors"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`);
+                      e.stopPropagation()
+                      navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)
                     }}
                   >
                     {keyword}
@@ -354,14 +349,29 @@ export default function InterviewPlayer() {
                 ))}
               </div>
             )}
+  
             <p className="text-gray-700 leading-relaxed">
               {summary.summary}
             </p>
+  
+            {/* View Clip Button */}
+            <div className="mt-4">
+              <button
+                className="text-sm text-blue-600 hover:underline hover:text-blue-800 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/clip-player?documentName=${encodeURIComponent(documentName)}&clipId=${encodeURIComponent(summary.id)}`)
+                }}
+              >
+                ▶ View this clip as a standalone page
+              </button>
+            </div>
           </div>
         </div>
       </div>
     )
   }
+  
 
   // Format time in MM:SS or HH:MM:SS format
   const formatTime = (seconds) => {

@@ -27,7 +27,8 @@ export default function Sidebar() {
   const navLinks = [
     { path: '/', label: 'Home', icon: <Home size={20} /> },
     { path: '/keyword-directory', label: 'Directory', icon: <List size={20} /> },
-    { path: '/playlist-builder', label: 'Playlists', icon: <PlayCircle size={20} /> },
+    // Commented out Playlists in navLinks
+    // { path: '/playlist-builder', label: 'Playlists', icon: <PlayCircle size={20} /> },
     { path: '/transcript-summary', label: 'Summarizer', icon: <FileText size={20} /> }
   ];
 
@@ -94,6 +95,8 @@ export default function Sidebar() {
               <span>Search</span>
             </Link>
 
+            {/* Commented out unused navigation items */}
+            {/*
             <Link
               to="/playlists"
               className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/playlists')
@@ -117,6 +120,7 @@ export default function Sidebar() {
               <span className="flex mr-3 text-inherit"><Heart size={20} /></span>
               <span>Favorites</span>
             </Link>
+            */}
           </div>
 
           {/* Divider */}
@@ -124,6 +128,8 @@ export default function Sidebar() {
 
           {/* Settings & Logout */}
           <div>
+            {/* Commented out unused settings */}
+            {/*
             <Link
               to="/settings"
               className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/settings')
@@ -135,6 +141,7 @@ export default function Sidebar() {
               <span className="flex mr-3 text-inherit"><Settings size={20} /></span>
               <span>Settings</span>
             </Link>
+            */}
 
             {user && (
               <button

@@ -11,6 +11,8 @@ import ConfirmationModal from "../components/ConfirmationModel";
 import MetadataPanel from "../components/MetadataPanel";
 import RelatedClips from "../components/RelatedClips";
 import VideoPlayer from "../components/VideoPlayer";
+import { Clock, Tag } from 'lucide-react'
+
 
 const PlaylistBuilder = () => {
   const [searchParams] = useSearchParams();
@@ -789,26 +791,59 @@ const PlaylistBuilder = () => {
         )}
 
         {/* Video info card */}
-{currentVideo && (
-  <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-    <h2 className="text-xl font-semibold text-gray-900 mb-2">
-      <span 
-        onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}
-        className="hover:text-blue-600 hover:underline transition-colors cursor-pointer"
-      >
-        {currentVideo.name}
-      </span>
-    </h2>
-    <p className="text-sm italic text-gray-500 mb-4">
-      {currentVideo.role}
-    </p>
-    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-      <p className="m-0 text-base leading-relaxed text-gray-700">
-        {currentVideo.summary}
-      </p>
-    </div>
-  </div>
-)}
+        {currentVideo && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <span
+                onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}
+                className="hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+              >
+                {currentVideo.name}
+              </span>
+            </h2>
+
+            <p className="text-sm italic text-gray-500 mb-4">
+              {currentVideo.role}
+            </p>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+              <p className="m-0 text-base leading-relaxed text-gray-700">
+                {currentVideo.summary}
+              </p>
+            </div>
+
+            {/* Keywords */}
+            {currentVideo.keywords && currentVideo.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {(Array.isArray(currentVideo.keywords)
+                  ? currentVideo.keywords
+                  : currentVideo.keywords.split(',').map(k => k.trim())
+                ).map((keyword, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-200 transition-colors"
+                    onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
+                  >
+                    <Tag size={12} /> {keyword}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Link to standalone ClipPlayer view */}
+            <div className="mt-4">
+              <button
+                className="text-sm text-blue-600 hover:underline hover:text-blue-800 transition-colors"
+                onClick={() =>
+                  navigate(`/clip-player?documentName=${encodeURIComponent(currentVideo.documentName)}&clipId=${encodeURIComponent(currentVideo.id)}`)
+                }
+              >
+                ▶ View this clip as a standalone page
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Related Clips Section */}

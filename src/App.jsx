@@ -10,6 +10,7 @@ import KeywordDirectory from './pages/KeywordDirectory'
 import TranscriptSummary from './pages/TranscriptSummary'
 import SearchPage from './pages/SearchPage'
 import InterviewPlayer from './pages/InterviewPlayer'
+import ClipPlayer from './pages/ClipPlayer'
 
 
 export default function App() {
@@ -74,6 +75,18 @@ export default function App() {
           </Layout>
         </ProtectedRoute>
       } />
+
+<Route
+  path="/clip-player"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <ClipPlayer />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
