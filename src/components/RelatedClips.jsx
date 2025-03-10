@@ -3,7 +3,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { extractVideoId, parseKeywords } from "../utils/timeUtils";
 
-const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
+const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
   const [relatedClips, setRelatedClips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,8 +35,6 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
         // Extract the videoEmbedLink from the parent interview document
         const parentVideoEmbedLink = interviewData.videoEmbedLink;
         const parentThumbnailUrl = getThumbnailUrl(parentVideoEmbedLink);
-        
-        
         
         const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
         const querySnapshot = await getDocs(subSummariesRef);
@@ -129,6 +127,12 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
     return null;
   };
 
+  const handleClipClick = (clip) => {
+    if (onAddToPlaylist) {
+      onAddToPlaylist(clip);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-4">
@@ -163,7 +167,8 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
             <div 
               // Use a combination of index, id, and documentName to ensure uniqueness
               key={`${clip.documentId || `${clip.id}_${clip.documentName}`}_${index}`}
-              className="flex-shrink-0 w-64 bg-gray-50 rounded-md overflow-hidden shadow-sm"
+              className="flex-shrink-0 w-64 bg-gray-50 rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleClipClick(clip)}
             >
               {clip.thumbnailUrl ? (
                 <div className="relative pb-[56.25%] bg-gray-200">
@@ -185,6 +190,13 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
                       `;
                     }}
                   />
+                  <div className="absolute inset-0 flex items-center justify-center hover:bg-black hover:bg-opacity-30 transition-all">
+                    <span className="text-white font-medium rounded-full p-2 bg-blue-600 opacity-0 hover:opacity-100 transition-opacity">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <div className="h-36 bg-gray-200 flex flex-col items-center justify-center">
@@ -208,6 +220,11 @@ const RelatedClips = ({ currentKeyword, excludeIds = [] }) => {
                     {clip.timestamp}
                   </p>
                 )}
+                <button 
+                  className="mt-2 w-full py-1 px-2 bg-blue-50 text-blue-600 text-sm font-medium rounded hover:bg-blue-100 transition-colors"
+                >
+                  Add to Playlist
+                </button>
               </div>
             </div>
           ))}

@@ -26,6 +26,9 @@ const PlaylistBuilder = () => {
   const [totalDuration, setTotalDuration] = useState(0);
   const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
   const [seekToTime, setSeekToTime] = useState(null); // New state for seeking
+  const [showAddedNotification, setShowAddedNotification] = useState(false); // For notification
+  const notificationTimeoutRef = useRef(null); // Reference for timeout
+
 
   const [totalClipsForKeyword, setTotalClipsForKeyword] = useState(0);
 
@@ -65,7 +68,7 @@ const PlaylistBuilder = () => {
       console.log(`Searching videos for: ${keyword}`);
       searchVideos();
     }
-  }, [keyword]); 
+  }, [keyword]);
 
   useEffect(() => {
     if (keyword && keywordCounts[keyword]) {
@@ -99,7 +102,7 @@ const PlaylistBuilder = () => {
 
       console.log(`Total clips for keyword "${keyword}": ${count}`);
       setTotalClipsForKeyword(count);
-      
+
       // Also update the keywordCounts state for future reference
       setKeywordCounts(prev => ({
         ...prev,
@@ -108,6 +111,53 @@ const PlaylistBuilder = () => {
     } catch (err) {
       console.error("Error counting clips:", err);
     }
+  };
+
+  // Clear notification timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle adding a clip to the playlist
+  const handleAddToPlaylist = (clip) => {
+    // Check if the clip is already in the queue
+    const isAlreadyInQueue = videoQueue.some(video => video.id === clip.id);
+
+    if (isAlreadyInQueue) {
+      console.log("Clip is already in the playlist:", clip.id);
+      // Show notification
+      setShowAddedNotification({ message: "This clip is already in your playlist", type: "info" });
+
+      // Clear after 3 seconds
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+      notificationTimeoutRef.current = setTimeout(() => {
+        setShowAddedNotification(false);
+      }, 3000);
+
+      return;
+    }
+
+    // Add the clip to the queue
+    setVideoQueue(prevQueue => [...prevQueue, clip]);
+
+    // Show success notification
+    setShowAddedNotification({ message: "Clip added to playlist", type: "success" });
+
+    // Clear notification after 3 seconds
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+    notificationTimeoutRef.current = setTimeout(() => {
+      setShowAddedNotification(false);
+    }, 3000);
+
+    console.log("Added clip to playlist:", clip.id);
   };
 
   // Fetch all available keywords when component mounts
@@ -290,7 +340,7 @@ const PlaylistBuilder = () => {
   const handleShuffleCancel = () => {
     setShowShuffleConfirmation(false);
   };
-  
+
   // Handle metadata updates from the MetadataPanel
   const handleMetadataUpdate = (updatedMetadata) => {
     // Update the video in the queue
@@ -320,7 +370,7 @@ const PlaylistBuilder = () => {
         tempContainer.style.left = '-9999px';
         tempContainer.style.top = '-9999px';
         document.body.appendChild(tempContainer);
-        
+
         const tempPlayer = new window.YT.Player(tempContainer, {
           height: '1',
           width: '1',
@@ -357,7 +407,7 @@ const PlaylistBuilder = () => {
             }
           }
         });
-        
+
         // Set timeout to avoid hanging
         setTimeout(() => {
           if (tempPlayer) {
@@ -372,39 +422,39 @@ const PlaylistBuilder = () => {
           }
           resolve(0);
         }, 10000); // 10-second timeout
-        
+
       } catch (error) {
         console.error("Error in duration check:", error);
         resolve(0);
       }
     });
   };
-  
+
   // Function to validate a video's timestamp against actual duration
   const validateVideoTimestamp = async (video) => {
     try {
       const videoId = extractVideoId(video.videoEmbedLink);
       if (!videoId) return false;
-      
+
       const { startSeconds } = parseTimestampRange(video.timestamp);
       if (isNaN(startSeconds) || startSeconds < 0) return false;
-      
+
       // Ensure YouTube API is loaded
       if (!window.YT || !window.YT.Player) {
         console.warn("YouTube API not loaded yet, can't validate duration");
         return true; // Skip validation if API not available
       }
-      
+
       // Get video duration
       const duration = await getYouTubeVideoDuration(videoId);
-      
+
       // Allow some margin (5 seconds) for timing differences
       const isValid = duration > 0 && startSeconds < (duration - 5);
-      
+
       if (!isValid) {
         console.warn(`Invalid timestamp detected: ${video.timestamp} exceeds video duration ${duration}s for video ID ${videoId}`);
       }
-      
+
       return isValid;
     } catch (error) {
       console.error("Error validating video timestamp:", error);
@@ -426,73 +476,73 @@ const PlaylistBuilder = () => {
 
       // Initial search with basic filtering
       let results = await fetchRelevantSegments(keywordsArray);
-      
+
       if (results.length > 0) {
         // Basic timestamp validation first (fast)
         results = results.filter(video => {
           try {
             const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
-            
+
             // Filter out clips with obviously invalid timestamps
             if (isNaN(startSeconds) || startSeconds < 0) {
               console.warn(`Filtering out video with invalid start time: ${video.id}, ${video.timestamp}`);
               return false;
             }
-            
+
             // We can't fully validate against video duration yet (need to load video first)
             // but we can check for basic validity
             if (endSeconds && endSeconds <= startSeconds) {
               console.warn(`Filtering out video with invalid time range: ${video.id}, ${video.timestamp}`);
               return false;
             }
-            
+
             return true;
           } catch (error) {
             console.warn(`Filtering out video with unparseable timestamp: ${video.id}, ${video.timestamp}`);
             return false;
           }
         });
-        
+
         // Shuffle and get more candidates than we need, in case some fail validation
         const candidates = shuffleArray(results).slice(0, Math.min(10, results.length));
-        
+
         console.log(`Checking durations for ${candidates.length} candidate videos...`);
-        
+
         // Load YouTube API if needed
         if (!window.YT || !window.YT.Player) {
           console.log("Loading YouTube API...");
           await new Promise((resolve) => {
             const tag = document.createElement("script");
             tag.src = "https://www.youtube.com/iframe_api";
-            
+
             window.onYouTubeIframeAPIReady = () => {
               console.log("YouTube API ready");
               resolve();
             };
-            
+
             const firstScriptTag = document.getElementsByTagName("script")[0];
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            
+
             // Set timeout to resolve anyway after 5 seconds
             setTimeout(resolve, 5000);
           });
         }
-        
+
         // Advanced validation: check actual video durations
         const validatedResults = [];
-        
+
         for (const video of candidates) {
           // Check if we already have enough valid videos
           if (validatedResults.length >= 3) break;
-          
+
           // Validate this video's timestamp against actual duration
           const isValid = await validateVideoTimestamp(video);
-          
+
           if (isValid) {
             validatedResults.push(video);
           }
         }
-        
+
         if (validatedResults.length > 0) {
           console.log(`Selected ${validatedResults.length} valid videos from ${candidates.length} candidates`);
           setVideoQueue(validatedResults);
@@ -524,12 +574,12 @@ const PlaylistBuilder = () => {
     for (const interviewDoc of interviewsSnapshot.docs) {
       const interviewId = interviewDoc.id;
       const interviewData = interviewDoc.data();
-      
+
       // Get the parent document's videoEmbedLink for thumbnails
       const parentVideoEmbedLink = interviewData.videoEmbedLink;
-      const thumbnailUrl = parentVideoEmbedLink ? 
+      const thumbnailUrl = parentVideoEmbedLink ?
         `https://img.youtube.com/vi/${extractVideoId(parentVideoEmbedLink)}/mqdefault.jpg` : null;
-      
+
       const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
       const querySnapshot = await getDocs(subSummariesRef);
 
@@ -569,7 +619,7 @@ const PlaylistBuilder = () => {
   // Video end handler
   const handleVideoEnd = () => {
     console.log(`Video end triggered for index ${currentVideoIndex}/${videoQueue.length - 1}`);
-    
+
     // Add a short delay before advancing to prevent rapid transitions
     // that might cause clips to be skipped
     setTimeout(() => {
@@ -627,6 +677,26 @@ const PlaylistBuilder = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
+
+      {/* Notification */}
+      {showAddedNotification && (
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-md shadow-md transition-all duration-300 ${showAddedNotification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+          }`}>
+          <div className="flex items-center">
+            {showAddedNotification.type === 'success' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+              </svg>
+            )}
+            <span>{showAddedNotification.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Updated Page header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-3">
@@ -641,14 +711,6 @@ const PlaylistBuilder = () => {
             <span className="text-gray-600">
               {videoQueue.length} clip{videoQueue.length !== 1 ? 's' : ''} in current playlist
             </span>
-            {totalDuration > 0 && (
-              <>
-                <span className="mx-2 text-gray-400">•</span>
-                <span className="text-gray-600">
-                  {Math.floor(totalDuration / 60)}:{String(Math.floor(totalDuration % 60)).padStart(2, "0")} total duration
-                </span>
-              </>
-            )}
           </div>
         </div>
       </div>
@@ -720,28 +782,33 @@ const PlaylistBuilder = () => {
 
         {/* Add the Metadata Panel with edit capability */}
         {currentVideo && (
-          <MetadataPanel 
-            metadata={currentVideo} 
+          <MetadataPanel
+            metadata={currentVideo}
             onMetadataUpdate={handleMetadataUpdate}
           />
         )}
 
         {/* Video info card */}
-        {currentVideo && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {currentVideo.name}
-            </h2>
-            <p className="text-sm italic text-gray-500 mb-4">
-              {currentVideo.role}
-            </p>
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <p className="m-0 text-base leading-relaxed text-gray-700">
-                {currentVideo.summary}
-              </p>
-            </div>
-          </div>
-        )}
+{currentVideo && (
+  <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+      <span 
+        onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}
+        className="hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+      >
+        {currentVideo.name}
+      </span>
+    </h2>
+    <p className="text-sm italic text-gray-500 mb-4">
+      {currentVideo.role}
+    </p>
+    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <p className="m-0 text-base leading-relaxed text-gray-700">
+        {currentVideo.summary}
+      </p>
+    </div>
+  </div>
+)}
       </div>
 
       {/* Related Clips Section */}
@@ -749,9 +816,10 @@ const PlaylistBuilder = () => {
         <RelatedClips
           currentKeyword={keyword}
           excludeIds={videoQueue.map(video => video.id)}
+          onAddToPlaylist={handleAddToPlaylist}
         />
       )}
-      
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={showShuffleConfirmation}
