@@ -30,7 +30,7 @@ const PlaylistBuilder = () => {
   const [seekToTime, setSeekToTime] = useState(null); // New state for seeking
   const [showAddedNotification, setShowAddedNotification] = useState(false); // For notification
   const notificationTimeoutRef = useRef(null); // Reference for timeout
-
+  const [isAddingAllClips, setIsAddingAllClips] = useState(false);
 
   const [totalClipsForKeyword, setTotalClipsForKeyword] = useState(0);
 
@@ -160,6 +160,59 @@ const PlaylistBuilder = () => {
     }, 3000);
 
     console.log("Added clip to playlist:", clip.id);
+  };
+
+  const handleAddAllToPlaylist = async () => {
+    // Prevent multiple clicks
+    if (isAddingAllClips) return;
+
+    try {
+      // Show loading state
+      setIsAddingAllClips(true);
+
+      // Get all clips for the current keyword
+      const keywordsArray = parseKeywords(keyword);
+      const allClips = await fetchRelevantSegments(keywordsArray);
+
+      // Filter out clips that are already in the queue
+      const existingIds = videoQueue.map(clip => clip.id);
+      const newClips = allClips.filter(clip => !existingIds.includes(clip.id));
+
+      if (newClips.length === 0) {
+        // Show notification that all clips are already in playlist
+        setShowAddedNotification({
+          message: "All available clips are already in your playlist",
+          type: "info"
+        });
+      } else {
+        // Add all new clips to the queue
+        setVideoQueue(prevQueue => [...prevQueue, ...newClips]);
+
+        // Show success notification
+        setShowAddedNotification({
+          message: `Added ${newClips.length} clips to playlist`,
+          type: "success"
+        });
+      }
+
+      // Clear notification after 3 seconds
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+      notificationTimeoutRef.current = setTimeout(() => {
+        setShowAddedNotification(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error("Error adding all clips:", error);
+      setShowAddedNotification({
+        message: "Error adding clips to playlist",
+        type: "error"
+      });
+    } finally {
+      // Reset loading state regardless of outcome
+      setIsAddingAllClips(false);
+    }
   };
 
   // Fetch all available keywords when component mounts
@@ -766,18 +819,45 @@ const PlaylistBuilder = () => {
           )}
 
           {/* Integrated player controls */}
-          <div className="w-full max-w-2xl mx-auto flex justify-center items-center py-3 mt-5">
-            <PlayerControls
-              onPrevious={handlePrevious}
-              onPlay={handlePlayVideo}
-              onPause={handlePauseVideo}
-              onNext={handleNext}
-              isPlaying={isPlaying}
-              hasPrevious={currentVideoIndex > 0}
-              hasNext={currentVideoIndex < videoQueue.length - 1}
-            />
-            <div className="ml-4">
+          <div className="w-full max-w-2xl mx-auto py-3 mt-5">
+            {/* Main playback controls */}
+            <div className="flex justify-center items-center mb-4">
+              <PlayerControls
+                onPrevious={handlePrevious}
+                onPlay={handlePlayVideo}
+                onPause={handlePauseVideo}
+                onNext={handleNext}
+                isPlaying={isPlaying}
+                hasPrevious={currentVideoIndex > 0}
+                hasNext={currentVideoIndex < videoQueue.length - 1}
+              />
+            </div>
+
+            {/* Additional controls below */}
+            <div className="flex justify-center items-center space-x-4">
               <ShuffleButton onClick={handleShuffleClick} />
+
+              <button
+                onClick={handleAddAllToPlaylist}
+                disabled={isAddingAllClips}
+                className={`flex items-center justify-center ${isAddingAllClips
+                    ? "bg-blue-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                  } text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-44`}
+                title="Add all remaining clips with this keyword to your playlist"
+              >
+                {isAddingAllClips ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Adding...
+                  </>
+                ) : (
+                  "Listen to Full Playlist"
+                )}
+              </button>
             </div>
           </div>
         </div>

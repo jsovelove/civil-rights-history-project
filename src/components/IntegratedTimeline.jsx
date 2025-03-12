@@ -16,6 +16,10 @@ const IntegratedTimeline = ({
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [seekPreviewPosition, setSeekPreviewPosition] = useState(null);
   const activeThumbnailRef = useRef(null);
+  
+  // New state for visible window of clips
+  const [visibleStartIndex, setVisibleStartIndex] = useState(0);
+  const maxVisibleClips = 8; // Maximum number of clips to show at once
 
   useEffect(() => {
     // Calculate elapsed time up to current video
@@ -39,9 +43,26 @@ const IntegratedTimeline = ({
       // Ensure the playhead stays within bounds (0-100%)
       setPlayheadLeft(Math.min(Math.max(0, percent), 100));
     }
+    
+    // Update visible window when currentVideoIndex changes
+    updateVisibleWindow();
   }, [videoQueue, currentVideoIndex, currentTime, totalDuration]);
 
-  const segments = videoQueue.map((video, index) => {
+  // Function to update which clips are visible
+  const updateVisibleWindow = () => {
+    // If current video is outside the visible window, adjust the window
+    if (currentVideoIndex < visibleStartIndex) {
+      // Current video is before visible range, slide window back
+      setVisibleStartIndex(Math.max(0, currentVideoIndex));
+    } 
+    else if (currentVideoIndex >= visibleStartIndex + maxVisibleClips) {
+      // Current video is after visible range, slide window forward
+      setVisibleStartIndex(Math.max(0, currentVideoIndex - maxVisibleClips + 1));
+    }
+  };
+
+  // Create all segments first
+  const allSegments = videoQueue.map((video, index) => {
     const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
     const duration = (endSeconds - startSeconds) || 300;
     const width = (duration / totalDuration) * 100;
@@ -56,6 +77,12 @@ const IntegratedTimeline = ({
       name: video.name || 'Untitled'
     };
   });
+
+  // Get only the visible segments
+  const visibleSegments = allSegments.slice(
+    visibleStartIndex, 
+    visibleStartIndex + maxVisibleClips
+  );
 
   // Handle click within the active thumbnail to seek
   const handleThumbnailClick = (event, segmentId) => {
@@ -76,7 +103,7 @@ const IntegratedTimeline = ({
     const positionPercent = clickX / rect.width;
     
     // Current segment duration
-    const currentSegment = segments[currentVideoIndex];
+    const currentSegment = allSegments[currentVideoIndex];
     if (!currentSegment) return;
     
     // Calculate time to seek to
@@ -111,6 +138,7 @@ const IntegratedTimeline = ({
 
   return (
     <div>
+
       {/* Thumbnail Row */}
       <div 
         ref={timelineRef}
@@ -127,135 +155,160 @@ const IntegratedTimeline = ({
           display: 'flex'
         }}
       >
-        {segments.map(segment => (
-          <div
-            key={`thumb-${segment.id}`}
-            onClick={(e) => handleThumbnailClick(e, segment.id)}
-            onMouseEnter={() => setHoveredIndex(segment.id)}
-            onMouseLeave={() => {
-              setHoveredIndex(null);
-              handleThumbnailMouseLeave();
-            }}
-            onMouseMove={segment.isActive ? handleThumbnailMouseMove : null}
-            style={{
-              width: `${segment.width}%`,
-              minWidth: '60px',
-              padding: '0 2px',
-              boxSizing: 'border-box',
-              position: 'relative',
-              cursor: 'pointer'
-            }}
-            ref={segment.isActive ? activeThumbnailRef : null}
-          >
-            <div style={{
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: '6px',
-              border: `2px solid ${segment.isActive ? '#3b82f6' : '#d1d5db'}`,
-              height: '70px',
-              boxShadow: segment.isActive ? '0 2px 5px rgba(0,0,0,0.2)' : 'none'
-            }}>
-              {/* Thumbnail Image */}
-              <img
-                src={`https://img.youtube.com/vi/${segment.videoId}/mqdefault.jpg`}
-                alt={`Thumbnail for segment ${segment.id + 1}`}
-                style={{
-                  width: '100%',
-                  maxHeight: '80px', 
-                  objectFit: 'contain',
-                  borderRadius: '6px',
-                }}
-                onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/120x60?text=No+Thumbnail";
-                }}
-              />
-
-              {/* Progress Overlay on Active Thumbnail */}
-              {segment.isActive && (
-                <div 
+        {visibleSegments.map(segment => {
+          // Calculate width relative to visible segments for better display
+          const actualSegmentId = segment.id;
+          const isActiveSegment = segment.isActive;
+          
+          return (
+            <div
+              key={`thumb-${actualSegmentId}`}
+              onClick={(e) => handleThumbnailClick(e, actualSegmentId)}
+              onMouseEnter={() => setHoveredIndex(actualSegmentId)}
+              onMouseLeave={() => {
+                setHoveredIndex(null);
+                handleThumbnailMouseLeave();
+              }}
+              onMouseMove={isActiveSegment ? handleThumbnailMouseMove : null}
+              style={{
+                width: `${100 / visibleSegments.length}%`,
+                minWidth: '60px',
+                padding: '0 2px',
+                boxSizing: 'border-box',
+                position: 'relative',
+                cursor: 'pointer'
+              }}
+              ref={isActiveSegment ? activeThumbnailRef : null}
+            >
+              <div style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: '6px',
+                border: `2px solid ${isActiveSegment ? '#3b82f6' : '#d1d5db'}`,
+                height: '70px',
+                boxShadow: isActiveSegment ? '0 2px 5px rgba(0,0,0,0.2)' : 'none'
+              }}>
+                {/* Thumbnail Image */}
+                <img
+                  src={`https://img.youtube.com/vi/${segment.videoId}/mqdefault.jpg`}
+                  alt={`Thumbnail for segment ${actualSegmentId + 1}`}
                   style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    height: '100%',
-                    width: `${(currentTime / segment.duration) * 100}%`,
-                    backgroundColor: 'rgba(59, 130, 246, 0.4)', 
-                    transition: 'width 0.2s linear'
+                    width: '100%',
+                    maxHeight: '80px', 
+                    objectFit: 'contain',
+                    borderRadius: '6px',
+                  }}
+                  onError={(e) => {
+                    e.target.src = "https://via.placeholder.com/120x60?text=No+Thumbnail";
                   }}
                 />
-              )}
 
-              {/* Seek Preview Overlay (only shown when hovering on active thumbnail) */}
-              {segment.isActive && seekPreviewPosition !== null && (
-                <div 
-                  style={{
+                {/* Progress Overlay on Active Thumbnail */}
+                {isActiveSegment && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      height: '100%',
+                      width: `${(currentTime / segment.duration) * 100}%`,
+                      backgroundColor: 'rgba(59, 130, 246, 0.4)', 
+                      transition: 'width 0.2s linear'
+                    }}
+                  />
+                )}
+
+                {/* Seek Preview Overlay (only shown when hovering on active thumbnail) */}
+                {isActiveSegment && seekPreviewPosition !== null && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      height: '100%',
+                      width: `${seekPreviewPosition * 100}%`,
+                      backgroundColor: 'rgba(239, 68, 68, 0.4)', 
+                      pointerEvents: 'none',
+                      zIndex: 5
+                    }}
+                  />
+                )}
+
+                {/* Preview Time Indicator (only shown when hovering on active thumbnail) */}
+                {isActiveSegment && seekPreviewPosition !== null && (
+                  <div style={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    height: '100%',
-                    width: `${seekPreviewPosition * 100}%`,
-                    backgroundColor: 'rgba(239, 68, 68, 0.4)', 
-                    pointerEvents: 'none',
-                    zIndex: 5
-                  }}
-                />
-              )}
+                    top: '5px',
+                    left: `${seekPreviewPosition * 100}%`,
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    zIndex: 6,
+                    pointerEvents: 'none'
+                  }}>
+                    {formatTime(seekPreviewPosition * segment.duration)}
+                  </div>
+                )}
 
-              {/* Preview Time Indicator (only shown when hovering on active thumbnail) */}
-              {segment.isActive && seekPreviewPosition !== null && (
+                {/* Duration Label */}
                 <div style={{
                   position: 'absolute',
-                  top: '5px',
-                  left: `${seekPreviewPosition * 100}%`,
+                  bottom: '0',
+                  left: '0',
+                  right: '0',
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  color: 'white',
+                  fontSize: '11px',
+                  textAlign: 'center',
+                  padding: '2px 0'
+                }}>
+                  {formatTime(segment.duration)}
+                </div>
+              </div>
+
+              {/* Hover tooltip */}
+              {hoveredIndex === actualSegmentId && (
+                <div style={{
+                  position: 'absolute',
+                  top: '-30px',
+                  left: '50%',
                   transform: 'translateX(-50%)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  backgroundColor: '#1f2937',
                   color: 'white',
                   padding: '2px 6px',
                   borderRadius: '4px',
                   fontSize: '11px',
-                  zIndex: 6,
-                  pointerEvents: 'none'
+                  zIndex: 50,
+                  whiteSpace: 'nowrap'
                 }}>
-                  {formatTime(seekPreviewPosition * segment.duration)}
+                  {segment.name} ({formatTime(segment.duration)})
                 </div>
               )}
-
-              {/* Duration Label */}
+              
+              {/* Clip number indicator */}
               <div style={{
                 position: 'absolute',
-                bottom: '0',
-                left: '0',
-                right: '0',
-                backgroundColor: 'rgba(0,0,0,0.6)',
+                top: '5px',
+                left: '5px',
+                backgroundColor: 'rgba(0,0,0,0.7)',
                 color: 'white',
-                fontSize: '11px',
-                textAlign: 'center',
-                padding: '2px 0'
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 'bold'
               }}>
-                {formatTime(segment.duration)}
+                {actualSegmentId + 1}
               </div>
             </div>
-
-            {/* Hover tooltip */}
-            {hoveredIndex === segment.id && (
-              <div style={{
-                position: 'absolute',
-                top: '-30px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                backgroundColor: '#1f2937',
-                color: 'white',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '11px',
-                zIndex: 50,
-                whiteSpace: 'nowrap'
-              }}>
-                {segment.name} ({formatTime(segment.duration)})
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Bottom Timeline Bar with Playhead - WITH CONSISTENT PROGRESS INDICATOR */}
@@ -280,8 +333,8 @@ const IntegratedTimeline = ({
           let targetSegment = 0;
           let timeWithinSegment = 0;
           
-          for (let i = 0; i < segments.length; i++) {
-            const segmentWidth = segments[i].width / 100; // Convert percentage to decimal
+          for (let i = 0; i < allSegments.length; i++) {
+            const segmentWidth = allSegments[i].width / 100; // Convert percentage to decimal
             
             if (positionPercent >= accumulatedWidth && 
                 positionPercent <= accumulatedWidth + segmentWidth) {
@@ -290,7 +343,7 @@ const IntegratedTimeline = ({
               
               // Calculate time within this segment
               const relativePositionInSegment = (positionPercent - accumulatedWidth) / segmentWidth;
-              timeWithinSegment = relativePositionInSegment * segments[i].duration;
+              timeWithinSegment = relativePositionInSegment * allSegments[i].duration;
               break;
             }
             
@@ -309,14 +362,14 @@ const IntegratedTimeline = ({
         }}
       >
         {/* Show segment divisions with subtle borders */}
-        {segments.map(segment => (
+        {allSegments.map(segment => (
           <div 
             key={`bar-${segment.id}`}
             style={{
               width: `${segment.width}%`,
               height: '100%',
               backgroundColor: 'transparent', // Make segments transparent to show the progress bar underneath
-              borderRight: segment.id < segments.length - 1 ? '1px solid #c4c4c4' : 'none',
+              borderRight: segment.id < allSegments.length - 1 ? '1px solid #c4c4c4' : 'none',
               position: 'relative',
               zIndex: 2 // Set a higher z-index for segment dividers
             }}
@@ -378,7 +431,9 @@ const IntegratedTimeline = ({
         marginBottom: '10px'
       }}>
         <div>{formatTime(totalElapsedTime)}</div>
-        <div style={{ fontWeight: 'bold' }}>{playheadLeft.toFixed(1)}%</div>
+        <div style={{ fontWeight: 'bold' }}>
+          Clip {currentVideoIndex + 1}/{videoQueue.length} ({playheadLeft.toFixed(1)}%)
+        </div>
         <div>{formatTime(totalDuration)}</div>
       </div>
     </div>
