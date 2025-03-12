@@ -6,11 +6,11 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import PlaylistBuilder from './pages/PlaylistBuilder'
 import PlaylistEditor from './pages/PlaylistEditor'
-import KeywordDirectory from './pages/KeywordDirectory'
 import TranscriptSummary from './pages/TranscriptSummary'
 import SearchPage from './pages/SearchPage'
 import InterviewPlayer from './pages/InterviewPlayer'
 import ClipPlayer from './pages/ClipPlayer'
+import ContentDirectory from './pages/ContentDirectory'
 
 
 export default function App() {
@@ -44,10 +44,10 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      <Route path="/keyword-directory" element={
+      <Route path="/content-directory" element={
         <ProtectedRoute>
           <Layout>
-            <KeywordDirectory />
+            <ContentDirectory />
           </Layout>
         </ProtectedRoute>
       } />
@@ -76,16 +76,16 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-<Route
-  path="/clip-player"
-  element={
-    <ProtectedRoute>
-      <Layout>
-        <ClipPlayer />
-      </Layout>
-    </ProtectedRoute>
-  }
-/>
+      <Route
+        path="/clip-player"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ClipPlayer />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
 
       {/* Catch all route */}

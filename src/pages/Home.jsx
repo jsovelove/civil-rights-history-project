@@ -8,7 +8,7 @@ export default function Home() {
   const { user } = useAuth();
   
   // Reorder the tab array so that "timeline" is first.
-  const tabs = ['timeline', 'keywords', 'map', 'people'];
+  const tabs = ['timeline', 'keywords', 'map'];
   
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">

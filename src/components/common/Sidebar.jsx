@@ -26,7 +26,7 @@ export default function Sidebar() {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: <Home size={20} /> },
-    { path: '/keyword-directory', label: 'Directory', icon: <List size={20} /> },
+    { path: '/content-directory', label: 'Directory', icon: <List size={20} /> },
     // Commented out Playlists in navLinks
     // { path: '/playlist-builder', label: 'Playlists', icon: <PlayCircle size={20} /> },
     { path: '/transcript-summary', label: 'Summarizer', icon: <FileText size={20} /> }
