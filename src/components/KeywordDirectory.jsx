@@ -74,12 +74,13 @@ export default function KeywordDirectory({ onViewAllClips }) {
               }
               keywordCounts[keyword].count++;
               
-              // Add parent interview data for thumbnails
+              // Add parent interview data for thumbnails and person name
               const enrichedSummary = {
                 ...subSummary,
                 id: doc.id,
                 documentName: interviewId,
                 videoEmbedLink: interviewData.videoEmbedLink,
+                personName: interviewData.name || "Unknown", // Add person name from parent
                 thumbnailUrl: interviewData.videoEmbedLink ? 
                   `https://img.youtube.com/vi/${extractVideoId(interviewData.videoEmbedLink)}/mqdefault.jpg` : 
                   null
@@ -125,15 +126,6 @@ export default function KeywordDirectory({ onViewAllClips }) {
       setLoading(false);
     }
   };
-
-  function formatTime(seconds) {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return hrs > 0
-      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-      : `${mins}:${secs.toString().padStart(2, "0")}`;
-  }
 
   const extractVideoId = (videoEmbedLink) => {
     if (!videoEmbedLink) return null;
@@ -298,7 +290,7 @@ export default function KeywordDirectory({ onViewAllClips }) {
                               {clip.thumbnailUrl ? (
                                 <img 
                                   src={clip.thumbnailUrl} 
-                                  alt={clip.documentName} 
+                                  alt={clip.topic || clip.documentName} 
                                   className="absolute inset-0 w-full h-full object-cover"
                                 />
                               ) : (
@@ -315,7 +307,18 @@ export default function KeywordDirectory({ onViewAllClips }) {
                               </div>
                             </div>
                             <div className="p-3">
-                              <p className="text-sm text-gray-600 line-clamp-2">
+                              {/* Topic as clip title */}
+                              <h4 className="text-sm font-medium text-blue-600 mb-1 line-clamp-1">
+                                {clip.topic || "Untitled Clip"}
+                              </h4>
+                              
+                              {/* Interviewee name */}
+                              <p className="text-xs text-gray-500 mb-2">
+                                {clip.personName}
+                              </p>
+                              
+                              {/* Summary */}
+                              <p className="text-xs text-gray-600 line-clamp-2">
                                 {clip.summary}
                               </p>
                             </div>
@@ -342,4 +345,13 @@ export default function KeywordDirectory({ onViewAllClips }) {
       </div>
     </>
   );
+  
+  function formatTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return hrs > 0
+      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+      : `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
 }

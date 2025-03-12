@@ -84,6 +84,7 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
           results.push({
             id: docSnapshot.id,
             documentName: interviewId,
+            personName: interviewData.name || "Unknown",
             ...subSummary,
             ...interviewData,
             thumbnailUrl // Use the parent document's videoEmbedLink for thumbnails
@@ -144,7 +145,6 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
               Search
             </button>
           </div>
-          
         </div>
       </div>
 
@@ -175,7 +175,7 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
                       {clip.thumbnailUrl ? (
                         <img 
                           src={clip.thumbnailUrl} 
-                          alt={clip.documentName} 
+                          alt={clip.topic || clip.documentName} 
                           className="absolute inset-0 w-full h-full object-cover"
                         />
                       ) : (
@@ -192,12 +192,22 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <h3 className="text-base font-medium text-blue-600 mb-1">
-                        {clip.documentName}
+                      {/* Topic as clip title */}
+                      <h3 className="text-base font-medium text-blue-600 mb-1 line-clamp-1">
+                        {clip.topic || "Untitled Clip"}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                      
+                      {/* Interviewee name */}
+                      <p className="text-sm text-gray-500 mb-2 font-medium">
+                        {clip.personName}
+                      </p>
+                      
+                      {/* Summary text */}
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                         {clip.summary}
                       </p>
+                      
+                      {/* Keywords */}
                       <div className="flex flex-wrap gap-1">
                         {(clip.keywords || "").split(",").map((kw, i) => (
                           <span 
