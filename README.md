@@ -6,6 +6,9 @@ A React-based web application powered by Large Language Models (LLMs) for analyz
 
 This project provides a dynamic interface for users to engage with oral history interviews from the Civil Rights Movement. The platform leverages LLMs to automatically process interview transcripts, extracting structured metadata including summaries, timestamps, and keywords. These AI-generated insights power the application's features for keyword-based searching, playlist creation, transcript summarization, and visualizations that help users explore connections between different interviews and topics.
 
+## Technical Documentation
+https://github.com/jsovelove/civil-rights-history-project/wiki
+
 ## Project Structure
 
 ```
@@ -106,6 +109,8 @@ This project provides a dynamic interface for users to engage with oral history 
    # or
    yarn dev
    ```
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+   
 ## Firebase Data Structure
 
 The application uses the following Firestore collections:
@@ -114,8 +119,6 @@ The application uses the following Firestore collections:
   - **subSummaries** (subcollection): Individual interview segments with timestamps
 - **keywordSummaries**: Aggregated information about keywords across interviews
 - **timelineEvents**: Historical events linked to interview content
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Acknowledgments
 
