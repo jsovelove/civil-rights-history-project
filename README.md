@@ -106,6 +106,8 @@ This project provides a dynamic interface for users to engage with oral history 
    # or
    yarn dev
    ```
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+   
 ## Firebase Data Structure
 
 The application uses the following Firestore collections:
@@ -114,8 +116,6 @@ The application uses the following Firestore collections:
   - **subSummaries** (subcollection): Individual interview segments with timestamps
 - **keywordSummaries**: Aggregated information about keywords across interviews
 - **timelineEvents**: Historical events linked to interview content
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Acknowledgments
 
