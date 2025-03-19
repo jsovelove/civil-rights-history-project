@@ -1,10 +1,41 @@
+/**
+ * @fileoverview ClipsDirectory component for searching and displaying interview clips.
+ * 
+ * This component provides a search interface to find and display interview clips
+ * by keywords. It handles caching of search results for performance optimization
+ * and presents search results in a grid layout with thumbnails and metadata.
+ */
+
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { DirectoryCacheContext } from '../pages/ContentDirectory';
 
+/**
+ * ClipsDirectory - Displays a searchable directory of interview clips
+ * 
+ * This component provides an interface for searching interview clips by keywords
+ * and presents the results in a grid layout. It handles:
+ * 1. Keyword-based searching for interview clips
+ * 2. Caching search results for improved performance
+ * 3. Displaying clips with thumbnails, titles, and metadata
+ * 4. Navigation to individual clip player
+ * 
+ * @component
+ * @example
+ * // Basic usage:
+ * <ClipsDirectory />
+ * 
+ * // With initial search term:
+ * <ClipsDirectory initialSearchTerm="voting rights" />
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.initialSearchTerm=''] - Initial search term to automatically search for
+ * @returns {React.ReactElement} Clips directory interface
+ */
 export default function ClipsDirectory({ initialSearchTerm = '' }) {
+  // Component state
   const [clipSearchTerm, setClipSearchTerm] = useState(initialSearchTerm);
   const [clipResults, setClipResults] = useState([]);
   const [clipSearchLoading, setClipSearchLoading] = useState(false);
@@ -12,10 +43,13 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Get cache context
+  // Retrieve search caching functions from context
   const { getSearchFromCache, addSearchToCache } = useContext(DirectoryCacheContext);
 
-  // Track when the initialSearchTerm changes to perform a search
+  /**
+   * Handle initialSearchTerm changes
+   * Automatically trigger a search when the initialSearchTerm prop changes
+   */
   useEffect(() => {
     if (initialSearchTerm) {
       setClipSearchTerm(initialSearchTerm);
@@ -23,7 +57,20 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
     }
   }, [initialSearchTerm]);
 
+  /**
+   * Handles clip search by keywords
+   * 
+   * This function:
+   * 1. Validates search term
+   * 2. Checks for cached results
+   * 3. Performs a search against the database if needed
+   * 4. Updates results and caches them
+   * 
+   * @param {string} searchTermToUse - Search term to use (defaults to current state)
+   * @returns {Promise<void>}
+   */
   const handleClipSearch = async (searchTermToUse = clipSearchTerm) => {
+    // Validate search term is not empty
     if (!searchTermToUse.trim()) {
       setClipResults([]);
       setClipSearchPerformed(false);
@@ -32,7 +79,7 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
 
     setClipSearchPerformed(true);
     
-    // Check cache for this search term
+    // Check cache for this search term to avoid redundant network requests
     const cachedResults = getSearchFromCache('clips', searchTermToUse);
     
     if (cachedResults) {
@@ -45,12 +92,13 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
     setClipSearchLoading(true);
     
     try {
+      // Parse keywords from search term
       const keywordsArray = searchTermToUse.split(',').map(kw => kw.trim().toLowerCase());
       const results = await fetchRelevantSegments(keywordsArray);
       
       setClipResults(results);
       
-      // Cache the search results
+      // Cache the search results for future use
       addSearchToCache('clips', searchTermToUse, results);
     } catch (error) {
       console.error("Error searching for clips:", error);
@@ -60,6 +108,15 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
     }
   };
 
+  /**
+   * Fetches interview segments that match the provided keywords
+   * 
+   * Searches through all interview summaries and their subsummaries
+   * to find clips that have matching keywords.
+   * 
+   * @param {string[]} keywordsArray - Array of normalized keywords to search for
+   * @returns {Promise<Array>} Array of matching clip objects
+   */
   const fetchRelevantSegments = async (keywordsArray) => {
     const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
     const results = [];
@@ -73,13 +130,17 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
       const thumbnailUrl = parentVideoEmbedLink ?
         `https://img.youtube.com/vi/${extractVideoId(parentVideoEmbedLink)}/mqdefault.jpg` : null;
       
+      // Get subsummaries (individual segments) for this interview
       const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
       const querySnapshot = await getDocs(subSummariesRef);
       
+      // Process each segment and check for keyword matches
       querySnapshot.forEach((docSnapshot) => {
         const subSummary = docSnapshot.data();
         const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
         const hasMatch = keywordsArray.some(kw => documentKeywords.includes(kw));
+        
+        // Add matching segments to results
         if (hasMatch) {
           results.push({
             id: docSnapshot.id,
@@ -95,20 +156,34 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
     return results;
   };
 
+  /**
+   * Extracts YouTube video ID from various YouTube URL formats
+   * 
+   * @param {string} videoEmbedLink - YouTube URL
+   * @returns {string|null} YouTube video ID or null if not valid
+   */
   const extractVideoId = (videoEmbedLink) => {
     if (!videoEmbedLink) return null;
     
-    // Handle YouTube embed links
+    // Regular expression to handle various YouTube URL formats
     const regExp = /^.*(youtu.be\/|v\/|e\/|u\/\w+\/|embed\/|v=)([^#&?]*).*/;
     const match = videoEmbedLink.match(regExp);
+    
+    // Standard YouTube IDs are 11 characters
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
+  /**
+   * Navigates to the clip player page for a specific clip
+   * 
+   * @param {string} documentName - Parent interview document ID
+   * @param {string} clipId - Clip/segment ID to view
+   */
   const handleViewClip = (documentName, clipId) => {
     navigate(`/clip-player?documentName=${encodeURIComponent(documentName)}&clipId=${encodeURIComponent(clipId)}`);
   };
 
-  // Error state
+  // Display error state if something went wrong
   if (error) {
     return (
       <div className="flex justify-center items-center h-64 bg-gray-50">
@@ -151,15 +226,18 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
       {/* Clip search results */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {clipSearchLoading ? (
+          // Loading state
           <div className="p-12 flex justify-center">
             <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
           </div>
         ) : clipSearchPerformed ? (
           clipResults.length === 0 ? (
+            // No results state
             <div className="p-6 text-center text-gray-500">
               No clips found matching your search keywords.
             </div>
           ) : (
+            // Results display
             <div className="p-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
                 Found {clipResults.length} clip{clipResults.length !== 1 ? 's' : ''}
@@ -171,6 +249,7 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
                     className="bg-gray-50 rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => handleViewClip(clip.documentName, clip.id)}
                   >
+                    {/* Clip thumbnail with timestamp overlay */}
                     <div className="relative pb-[56.25%] bg-gray-200">
                       {clip.thumbnailUrl ? (
                         <img 
@@ -191,6 +270,7 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
                         </span>
                       </div>
                     </div>
+                    {/* Clip metadata */}
                     <div className="p-4">
                       {/* Topic as clip title */}
                       <h3 className="text-base font-medium text-blue-600 mb-1 line-clamp-1">
@@ -225,6 +305,7 @@ export default function ClipsDirectory({ initialSearchTerm = '' }) {
             </div>
           )
         ) : (
+          // Initial state - no search performed yet
           <div className="p-6 text-center text-gray-500">
             Enter keywords above to search for relevant clips.
           </div>

@@ -1,9 +1,32 @@
+/**
+ * @fileoverview ClipPlayer page for displaying individual interview clips.
+ * 
+ * This page loads and displays a specific interview clip based on URL parameters,
+ * including the YouTube video at the specified timestamp, clip metadata, and
+ * navigation options to related content.
+ */
+
 import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../services/firebase'
 import { Clock, Tag } from 'lucide-react'
 
+/**
+ * ClipPlayer - Page for playing individual interview clips
+ * 
+ * This page:
+ * 1. Retrieves clip data based on URL parameters
+ * 2. Initializes a YouTube player at the specific timestamp
+ * 3. Displays clip metadata and summary
+ * 4. Provides navigation to the full interview and keyword playlists
+ * 
+ * URL Parameters:
+ * - documentName: ID of the parent interview document
+ * - clipId: ID of the specific clip to play
+ * 
+ * @returns {React.ReactElement} Clip player page
+ */
 export default function ClipPlayer() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -16,11 +39,23 @@ export default function ClipPlayer() {
   const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef(null)
 
+  /**
+   * Extracts YouTube video ID from various URL formats
+   * 
+   * @param {string} link - YouTube URL in different possible formats
+   * @returns {string|null} YouTube video ID or null if not extractable
+   */
   const extractVideoId = (link) => {
     const match = link?.match(/(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
     return match?.[1] || null
   }
 
+  /**
+   * Converts a timestamp string to seconds
+   * 
+   * @param {string} timestamp - Timestamp in format "[MM:SS]" or "[HH:MM:SS]"
+   * @returns {number} Time in seconds
+   */
   const convertTimestampToSeconds = (timestamp) => {
     if (!timestamp) return 0
     const timeStr = timestamp.split(' - ')[0].replace(/[\[\]]/g, '').trim()
@@ -30,10 +65,15 @@ export default function ClipPlayer() {
       : parts[0] * 60 + parts[1]
   }
 
+  /**
+   * Load main interview and clip data from Firestore
+   */
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Get the parent interview document
         const mainDoc = await getDoc(doc(db, 'interviewSummaries', documentName))
+        // Get the specific clip document
         const clipDoc = await getDoc(doc(db, 'interviewSummaries', documentName, 'subSummaries', clipId))
 
         if (!mainDoc.exists() || !clipDoc.exists()) {
@@ -52,7 +92,9 @@ export default function ClipPlayer() {
     loadData()
   }, [documentName, clipId])
 
-  // Load YouTube API
+  /**
+   * Load YouTube IFrame API if not already loaded
+   */
   useEffect(() => {
     if (window.YT && window.YT.Player) return
     const tag = document.createElement('script')
@@ -61,6 +103,9 @@ export default function ClipPlayer() {
     window.onYouTubeIframeAPIReady = () => initPlayer()
   }, [])
 
+  /**
+   * Initialize YouTube player with the correct video and timestamp
+   */
   const initPlayer = () => {
     if (!mainSummary?.videoEmbedLink || !playerRef.current) return
     const videoId = extractVideoId(mainSummary.videoEmbedLink)
@@ -82,13 +127,20 @@ export default function ClipPlayer() {
     })
   }
 
+  /**
+   * Initialize player when data is available and YouTube API is loaded
+   */
   useEffect(() => {
     if (mainSummary && clipData && window.YT?.Player) initPlayer()
   }, [mainSummary, clipData])
 
+  // Error state
   if (error) return <div className="p-6 text-red-600">{error}</div>
+  
+  // Loading state
   if (!mainSummary || !clipData) return <div className="p-6">Loading...</div>
 
+  // Process keywords into array format regardless of input format
   const keywords = Array.isArray(clipData.keywords)
     ? clipData.keywords
     : clipData.keywords?.split(',') || []
@@ -115,6 +167,7 @@ export default function ClipPlayer() {
           <span>{clipData.timestamp}</span>
         </div>
 
+        {/* Clickable Keywords */}
         {keywords.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {keywords.map((k, idx) => (

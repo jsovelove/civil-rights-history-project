@@ -1,3 +1,12 @@
+/**
+ * @fileoverview PlaylistBuilder component for creating and playing keyword-based playlists.
+ * 
+ * This component provides a robust interface for creating, viewing, and controlling playlists
+ * of video clips based on keywords from the Civil Rights History Collection. It includes
+ * functionality for playlist navigation, clip management, video playback control, and
+ * discovering related content.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
@@ -13,37 +22,60 @@ import RelatedClips from "../components/RelatedClips";
 import VideoPlayer from "../components/VideoPlayer";
 import { Clock, Tag } from 'lucide-react'
 
-
+/**
+ * PlaylistBuilder - Advanced component for building and playing keyword-based playlists
+ * 
+ * This component:
+ * 1. Retrieves and manages video clips based on keyword search
+ * 2. Provides a custom video player with playlist navigation
+ * 3. Allows users to manage playlist content (add clips, shuffle)
+ * 4. Suggests related content for discovery
+ * 5. Provides an "Up Next" feature for continuous viewing across keywords
+ * 
+ * URL Parameters:
+ * - keywords: The keyword(s) to search for, separated by commas
+ * 
+ * @returns {React.ReactElement} The playlist builder interface
+ */
 const PlaylistBuilder = () => {
+  // Routing and navigation
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // Search and results state
   const [keyword, setKeyword] = useState("");
   const [videoQueue, setVideoQueue] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totalClipsForKeyword, setTotalClipsForKeyword] = useState(0);
+  
+  // Player control states
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [playlistTime, setPlaylistTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
+  const [seekToTime, setSeekToTime] = useState(null);
+  
+  // UI state
   const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
-  const [seekToTime, setSeekToTime] = useState(null); // New state for seeking
-  const [showAddedNotification, setShowAddedNotification] = useState(false); // For notification
-  const notificationTimeoutRef = useRef(null); // Reference for timeout
+  const [showAddedNotification, setShowAddedNotification] = useState(false);
   const [isAddingAllClips, setIsAddingAllClips] = useState(false);
-
-  const [totalClipsForKeyword, setTotalClipsForKeyword] = useState(0);
-
-  // Up Next feature state
+  
+  // "Up Next" feature state
   const [availableKeywords, setAvailableKeywords] = useState([]);
-  const [keywordCounts, setKeywordCounts] = useState({}); // Track count of clips per keyword
+  const [keywordCounts, setKeywordCounts] = useState({});
   const [nextKeyword, setNextKeyword] = useState("");
   const [nextKeywordThumbnail, setNextKeywordThumbnail] = useState("");
   const [playlistEnded, setPlaylistEnded] = useState(false);
-
+  
+  // Refs for managing timeouts
+  const notificationTimeoutRef = useRef(null);
   const autoplayTimeoutRef = useRef(null);
 
-  // Calculate total duration when videoQueue changes
+  /**
+   * Calculate total playlist duration when videoQueue changes
+   */
   useEffect(() => {
     if (videoQueue.length > 0) {
       const calculatedDuration = videoQueue.reduce((total, video) => {
@@ -55,7 +87,9 @@ const PlaylistBuilder = () => {
     }
   }, [videoQueue]);
 
-  // Set keyword from URL params
+  /**
+   * Set keyword from URL parameters when they change
+   */
   useEffect(() => {
     const keywordParam = searchParams.get("keywords");
     if (keywordParam) {
@@ -64,6 +98,9 @@ const PlaylistBuilder = () => {
     }
   }, [searchParams]);
 
+  /**
+   * Trigger video search when keyword changes
+   */
   useEffect(() => {
     if (keyword) {
       // Only run searchVideos when the keyword changes, not when keywordCounts changes
@@ -72,6 +109,9 @@ const PlaylistBuilder = () => {
     }
   }, [keyword]);
 
+  /**
+   * Update total clips count for the current keyword
+   */
   useEffect(() => {
     if (keyword && keywordCounts[keyword]) {
       setTotalClipsForKeyword(keywordCounts[keyword]);
@@ -81,6 +121,11 @@ const PlaylistBuilder = () => {
     }
   }, [keyword, keywordCounts]);
 
+  /**
+   * Count total clips available for a specific keyword
+   * 
+   * @param {string} keyword - The keyword to count clips for
+   */
   const countTotalClipsForKeyword = async (keyword) => {
     if (!keyword) return;
 
@@ -115,7 +160,9 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Clear notification timeout on unmount
+  /**
+   * Clear notification timeout on component unmount
+   */
   useEffect(() => {
     return () => {
       if (notificationTimeoutRef.current) {
@@ -124,7 +171,11 @@ const PlaylistBuilder = () => {
     };
   }, []);
 
-  // Handle adding a clip to the playlist
+  /**
+   * Add a clip to the current playlist and show notification
+   * 
+   * @param {Object} clip - The clip to add to the playlist
+   */
   const handleAddToPlaylist = (clip) => {
     // Check if the clip is already in the queue
     const isAlreadyInQueue = videoQueue.some(video => video.id === clip.id);
@@ -162,6 +213,9 @@ const PlaylistBuilder = () => {
     console.log("Added clip to playlist:", clip.id);
   };
 
+  /**
+   * Add all available clips for the current keyword to the playlist
+   */
   const handleAddAllToPlaylist = async () => {
     // Prevent multiple clicks
     if (isAddingAllClips) return;
@@ -215,19 +269,25 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Fetch all available keywords when component mounts
+  /**
+   * Fetch all available keywords on component mount
+   */
   useEffect(() => {
     fetchAvailableKeywords();
   }, []);
 
-  // Select a new "up next" keyword when the available keywords change
+  /**
+   * Select a new "up next" keyword when the available keywords change
+   */
   useEffect(() => {
     if (availableKeywords.length > 0 && keyword) {
       selectRandomNextKeyword();
     }
   }, [availableKeywords, keyword, keywordCounts]);
 
-  // Auto-navigate to next keyword playlist when current playlist ends
+  /**
+   * Auto-navigate to next keyword playlist when current playlist ends
+   */
   useEffect(() => {
     if (playlistEnded && nextKeyword) {
       // Clear any existing timeout
@@ -250,7 +310,9 @@ const PlaylistBuilder = () => {
     };
   }, [playlistEnded, nextKeyword, navigate]);
 
-  // Reset current time and seek state when changing videos
+  /**
+   * Reset current time and seek state when changing videos
+   */
   useEffect(() => {
     if (videoQueue.length > 0) {
       setCurrentTime(0);
@@ -259,7 +321,11 @@ const PlaylistBuilder = () => {
     }
   }, [currentVideoIndex]);
 
-  // Function to calculate elapsed time up to current video
+  /**
+   * Calculate the elapsed time up to the current video (for timeline positioning)
+   * 
+   * @returns {number} Total seconds elapsed in previous videos
+   */
   const calculateElapsedTimeBeforeCurrent = () => {
     if (!videoQueue.length) return 0;
 
@@ -272,21 +338,31 @@ const PlaylistBuilder = () => {
     return elapsed;
   };
 
-  // Handle time updates from the video player
+  /**
+   * Handle time updates from the video player
+   * 
+   * @param {number} time - Current playback time in seconds
+   */
   const handleTimeUpdate = (time) => {
     setCurrentTime(time);
     // Update playlist time based on elapsed time
     setPlaylistTime(calculateElapsedTimeBeforeCurrent() + time);
   };
 
-  // Handle seeking within current video
+  /**
+   * Handle seeking within current video
+   * 
+   * @param {number} timeToSeek - Target time in seconds to seek to
+   */
   const handleSeek = (timeToSeek) => {
     console.log(`Seeking to ${timeToSeek}s within current video`);
     setSeekToTime(timeToSeek);
     // No need to update currentTime here, it will be updated via handleTimeUpdate
   };
 
-  // Fetch all available keywords from Firestore and count their occurrences
+  /**
+   * Fetch all available keywords from Firestore and count their occurrences
+   */
   const fetchAvailableKeywords = async () => {
     try {
       const keywordCounter = {};
@@ -322,7 +398,9 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Select a random keyword for "up next" that has more than 1 clip
+  /**
+   * Select a random keyword for "up next" that has more than 1 clip
+   */
   const selectRandomNextKeyword = () => {
     if (availableKeywords.length === 0) return;
 
@@ -342,7 +420,11 @@ const PlaylistBuilder = () => {
     fetchThumbnailForKeyword(selected);
   };
 
-  // Fetch a thumbnail for the next keyword
+  /**
+   * Fetch a thumbnail image URL for the next keyword
+   * 
+   * @param {string} keyword - Keyword to fetch thumbnail for
+   */
   const fetchThumbnailForKeyword = async (keyword) => {
     try {
       const keywordsArray = parseKeywords(keyword);
@@ -372,31 +454,43 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Handle playing the next keyword immediately
+  /**
+   * Navigate to the next keyword playlist immediately
+   */
   const handlePlayNextKeyword = () => {
     if (nextKeyword) {
       navigate(`?keywords=${encodeURIComponent(nextKeyword)}`);
     }
   };
 
-  // Handle the initial shuffle button click
+  /**
+   * Show confirmation dialog before shuffling playlist
+   */
   const handleShuffleClick = () => {
     setShowShuffleConfirmation(true);
   };
 
-  // Handle shuffle confirmation
+  /**
+   * Handle shuffle confirmation and execute shuffle operation
+   */
   const handleShuffleConfirm = () => {
     setShowShuffleConfirmation(false);
     // Use the existing search function which already includes shuffle logic
     searchVideos();
   };
 
-  // Handle cancellation
+  /**
+   * Handle shuffle cancellation
+   */
   const handleShuffleCancel = () => {
     setShowShuffleConfirmation(false);
   };
 
-  // Handle metadata updates from the MetadataPanel
+  /**
+   * Update metadata for the current video in the queue
+   * 
+   * @param {Object} updatedMetadata - New metadata to apply to current video
+   */
   const handleMetadataUpdate = (updatedMetadata) => {
     // Update the video in the queue
     setVideoQueue(prevQueue => {
@@ -409,12 +503,22 @@ const PlaylistBuilder = () => {
     });
   };
 
-  // Utility function to shuffle an array
+  /**
+   * Randomly shuffle an array using Fisher-Yates algorithm
+   * 
+   * @param {Array} array - Array to shuffle
+   * @returns {Array} Shuffled array
+   */
   const shuffleArray = (array) => {
     return array.sort(() => Math.random() - 0.5);
   };
 
-  // Utility function to get video duration from YouTube
+  /**
+   * Get the duration of a YouTube video using the iframe API
+   * 
+   * @param {string} videoId - YouTube video ID
+   * @returns {Promise<number>} Video duration in seconds
+   */
   const getYouTubeVideoDuration = async (videoId) => {
     // Use YouTube Data API if available, or fallback to loading video and checking
     return new Promise((resolve) => {
@@ -485,7 +589,12 @@ const PlaylistBuilder = () => {
     });
   };
 
-  // Function to validate a video's timestamp against actual duration
+  /**
+   * Validate a video's timestamp against the actual video duration
+   * 
+   * @param {Object} video - Video object with timestamp and videoEmbedLink
+   * @returns {Promise<boolean>} Whether the timestamp is valid
+   */
   const validateVideoTimestamp = async (video) => {
     try {
       const videoId = extractVideoId(video.videoEmbedLink);
@@ -517,7 +626,10 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Search for videos
+  /**
+   * Search for videos based on the current keyword
+   * Includes validation and filtering of results
+   */
   const searchVideos = async () => {
     try {
       setLoading(true);
@@ -621,7 +733,12 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Fetch video segments from Firestore
+  /**
+   * Fetch video segments from Firestore that match the given keywords
+   * 
+   * @param {string[]} keywordsArray - Array of keywords to search for
+   * @returns {Promise<Array>} Array of matching video segments
+   */
   const fetchRelevantSegments = async (keywordsArray) => {
     const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
     const results = [];
@@ -656,7 +773,9 @@ const PlaylistBuilder = () => {
     return results;
   };
 
-  // Player navigation
+  /**
+   * Navigate to the next video in the queue
+   */
   const handleNext = () => {
     if (currentVideoIndex < videoQueue.length - 1) {
       setCurrentVideoIndex(currentVideoIndex + 1);
@@ -664,6 +783,9 @@ const PlaylistBuilder = () => {
     }
   };
 
+  /**
+   * Navigate to the previous video in the queue
+   */
   const handlePrevious = () => {
     if (currentVideoIndex > 0) {
       setCurrentVideoIndex(currentVideoIndex - 1);
@@ -671,7 +793,10 @@ const PlaylistBuilder = () => {
     }
   };
 
-  // Video end handler
+  /**
+   * Handle video end event from the player
+   * Advances to next video or marks playlist as ended
+   */
   const handleVideoEnd = () => {
     console.log(`Video end triggered for index ${currentVideoIndex}/${videoQueue.length - 1}`);
 
@@ -690,16 +815,25 @@ const PlaylistBuilder = () => {
     }, 500);
   };
 
-  // Play/Pause control
+  /**
+   * Play control handler
+   */
   const handlePlayVideo = () => {
     setIsPlaying(true);
   };
 
+  /**
+   * Pause control handler
+   */
   const handlePauseVideo = () => {
     setIsPlaying(false);
   };
 
-  // Get current video information
+  /**
+   * Get the current video from the queue based on currentVideoIndex
+   * 
+   * @returns {Object|null} Current video object or null if queue is empty
+   */
   const getCurrentVideo = () => {
     if (!videoQueue.length || currentVideoIndex >= videoQueue.length) {
       return null;

@@ -1,9 +1,34 @@
+/**
+ * @fileoverview PeopleGrid component for displaying and navigating interview subjects.
+ * 
+ * This component provides a grid-based display of interview subjects with search functionality,
+ * modal details view, and keyboard navigation support. It implements caching for improved
+ * performance and responsive layout for different screen sizes.
+ */
+
 import { useState, useEffect, useContext } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../services/firebase';
 import { DirectoryCacheContext } from '../pages/ContentDirectory';
 
+/**
+ * PeopleGrid - Grid display of interview subjects with search and details view
+ * 
+ * This component provides:
+ * 1. A grid-based display of interview subjects with thumbnails
+ * 2. Search functionality by name
+ * 3. Modal details view with navigation
+ * 4. Keyboard navigation support
+ * 5. Caching integration for performance
+ * 6. Responsive layout for different devices
+ * 
+ * @component
+ * @example
+ * <PeopleGrid />
+ * 
+ * @returns {React.ReactElement} People grid component
+ */
 export default function PeopleGrid() {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +39,12 @@ export default function PeopleGrid() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Get cache context
+  // Get cache context for data persistence
   const { cache, updateCache } = useContext(DirectoryCacheContext);
 
-  // Initialize data from cache or fetch new data
+  /**
+   * Initialize data from cache or fetch new data
+   */
   useEffect(() => {
     if (cache.people) {
       console.log('Using cached people data');
@@ -29,7 +56,9 @@ export default function PeopleGrid() {
     }
   }, [cache.people]);
 
-  // Update filtered people when search term changes
+  /**
+   * Filter people based on search term
+   */
   useEffect(() => {
     if (searchTerm) {
       const filtered = people.filter(person =>
@@ -41,23 +70,42 @@ export default function PeopleGrid() {
     }
   }, [searchTerm, people]);
 
-  // Open modal when a person is selected
+  /**
+   * Open modal when a person is selected
+   */
   useEffect(() => {
     if (selectedPerson) {
       setIsModalOpen(true);
     }
   }, [selectedPerson]);
 
-  // Close modal and clear selection
+  /**
+   * Close modal and maintain selection
+   * 
+   * The selection is maintained to allow reopening the same modal
+   * when needed without having to reselect the person.
+   */
   const closeModal = () => {
     setIsModalOpen(false);
   };
 
+  /**
+   * Extract YouTube video ID from embed URL
+   * 
+   * @param {string} url - YouTube embed URL
+   * @returns {string|null} YouTube video ID or null if not found
+   */
   const extractVideoId = (url) => {
     const match = url?.match(/embed\/([a-zA-Z0-9_-]+)/);
     return match ? match[1] : null;
   };
 
+  /**
+   * Fetch people data from Firebase
+   * 
+   * Retrieves all interview subjects, extracts thumbnails from YouTube links,
+   * and updates both state and cache with the results.
+   */
   const fetchPeople = async () => {
     try {
       setLoading(true);
@@ -82,7 +130,7 @@ export default function PeopleGrid() {
       setPeople(peopleData);
       setFilteredPeople(peopleData);
       
-      // Store in cache
+      // Store in cache for future use
       updateCache('people', peopleData);
       
       setLoading(false);
@@ -93,7 +141,11 @@ export default function PeopleGrid() {
     }
   };
 
-  // Navigate between people in the modal
+  /**
+   * Navigate to previous person in the filtered list
+   * 
+   * Implements circular navigation (wraps to end when at the beginning)
+   */
   const navigateToPrev = () => {
     if (!selectedPerson) return;
 
@@ -108,6 +160,11 @@ export default function PeopleGrid() {
     }
   };
 
+  /**
+   * Navigate to next person in the filtered list
+   * 
+   * Implements circular navigation (wraps to beginning when at the end)
+   */
   const navigateToNext = () => {
     if (!selectedPerson) return;
 
@@ -122,7 +179,11 @@ export default function PeopleGrid() {
     }
   };
 
-  // Handle keyboard navigation
+  /**
+   * Set up keyboard navigation for the modal
+   * 
+   * Enables left/right arrow keys for navigation and Escape to close
+   */
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isModalOpen) return;
@@ -140,7 +201,9 @@ export default function PeopleGrid() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isModalOpen, selectedPerson, filteredPeople]);
 
-  // Navigation Arrow Icons
+  /**
+   * Navigation icon components for modal
+   */
   const ChevronLeftIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -163,7 +226,18 @@ export default function PeopleGrid() {
     </svg>
   );
 
-  // Modal Component with navigation arrows
+  /**
+   * Modal component for displaying person details
+   * 
+   * @component
+   * @param {Object} props - Component props
+   * @param {Object} props.person - Person data to display
+   * @param {boolean} props.isOpen - Whether the modal is open
+   * @param {Function} props.onClose - Function to close the modal
+   * @param {Function} props.onPrev - Function to navigate to previous person
+   * @param {Function} props.onNext - Function to navigate to next person
+   * @returns {React.ReactElement|null} Modal or null if not open
+   */
   const PersonModal = ({ person, isOpen, onClose, onPrev, onNext }) => {
     if (!isOpen || !person) return null;
 
@@ -246,7 +320,14 @@ export default function PeopleGrid() {
     );
   };
 
-  // PhotoCard component
+  /**
+   * PhotoCard component for displaying a person thumbnail
+   * 
+   * @component
+   * @param {Object} props - Component props
+   * @param {Object} props.person - Person data to display
+   * @returns {React.ReactElement} Photo card component
+   */
   const PhotoCard = ({ person }) => {
     const isSelected = selectedPerson?.id === person.id;
 
@@ -288,6 +369,7 @@ export default function PeopleGrid() {
     );
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -296,6 +378,7 @@ export default function PeopleGrid() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -304,6 +387,7 @@ export default function PeopleGrid() {
     );
   }
 
+  // Empty state
   if (people.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -314,6 +398,7 @@ export default function PeopleGrid() {
 
   return (
     <>
+      {/* Search header */}
       <div className="mb-6 max-w-xl mx-auto">
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="text-center">

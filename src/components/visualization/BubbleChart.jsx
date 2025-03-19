@@ -1,3 +1,12 @@
+/**
+ * @fileoverview BubbleChartVisx component for visualizing keywords from interviews.
+ * 
+ * This component creates an interactive bubble chart visualization displaying keywords
+ * from interview transcripts, where each bubble's size corresponds to the frequency
+ * of the keyword's appearance. It uses ViSX/d3 for rendering, supports zooming, panning,
+ * filtering, and selecting bubbles to view more details or navigate to related content.
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Group } from '@visx/group';
 import { Pack } from '@visx/hierarchy';
@@ -12,6 +21,11 @@ const defaultMargin = { top: 40, right: 40, bottom: 40, left: 40 };
 
 /**
  * Splits a given text into lines not exceeding maxChars per line.
+ * Used to format text labels within bubbles for better readability.
+ * 
+ * @param {string} text - Text to wrap
+ * @param {number} maxChars - Maximum characters per line
+ * @returns {string[]} Array of wrapped text lines
  */
 function wrapText(text, maxChars) {
   const words = text.split(' ');
@@ -29,7 +43,20 @@ function wrapText(text, maxChars) {
   return lines;
 }
 
+/**
+ * BubbleChartVisx - Interactive bubble chart for visualizing keyword frequency
+ * 
+ * This component:
+ * 1. Fetches keyword data from Firestore and calculates their frequencies
+ * 2. Renders an interactive bubble chart where bubble size represents frequency
+ * 3. Provides filtering, searching, and threshold controls
+ * 4. Enables zooming, panning, and selecting bubbles for more information
+ * 5. Allows navigation to related content when a keyword is selected
+ * 
+ * @returns {React.ReactElement} The bubble chart visualization interface
+ */
 export default function BubbleChartVisx() {
+  // Component state
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,13 +66,18 @@ export default function BubbleChartVisx() {
     width: window.innerWidth,
     height: window.innerHeight
   });
+  
+  // User interface control states
   const [visibleKeywords, setVisibleKeywords] = useState(150); // Default number of visible keywords
   const [searchTerm, setSearchTerm] = useState('');
   const [filterThreshold, setFilterThreshold] = useState(2); // Changed default minimum to 2 clips
 
   const navigate = useNavigate();
 
-  // Debounced version of setHoveredBubble
+  /**
+   * Debounced version of setHoveredBubble to improve performance
+   * Prevents excessive re-renders during rapid mouse movements
+   */
   const debouncedSetHoveredBubble = useCallback(
     debounce((bubble) => {
       setHoveredBubble(bubble);
@@ -53,7 +85,10 @@ export default function BubbleChartVisx() {
     []
   );
 
-  // Update dimensions on window resize
+  /**
+   * Update dimensions on window resize to ensure the visualization
+   * remains responsive to the viewport size
+   */
   useEffect(() => {
     const handleResize = () => {
       setDimensions({
@@ -66,6 +101,10 @@ export default function BubbleChartVisx() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  /**
+   * Fetch keyword data from Firestore and process it for visualization
+   * This effect runs once on component mount
+   */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -117,7 +156,10 @@ export default function BubbleChartVisx() {
     fetchData();
   }, []);
 
-  // Filter and prepare data for visualization
+  /**
+   * Filter and prepare data for visualization based on user controls
+   * This memoized value updates when data or filter settings change
+   */
   const processedData = useMemo(() => {
     if (!data) return null;
 
@@ -162,6 +204,7 @@ export default function BubbleChartVisx() {
     return result;
   }, [data, visibleKeywords, searchTerm, filterThreshold]);
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
@@ -175,6 +218,7 @@ export default function BubbleChartVisx() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50 px-6">
@@ -197,7 +241,11 @@ export default function BubbleChartVisx() {
   const packWidth = width - defaultMargin.left - defaultMargin.right;
   const packHeight = height - defaultMargin.top - defaultMargin.bottom;
 
-  // Handle bubble click
+  /**
+   * Handle bubble click for selection or expanding "Others" group
+   * 
+   * @param {Object} circle - The circle node that was clicked
+   */
   const handleBubbleClick = (circle) => {
     // For "Others" bubble, show more items
     if (circle.data.isOthers) {
@@ -218,7 +266,14 @@ export default function BubbleChartVisx() {
     }
   };
 
-  // Calculate color based on bubble size
+  /**
+   * Calculate color based on bubble size and type
+   * 
+   * @param {number} value - The value/count of the keyword
+   * @param {number} max - The maximum value in the dataset
+   * @param {boolean} isOthers - Whether this is the "Others" bubble
+   * @returns {string} A CSS color value
+   */
   const getBubbleColor = (value, max, isOthers) => {
     if (isOthers) return "rgba(107, 114, 128, 0.3)"; // Gray for Others
     const intensity = Math.min(0.8, 0.3 + (value / max) * 0.5);
@@ -318,6 +373,7 @@ export default function BubbleChartVisx() {
         </div>
       )}
 
+      {/* ViSX Zoom container for pan/zoom interactions */}
       <Zoom
         width={width}
         height={height}
@@ -439,7 +495,7 @@ export default function BubbleChartVisx() {
               </Pack>
             </svg>
 
-            {/* Tooltip */}
+            {/* Tooltip for hover interactions */}
             {hoveredBubble && !selectedBubble && (
               <div
                 className="absolute bg-gray-900 bg-opacity-90 text-white p-2 px-3 rounded-lg pointer-events-none text-sm z-50 shadow-md max-w-xs"

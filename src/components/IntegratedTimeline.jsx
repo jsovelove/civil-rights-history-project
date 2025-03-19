@@ -1,6 +1,45 @@
+/**
+ * @fileoverview IntegratedTimeline component for visualizing and navigating a playlist of video segments.
+ * 
+ * This component provides a visual timeline interface that displays video segments as thumbnails,
+ * shows playback progress, and allows users to navigate between segments and seek within them.
+ * It implements a windowed display to handle large playlists efficiently.
+ */
+
 import React, { useEffect, useState, useRef } from "react";
 import { parseTimestampRange, formatTime, extractVideoId } from "../utils/timeUtils";
 
+/**
+ * IntegratedTimeline - Interactive timeline for navigating video playlists
+ * 
+ * This component provides:
+ * 1. A visual timeline of video segments with thumbnails
+ * 2. Current playback progress visualization
+ * 3. Seeking functionality within segments
+ * 4. Navigation between segments
+ * 5. Time display and percentage indicators
+ * 6. Windowed view for efficient rendering of large playlists
+ * 
+ * @component
+ * @example
+ * <IntegratedTimeline 
+ *   videoQueue={videoArray}
+ *   currentVideoIndex={currentIndex}
+ *   setCurrentVideoIndex={setCurrentIndex}
+ *   currentTime={currentPlaybackTime}
+ *   totalDuration={totalPlaylistDuration}
+ *   onSeek={handleSeek}
+ * />
+ * 
+ * @param {Object} props - Component props
+ * @param {Array} props.videoQueue - Array of video objects in the playlist
+ * @param {number} props.currentVideoIndex - Index of the currently playing video in the queue
+ * @param {Function} props.setCurrentVideoIndex - Function to change the current video index
+ * @param {number} props.currentTime - Current playback time within the current video
+ * @param {number} props.totalDuration - Total duration of all videos in the playlist
+ * @param {Function} props.onSeek - Function called when user seeks within a video
+ * @returns {React.ReactElement} Timeline component
+ */
 const IntegratedTimeline = ({ 
   videoQueue, 
   currentVideoIndex, 
@@ -17,10 +56,16 @@ const IntegratedTimeline = ({
   const [seekPreviewPosition, setSeekPreviewPosition] = useState(null);
   const activeThumbnailRef = useRef(null);
   
-  // New state for visible window of clips
+  // State for windowed rendering of clips
   const [visibleStartIndex, setVisibleStartIndex] = useState(0);
   const maxVisibleClips = 8; // Maximum number of clips to show at once
 
+  /**
+   * Update timeline state when playback position changes
+   * 
+   * Calculates total elapsed time and playhead position based on
+   * current playback position within the playlist.
+   */
   useEffect(() => {
     // Calculate elapsed time up to current video
     let elapsed = 0;
@@ -48,7 +93,12 @@ const IntegratedTimeline = ({
     updateVisibleWindow();
   }, [videoQueue, currentVideoIndex, currentTime, totalDuration]);
 
-  // Function to update which clips are visible
+  /**
+   * Updates the visible window of clips based on current video index
+   * 
+   * This implements a sliding window approach to only render a subset of
+   * clips at once, improving performance for large playlists.
+   */
   const updateVisibleWindow = () => {
     // If current video is outside the visible window, adjust the window
     if (currentVideoIndex < visibleStartIndex) {
@@ -61,7 +111,9 @@ const IntegratedTimeline = ({
     }
   };
 
-  // Create all segments first
+  /**
+   * Process all segments in the video queue to calculate their properties
+   */
   const allSegments = videoQueue.map((video, index) => {
     const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
     const duration = (endSeconds - startSeconds) || 300;
@@ -78,13 +130,24 @@ const IntegratedTimeline = ({
     };
   });
 
-  // Get only the visible segments
+  /**
+   * Get only the segments that should be visible in the current window
+   */
   const visibleSegments = allSegments.slice(
     visibleStartIndex, 
     visibleStartIndex + maxVisibleClips
   );
 
-  // Handle click within the active thumbnail to seek
+  /**
+   * Handle click events on segment thumbnails
+   * 
+   * When clicking on a thumbnail:
+   * - If it's not the current segment, switch to that segment
+   * - If it's the current segment, seek within that segment
+   * 
+   * @param {Event} event - Click event
+   * @param {number} segmentId - ID of the clicked segment
+   */
   const handleThumbnailClick = (event, segmentId) => {
     // Only process if clicking on the current active segment
     if (segmentId !== currentVideoIndex) {
@@ -115,7 +178,11 @@ const IntegratedTimeline = ({
     }
   };
 
-  // Handle mouse move over the active thumbnail to show seek preview
+  /**
+   * Handle mouse movement over the active thumbnail to show seek preview
+   * 
+   * @param {Event} event - Mouse move event
+   */
   const handleThumbnailMouseMove = (event) => {
     if (hoveredIndex !== currentVideoIndex) return;
     
@@ -131,14 +198,15 @@ const IntegratedTimeline = ({
     setSeekPreviewPosition(positionPercent);
   };
 
-  // Handle mouse leave to clear seek preview
+  /**
+   * Handle mouse leave to clear seek preview
+   */
   const handleThumbnailMouseLeave = () => {
     setSeekPreviewPosition(null);
   };
 
   return (
     <div>
-
       {/* Thumbnail Row */}
       <div 
         ref={timelineRef}

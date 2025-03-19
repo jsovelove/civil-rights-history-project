@@ -1,3 +1,11 @@
+/**
+ * @fileoverview InterviewPlayer page for displaying and controlling interview videos.
+ * 
+ * This component handles displaying a full interview video with customized playback controls,
+ * segmented content navigation, and related metadata. It integrates with YouTube's iframe API
+ * to provide a seamless media playback experience with custom controls.
+ */
+
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
@@ -6,11 +14,28 @@ import { ChevronDown, ChevronUp, Clock, Tag } from 'lucide-react'
 import PlayerControls from "../components/PlayerControls"
 import IntegratedTimeline from "../components/IntegratedTimeline"
 
+/**
+ * InterviewPlayer - Main component for viewing and navigating interview videos
+ * 
+ * This component:
+ * 1. Retrieves and displays interview metadata and segmented content
+ * 2. Initializes and controls the YouTube player integration
+ * 3. Provides custom playback controls and timeline navigation
+ * 4. Manages segment-based navigation with timestamps and topics
+ * 5. Offers related content discovery through keywords
+ * 
+ * URL Parameters:
+ * - documentName: ID of the interview document to display
+ * 
+ * @returns {React.ReactElement} The interview player interface
+ */
 export default function InterviewPlayer() {
+  // Routing and navigation
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const documentName = searchParams.get('documentName')
 
+  // Component state variables
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [mainSummary, setMainSummary] = useState(null)
@@ -26,19 +51,33 @@ export default function InterviewPlayer() {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
   const [seekToTime, setSeekToTime] = useState(null)
   
-  // Store the YouTube container element via a callback ref in state.
-  const [containerEl, setContainerEl] = useState(null)
-  const playerRef = useRef(null)
-  const playerUpdateIntervalRef = useRef(null)
+  // References
+  const [containerEl, setContainerEl] = useState(null) // YouTube container element via callback ref
+  const playerRef = useRef(null) // Reference to the YouTube player instance
+  const playerUpdateIntervalRef = useRef(null) // Reference to the time update interval
 
-  // --- Helper Functions ---
+  /**
+   * --- Helper Functions ---
+   */
+
+  /**
+   * Extracts YouTube video ID from various URL formats
+   * 
+   * @param {string} videoEmbedLink - YouTube URL in different possible formats
+   * @returns {string|null} YouTube video ID or null if not extractable
+   */
   const extractVideoId = (videoEmbedLink) => {
     if (!videoEmbedLink) return null
     const match = videoEmbedLink.match(/(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
     return match ? match[1] : null
   }
 
-  // Updated conversion uses the text before " - " and removes brackets.
+  /**
+   * Converts a timestamp string to seconds
+   * 
+   * @param {string} timestamp - Timestamp in format "[MM:SS] - Text" or "[HH:MM:SS] - Text"
+   * @returns {number} Time in seconds
+   */
   const convertTimestampToSeconds = (timestamp) => {
     if (!timestamp) return 0
     const timeStr = timestamp.split(' - ')[0].replace(/[\[\]]/g, '').trim()
@@ -51,13 +90,24 @@ export default function InterviewPlayer() {
     return 0
   }
 
+  /**
+   * Formats keywords into a consistent array format
+   * 
+   * @param {string|string[]} keywords - Keywords as string or array
+   * @returns {string[]} Formatted array of keywords
+   */
   const formatKeywords = (keywords) => {
     if (Array.isArray(keywords)) return keywords
     if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
     return []
   }
 
-  // Function to determine which segment we're currently watching
+  /**
+   * Determines which segment is active based on current playback time
+   * 
+   * @param {number} time - Current playback time in seconds
+   * @returns {number} Index of the current segment
+   */
   const getCurrentSegmentIndex = (time) => {
     if (!subSummaries || subSummaries.length === 0) return 0
     
@@ -72,7 +122,10 @@ export default function InterviewPlayer() {
     return 0 // Default to first segment if none found
   }
 
-  // --- Data Fetching ---
+  /**
+   * --- Data Fetching ---
+   * Fetches interview data and segment information from Firestore
+   */
   useEffect(() => {
     if (!documentName) {
       setError('Document name is missing')
@@ -83,6 +136,7 @@ export default function InterviewPlayer() {
     async function fetchData() {
       try {
         setLoading(true)
+        // Fetch main interview document
         const docRef = doc(db, 'interviewSummaries', documentName)
         const docSnap = await getDoc(docRef)
         if (!docSnap.exists()) {
@@ -93,6 +147,7 @@ export default function InterviewPlayer() {
         const mainData = docSnap.data()
         setMainSummary(mainData)
 
+        // Fetch all sub-segments from the subcollection
         const subRef = collection(db, 'interviewSummaries', documentName, 'subSummaries')
         const subSnap = await getDocs(subRef)
         const subs = []
@@ -100,6 +155,7 @@ export default function InterviewPlayer() {
           subs.push({ id: doc.id, ...doc.data() })
         })
 
+        // Sort segments by timestamp
         subs.sort(
           (a, b) =>
             convertTimestampToSeconds(a.timestamp) - convertTimestampToSeconds(b.timestamp)
@@ -116,7 +172,10 @@ export default function InterviewPlayer() {
     fetchData()
   }, [documentName])
 
-  // --- Load YouTube API ---
+  /**
+   * --- Load YouTube API ---
+   * Dynamically loads the YouTube iframe API if not already loaded
+   */
   useEffect(() => {
     if (window.YT && window.YT.Player) {
       setYoutubeApiLoaded(true)
@@ -136,7 +195,10 @@ export default function InterviewPlayer() {
     }
   }, [])
 
-  // --- Initialize YouTube Player ---
+  /**
+   * --- Initialize YouTube Player ---
+   * Creates and configures the YouTube player instance when dependencies are ready
+   */
   useEffect(() => {
     if (!youtubeApiLoaded || !mainSummary?.videoEmbedLink || !containerEl) return
 
@@ -152,6 +214,7 @@ export default function InterviewPlayer() {
       setPlayerReady(false)
     }
 
+    // Initialize new player instance
     playerRef.current = new window.YT.Player(containerEl, {
       videoId,
       width: '100%',
@@ -183,7 +246,7 @@ export default function InterviewPlayer() {
       },
     })
 
-    // Set up interval to update current time
+    // Set up interval to update current time and segment information
     playerUpdateIntervalRef.current = setInterval(() => {
       if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
         const currentTime = playerRef.current.getCurrentTime()
@@ -198,6 +261,7 @@ export default function InterviewPlayer() {
       }
     }, 500)
 
+    // Cleanup function to clear interval and destroy player on unmount
     return () => {
       if (playerUpdateIntervalRef.current) {
         clearInterval(playerUpdateIntervalRef.current)
@@ -207,9 +271,11 @@ export default function InterviewPlayer() {
         playerRef.current = null
       }
     }
-  }, [youtubeApiLoaded, mainSummary, containerEl])
+  }, [youtubeApiLoaded, mainSummary, containerEl, currentSegmentIndex])
 
-  // Handle seek requests
+  /**
+   * Handle seek requests when seekToTime changes
+   */
   useEffect(() => {
     if (seekToTime !== null && playerRef.current && typeof playerRef.current.seekTo === 'function') {
       playerRef.current.seekTo(seekToTime, true)
@@ -217,7 +283,15 @@ export default function InterviewPlayer() {
     }
   }, [seekToTime])
 
-  // --- Event Handlers ---
+  /**
+   * --- Event Handlers ---
+   */
+
+  /**
+   * Handles clicks on timestamp links to seek to specific points
+   * 
+   * @param {number} seconds - Target time in seconds to seek to
+   */
   const handleTimestampClick = (seconds) => {
     console.log('Seeking to', seconds, 'seconds')
     setSeekToTime(seconds)
@@ -228,11 +302,18 @@ export default function InterviewPlayer() {
     }
   }
 
+  /**
+   * Toggles the open/closed state of an accordion item
+   * 
+   * @param {number} index - Index of the accordion item to toggle
+   */
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index)
   }
 
-  // Player control handlers
+  /**
+   * Player control handlers for custom playback controls
+   */
   const handlePlayVideo = () => {
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
       playerRef.current.playVideo()
@@ -247,6 +328,9 @@ export default function InterviewPlayer() {
     }
   }
 
+  /**
+   * Navigates to the next segment in the interview
+   */
   const handleNext = () => {
     if (currentSegmentIndex < subSummaries.length - 1) {
       const nextSegment = subSummaries[currentSegmentIndex + 1]
@@ -256,6 +340,9 @@ export default function InterviewPlayer() {
     }
   }
 
+  /**
+   * Navigates to the previous segment in the interview
+   */
   const handlePrevious = () => {
     if (currentSegmentIndex > 0) {
       const prevSegment = subSummaries[currentSegmentIndex - 1]
@@ -265,14 +352,30 @@ export default function InterviewPlayer() {
     }
   }
 
+  /**
+   * Sets the seekToTime state to initiate seeking
+   * 
+   * @param {number} timeToSeek - Target time in seconds
+   */
   const handleSeek = (timeToSeek) => {
     setSeekToTime(timeToSeek)
   }
 
+  /**
+   * AccordionItem - Component for displaying individual interview segments in accordion format
+   * 
+   * @param {Object} props - Component props
+   * @param {Object} props.summary - Segment summary data
+   * @param {number} props.index - Index of this segment
+   * @param {boolean} props.isOpen - Whether this accordion item is open
+   * @param {boolean} props.isActive - Whether this segment is currently playing
+   * @returns {React.ReactElement} Accordion item for a segment
+   */
   const AccordionItem = ({ summary, index, isOpen, isActive }) => {
     const contentRef = useRef(null)
     const [contentHeight, setContentHeight] = useState(0)
   
+    // Measure content height when accordion is opened
     useEffect(() => {
       if (isOpen && contentRef.current) {
         setContentHeight(contentRef.current.scrollHeight)
@@ -372,8 +475,12 @@ export default function InterviewPlayer() {
     )
   }
   
-
-  // Format time in MM:SS or HH:MM:SS format
+  /**
+   * Formats seconds into a human-readable time string
+   * 
+   * @param {number} seconds - Time in seconds
+   * @returns {string} Formatted time string (MM:SS or HH:MM:SS)
+   */
   const formatTime = (seconds) => {
     if (isNaN(seconds)) return '00:00';
     
@@ -387,7 +494,11 @@ export default function InterviewPlayer() {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // Format segments as a timeline-friendly array
+  /**
+   * Formats segment data for use in timeline visualization
+   * 
+   * @returns {Array} Array of segment objects with normalized properties for timeline display
+   */
   const formatSegmentsForTimeline = () => {
     return subSummaries.map((segment, index) => ({
       id: segment.id || index,
@@ -402,7 +513,11 @@ export default function InterviewPlayer() {
     }));
   }
 
-  // --- Rendering ---
+  /**
+   * --- Rendering ---
+   */
+  
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -411,6 +526,7 @@ export default function InterviewPlayer() {
     )
   }
 
+  // Error state
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl">

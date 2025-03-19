@@ -1,3 +1,11 @@
+/**
+ * @fileoverview TimelineVisualization component for displaying civil rights historical events.
+ * 
+ * This component integrates with Timeline.js to create an interactive timeline of
+ * civil rights events. It fetches event data from Firestore, processes it into the
+ * required format, and renders an interactive timeline with links to relevant interviews.
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
@@ -5,17 +13,36 @@ import "timelinejs3/compiled/css/timeline.css";
 import { Timeline } from "@knight-lab/timelinejs";
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * TimelineVisualization - Displays an interactive timeline of civil rights events
+ * 
+ * This component:
+ * 1. Fetches timeline events from Firestore
+ * 2. Processes events into the Timeline.js format
+ * 3. Renders an interactive timeline using the Knight Lab Timeline library
+ * 4. Adds links to relevant interviews for each event
+ * 5. Handles navigation to related content
+ * 
+ * @returns {React.ReactElement} The timeline visualization interface
+ */
 export default function TimelineVisualization() {
+  // Timeline reference for DOM manipulation
   const timelineRef = useRef(null);
+  // Component state
   const [timelineData, setTimelineData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   // Store navigate function in a ref to access it in the event listener
+  // This prevents stale closures when using navigate in event handlers
   const navigateRef = useRef();
   navigateRef.current = navigate;
 
+  /**
+   * Fetch timeline events from Firestore
+   * Processes the events into the format required by Timeline.js
+   */
   useEffect(() => {
     async function fetchTimelineEvents() {
       try {
@@ -46,6 +73,10 @@ export default function TimelineVisualization() {
     fetchTimelineEvents();
   }, []);
 
+  /**
+   * Initialize Timeline.js when data is available
+   * Sets up event listeners for interview buttons after the timeline is rendered
+   */
   useEffect(() => {
     if (timelineData && timelineRef.current) {
       // Ensure the timeline container is not empty before rendering
@@ -56,6 +87,7 @@ export default function TimelineVisualization() {
         new Timeline(timelineRef.current, timelineData);
         
         // Add event listeners to interview buttons after timeline loads
+        // Using setTimeout to ensure the timeline has fully rendered
         setTimeout(setupInterviewButtons, 1000);
       } catch (error) {
         console.error("Error initializing Timeline.js:", error);
@@ -64,7 +96,13 @@ export default function TimelineVisualization() {
     }
   }, [timelineData]);
 
-  // Process timeline events and include button in text
+  /**
+   * Process timeline events from Firestore into the format required by Timeline.js
+   * Adds custom buttons to each event for navigating to relevant interviews
+   * 
+   * @param {FirebaseFirestore.QuerySnapshot} eventsSnapshot - Snapshot of events from Firestore
+   * @returns {Array} Processed events in Timeline.js format
+   */
   const processTimelineEvents = (eventsSnapshot) => {
     return eventsSnapshot.docs.map((doc) => {
       const data = doc.data();
@@ -93,6 +131,7 @@ export default function TimelineVisualization() {
         </button>
       `;
 
+      // Return the event in Timeline.js format
       return {
         start_date: {
           year: eventDate.getFullYear(),
@@ -112,7 +151,13 @@ export default function TimelineVisualization() {
     });
   };
 
-  // Sets up click handlers for interview buttons
+  /**
+   * Sets up click event handlers for the "Relevant Interviews" buttons
+   * 
+   * This function attaches event listeners to dynamically created buttons
+   * in the timeline, handling navigation to the playlist builder with
+   * relevant keywords for that historical event.
+   */
   const setupInterviewButtons = () => {
     document.querySelectorAll(".relevant-interviews-button").forEach(button => {
       button.addEventListener("click", function(e) {
@@ -127,6 +172,7 @@ export default function TimelineVisualization() {
     });
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96 bg-gray-50">
@@ -140,6 +186,7 @@ export default function TimelineVisualization() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="bg-red-100 border border-red-500 text-red-700 px-6 py-4 rounded-lg text-center mx-auto my-6 max-w-xl">

@@ -1,13 +1,39 @@
+/**
+ * @fileoverview ContentDirectory page for browsing and searching through collection content.
+ * 
+ * This component serves as the main directory interface for the Civil Rights History Collection,
+ * allowing users to browse and search through keywords, clips, and people. It implements
+ * a tabbed interface and manages a context-based caching system to improve performance.
+ */
+
 import { useState, createContext, useEffect } from 'react';
 import KeywordDirectory from '../components/KeywordDirectory';
 import ClipsDirectory from '../components/ClipsDirectory';
 import PeopleGrid from '../components/PeopleGrid';
 
+/**
+ * Context for sharing cache state and operations across directory components
+ * @type {React.Context}
+ */
 export const DirectoryCacheContext = createContext(null);
 
+/**
+ * ContentDirectory - Main component for browsing and searching collection content
+ * 
+ * This component:
+ * 1. Manages navigation between three content tabs: keywords, clips, and people
+ * 2. Implements a caching system for search results and directory data
+ * 3. Persists cache to sessionStorage for improved performance across page refreshes
+ * 4. Displays collection statistics
+ * 
+ * @returns {React.ReactElement} The directory interface with tabs and content panels
+ */
 export default function ContentDirectory() {
+  // Active tab state (keywords, clips, or people)
   const [activeTab, setActiveTab] = useState('keywords');
+  // Search term state for the clips tab
   const [clipSearchTerm, setClipSearchTerm] = useState('');
+  // Collection statistics for display
   const [statsData, setStatsData] = useState({
     keywordCount: 0,
     clipCount: 0,
@@ -15,7 +41,16 @@ export default function ContentDirectory() {
     peopleCount: 0
   });
   
-  // Initialize cache state
+  /**
+   * Cache state structure for storing directory data and search results
+   * 
+   * @type {Object} Structure:
+   * - keywords: Array of all keywords with metadata
+   * - keywordSearches: Object mapping search terms to results for keywords
+   * - clipSearches: Object mapping search terms to results for clips
+   * - people: Array of all people with metadata
+   * - lastFetched: Timestamp tracking when each data type was last fetched
+   */
   const [cache, setCache] = useState({
     keywords: null,
     keywordSearches: {}, // { searchTerm: results }
@@ -27,7 +62,12 @@ export default function ContentDirectory() {
     }
   });
 
-  // Load cache from sessionStorage on initial mount
+  /**
+   * Load cache from sessionStorage on initial component mount
+   * 
+   * Restores previously cached data if it exists and is less than 1 hour old.
+   * This improves performance by reducing redundant API calls.
+   */
   useEffect(() => {
     try {
       const savedCache = sessionStorage.getItem('directoryCache');
@@ -55,7 +95,12 @@ export default function ContentDirectory() {
     }
   }, []);
 
-  // Save cache to sessionStorage when it changes
+  /**
+   * Save cache to sessionStorage whenever it changes
+   * 
+   * This ensures cache persistence across page refreshes and browser tabs,
+   * improving the user experience by maintaining search results and reducing load times.
+   */
   useEffect(() => {
     try {
       // Don't save empty cache
@@ -74,7 +119,12 @@ export default function ContentDirectory() {
     }
   }, [cache]);
 
-  // Update stats when cache changes
+  /**
+   * Update statistics whenever the cache data changes
+   * 
+   * Calculates and updates the stats displayed in the stats summary cards,
+   * including total keywords, clips, content duration, and people.
+   */
   useEffect(() => {
     const newStats = {
       keywordCount: cache.keywords?.length || 0,
@@ -86,7 +136,12 @@ export default function ContentDirectory() {
     setStatsData(newStats);
   }, [cache.keywords, cache.people]);
 
-  // Function to update cache
+  /**
+   * Updates a specific section of the cache with new data
+   * 
+   * @param {string} key - The cache section to update ('keywords', 'people', etc.)
+   * @param {any} data - The new data to store in the cache
+   */
   const updateCache = (key, data) => {
     setCache(prevCache => ({
       ...prevCache,
@@ -98,7 +153,13 @@ export default function ContentDirectory() {
     }));
   };
 
-  // Function to add a search result to cache
+  /**
+   * Adds search results to the appropriate cache section
+   * 
+   * @param {string} type - The type of search ('keywords' or 'clips')
+   * @param {string} searchTerm - The search term used
+   * @param {Array} results - The search results to cache
+   */
   const addSearchToCache = (type, searchTerm, results) => {
     const cacheKey = type === 'keywords' ? 'keywordSearches' : 'clipSearches';
     setCache(prevCache => ({
@@ -113,7 +174,13 @@ export default function ContentDirectory() {
     }));
   };
 
-  // Function to check if a search is in cache
+  /**
+   * Retrieves search results from cache if available and recent
+   * 
+   * @param {string} type - The type of search ('keywords' or 'clips')
+   * @param {string} searchTerm - The search term to look up
+   * @returns {Array|null} Cached search results if available and fresh, otherwise null
+   */
   const getSearchFromCache = (type, searchTerm) => {
     const cacheKey = type === 'keywords' ? 'keywordSearches' : 'clipSearches';
     const cachedSearch = cache[cacheKey][searchTerm.toLowerCase()];
@@ -128,7 +195,14 @@ export default function ContentDirectory() {
     return cacheAge < THIRTY_MINUTES ? cachedSearch.results : null;
   };
 
-  // Function to navigate to clips tab with a specific search term
+  /**
+   * Navigates to the clips tab with a specific search term
+   * 
+   * This function is used to link from keywords to their associated clips,
+   * providing cross-navigation between directory sections.
+   * 
+   * @param {string} searchTerm - The search term to apply in the clips tab
+   */
   const navigateToClips = (searchTerm) => {
     // First change the tab, then update the search term to trigger the search effect
     setActiveTab('clips');
@@ -138,7 +212,12 @@ export default function ContentDirectory() {
     }, 10);
   };
 
-  // Format time for display
+  /**
+   * Formats seconds into a human-readable time string
+   * 
+   * @param {number} seconds - Time in seconds
+   * @returns {string} Formatted time string (HH:MM:SS or MM:SS)
+   */
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -240,7 +319,7 @@ export default function ContentDirectory() {
           </nav>
         </div>
 
-        {/* Content Panels */}
+        {/* Content Panels - Only one renders based on activeTab state */}
         {activeTab === 'keywords' && <KeywordDirectory onViewAllClips={navigateToClips} />}
         {activeTab === 'clips' && <ClipsDirectory initialSearchTerm={clipSearchTerm} />}
         {activeTab === 'people' && <PeopleGrid />}

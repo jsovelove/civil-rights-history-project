@@ -1,6 +1,46 @@
+/**
+ * @fileoverview VideoPlayer component for handling YouTube video playback.
+ * 
+ * This component provides a custom YouTube video player with additional
+ * functionality for displaying video clips with specific start and end times,
+ * synchronizing with the parent component, and handling playback controls.
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import { extractVideoId, convertTimestampToSeconds, extractStartTimestamp, parseTimestampRange } from "../utils/timeUtils";
 
+/**
+ * VideoPlayer - Renders a custom YouTube player with clip timing support
+ * 
+ * This component:
+ * 1. Loads and plays YouTube videos with specific time ranges
+ * 2. Controls playback based on parent component state
+ * 3. Reports current playback time to the parent
+ * 4. Handles seeking to specific timestamps
+ * 5. Manages cleanup of player resources when unmounting
+ * 
+ * @component
+ * @example
+ * <VideoPlayer 
+ *   video={videoObject}
+ *   onVideoEnd={handleVideoEnd}
+ *   onPlay={handlePlay}
+ *   onPause={handlePause}
+ *   onTimeUpdate={handleTimeUpdate}
+ *   isPlaying={isPlaying}
+ *   seekToTime={seekToTime}
+ * />
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.video - Video object containing metadata and timestamp information
+ * @param {Function} props.onVideoEnd - Callback when video reaches end time or encounters error
+ * @param {Function} props.onPlay - Callback when video starts playing
+ * @param {Function} props.onPause - Callback when video is paused
+ * @param {Function} props.onTimeUpdate - Callback with current playback time relative to clip start
+ * @param {boolean} props.isPlaying - Whether the video should be playing or paused
+ * @param {number|null} props.seekToTime - Time in seconds (relative to clip start) to seek to
+ * @returns {React.ReactElement} Video player component
+ */
 const VideoPlayer = ({ 
   video, 
   onVideoEnd, 
@@ -8,7 +48,7 @@ const VideoPlayer = ({
   onPause, 
   onTimeUpdate, 
   isPlaying,
-  seekToTime // New prop for seeking to a specific time
+  seekToTime
 }) => {
   const playerRef = useRef(null);
   const containerRef = useRef(null);
@@ -17,7 +57,14 @@ const VideoPlayer = ({
   const [playerState, setPlayerState] = useState(null);
   const seekTimeRef = useRef(null);
   
-  // Extract time information from video
+  /**
+   * Extracts time boundaries from the video's timestamp
+   * 
+   * Parses the timestamp string to get start and end times,
+   * applying reasonable defaults if the timestamp is invalid.
+   * 
+   * @returns {Object} Object containing startSeconds and endSeconds
+   */
   const getVideoTimeBoundaries = () => {
     if (!video) return { startSeconds: 0, endSeconds: 0 };
     
@@ -44,7 +91,9 @@ const VideoPlayer = ({
     }
   };
 
-  // Initialize or update the YouTube player
+  /**
+   * Initialize or update the YouTube player when the video changes
+   */
   useEffect(() => {
     if (!video || !containerRef.current) return;
 
@@ -56,6 +105,9 @@ const VideoPlayer = ({
 
     const { startSeconds } = getVideoTimeBoundaries();
 
+    /**
+     * Initialize the YouTube player instance
+     */
     const initPlayer = () => {
       // Clean up any existing player
       if (playerRef.current) {
@@ -183,7 +235,9 @@ const VideoPlayer = ({
     };
   }, [video]); // Only re-initialize when video changes
 
-  // Handle play/pause state changes from parent component
+  /**
+   * Handle play/pause state changes from parent component
+   */
   useEffect(() => {
     if (!isPlayerReady || !playerRef.current) return;
     
@@ -198,7 +252,9 @@ const VideoPlayer = ({
     }
   }, [isPlaying, isPlayerReady]);
 
-  // Handle seek requests
+  /**
+   * Handle seek requests from parent component
+   */
   useEffect(() => {
     if (!isPlayerReady || !playerRef.current || seekToTime === undefined || seekToTime === null) return;
     
@@ -220,14 +276,19 @@ const VideoPlayer = ({
     }
   }, [seekToTime, isPlayerReady]);
 
-  // Time tracking effect - uses a separate timer that's synchronized with the actual video time
+  /**
+   * Time tracking effect - synchronizes player time with parent component
+   * Uses a separate timer that's synchronized with the actual video time
+   */
   useEffect(() => {
     if (!isPlayerReady || !playerRef.current) return;
     
     const { startSeconds, endSeconds } = getVideoTimeBoundaries();
     const duration = endSeconds - startSeconds;
     
-    // Immediately sync time on player ready/play state change
+    /**
+     * Immediately synchronize time with the player
+     */
     const syncTimeImmediately = () => {
       try {
         if (playerRef.current && playerRef.current.getCurrentTime) {
@@ -294,6 +355,7 @@ const VideoPlayer = ({
       }, 250); // Update more frequently for smoother timeline
     }
     
+    // Clean up interval on unmount or when dependencies change
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
@@ -305,6 +367,7 @@ const VideoPlayer = ({
   return (
     <div className="video-player-wrapper relative">
       <div ref={containerRef} className="rounded-lg shadow-lg bg-black w-full aspect-video"></div>
+      {/* Loading indicator shown until player is ready */}
       {!isPlayerReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>

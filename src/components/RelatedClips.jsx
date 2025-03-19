@@ -1,19 +1,67 @@
+/**
+ * @fileoverview RelatedClips component for displaying clips related to a keyword.
+ * 
+ * This component fetches and displays interview clips related to a given keyword,
+ * with support for excluding already selected clips and allowing users to add
+ * clips to a playlist.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { extractVideoId, parseKeywords } from "../utils/timeUtils";
 
+/**
+ * RelatedClips - Displays clips related to the current keyword
+ * 
+ * This component provides:
+ * 1. Fetching clips matching a given keyword
+ * 2. Excluding clips that are already in a playlist
+ * 3. Displaying clips in a horizontally scrollable container
+ * 4. Thumbnail extraction from YouTube links
+ * 5. Add to playlist functionality
+ * 
+ * @component
+ * @example
+ * <RelatedClips 
+ *   currentKeyword="civil rights"
+ *   excludeIds={['clip1', 'clip2']} 
+ *   onAddToPlaylist={handleAddToPlaylist}
+ * />
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.currentKeyword - Keyword to find related clips for
+ * @param {string[]} props.excludeIds - Array of clip IDs to exclude from results
+ * @param {Function} props.onAddToPlaylist - Callback when a clip is clicked
+ * @returns {React.ReactElement|null} Related clips component or null if no clips
+ */
 const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
   const [relatedClips, setRelatedClips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /**
+   * Fetch related clips when keyword or excluded IDs change
+   */
   useEffect(() => {
     if (currentKeyword) {
       fetchRelatedClips(currentKeyword);
     }
   }, [currentKeyword, excludeIds.toString()]); // Added excludeIds as a dependency
 
+  /**
+   * Fetch clips related to the given keyword
+   * 
+   * This function:
+   * 1. Parses the keyword string into an array
+   * 2. Searches all interviews for matching segments
+   * 3. Extracts thumbnails from YouTube embed links
+   * 4. Filters out excluded clips
+   * 5. Removes duplicates
+   * 
+   * @param {string} keyword - Keyword to search for
+   * @returns {Promise<void>}
+   */
   const fetchRelatedClips = async (keyword) => {
     try {
       setLoading(true);
@@ -44,6 +92,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
           const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
           const hasMatch = keywordsArray.some(kw => documentKeywords.includes(kw));
           
+          // Add matching segments that aren't in excludeIds
           if (hasMatch && !excludeIds.includes(docSnapshot.id)) {
             results.push({
               id: docSnapshot.id,
@@ -77,6 +126,18 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
     }
   };
 
+  /**
+   * Extract thumbnail URL from a YouTube embed link
+   * 
+   * Handles multiple YouTube URL formats:
+   * - Standard embed URLs
+   * - Watch URLs
+   * - Short youtu.be URLs
+   * - iframe tags with src attributes
+   * 
+   * @param {string} videoEmbedLink - YouTube URL in various formats
+   * @returns {string|null} URL to YouTube thumbnail or null if not extractable
+   */
   const getThumbnailUrl = (videoEmbedLink) => {
     if (!videoEmbedLink) return null;
     
@@ -127,12 +188,18 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
     return null;
   };
 
+  /**
+   * Handle clip click to add to playlist
+   * 
+   * @param {Object} clip - Clip object to add to playlist
+   */
   const handleClipClick = (clip) => {
     if (onAddToPlaylist) {
       onAddToPlaylist(clip);
     }
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="py-4">
@@ -143,6 +210,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="p-4 bg-red-50 text-red-700 rounded-md">
@@ -151,6 +219,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
     );
   }
 
+  // No results state - return null to not show the component
   if (relatedClips.length === 0) {
     return null;
   }
@@ -161,6 +230,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
         Related Clips
       </h3>
       
+      {/* Horizontally scrollable clip container */}
       <div className="overflow-x-auto pb-4">
         <div className="flex space-x-4" style={{ minWidth: 'min-content' }}>
           {relatedClips.map((clip, index) => (
@@ -170,6 +240,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
               className="flex-shrink-0 w-64 bg-gray-50 rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => handleClipClick(clip)}
             >
+              {/* Clip thumbnail with fallback */}
               {clip.thumbnailUrl ? (
                 <div className="relative pb-[56.25%] bg-gray-200">
                   <img 
@@ -190,6 +261,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
                       `;
                     }}
                   />
+                  {/* Add button hover effect */}
                   <div className="absolute inset-0 flex items-center justify-center hover:bg-black hover:bg-opacity-30 transition-all">
                     <span className="text-white font-medium rounded-full p-2 bg-blue-600 opacity-0 hover:opacity-100 transition-opacity">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -208,6 +280,7 @@ const RelatedClips = ({ currentKeyword, excludeIds = [], onAddToPlaylist }) => {
                 </div>
               )}
               
+              {/* Clip metadata */}
               <div className="p-3">
                 <h4 className="font-medium text-gray-900 line-clamp-1" title={clip.name}>
                   {clip.name || 'Unnamed clip'}

@@ -1,9 +1,35 @@
+/**
+ * @fileoverview KeywordDirectory component for browsing and managing interview keywords.
+ * 
+ * This component provides a browsable directory of keywords extracted from interviews,
+ * allowing users to filter, expand details, and navigate to related content.
+ * It implements caching for performance and supports dynamic content expansion.
+ */
+
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { DirectoryCacheContext } from '../pages/ContentDirectory';
 
+/**
+ * KeywordDirectory - Directory of keywords with filtering and navigation
+ * 
+ * This component provides:
+ * 1. A searchable/filterable list of keywords from interviews
+ * 2. Statistics about each keyword (clip count, total duration)
+ * 3. Expandable sections showing clip previews for each keyword
+ * 4. Navigation to playlists and individual clips
+ * 5. Efficient data loading with caching
+ * 
+ * @component
+ * @example
+ * <KeywordDirectory onViewAllClips={handleViewAllClips} />
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.onViewAllClips - Callback when "View all clips" is clicked for a keyword
+ * @returns {React.ReactElement} Keyword directory interface
+ */
 export default function KeywordDirectory({ onViewAllClips }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,10 +39,12 @@ export default function KeywordDirectory({ onViewAllClips }) {
   const [filteredKeywords, setFilteredKeywords] = useState([]);
   const navigate = useNavigate();
 
-  // Get cache context
+  // Get caching functions from context
   const { cache, updateCache, addSearchToCache, getSearchFromCache } = useContext(DirectoryCacheContext);
 
-  // Initialize data from cache or fetch new data
+  /**
+   * Initialize data from cache or fetch new data
+   */
   useEffect(() => {
     if (cache.keywords) {
       console.log('Using cached keyword data');
@@ -27,7 +55,10 @@ export default function KeywordDirectory({ onViewAllClips }) {
     }
   }, [cache.keywords]);
 
-  // Update filtered keywords when search term changes
+  /**
+   * Update filtered keywords when search term changes
+   * Uses cached search results if available
+   */
   useEffect(() => {
     if (searchTerm) {
       // Check if this search is cached
@@ -51,6 +82,17 @@ export default function KeywordDirectory({ onViewAllClips }) {
     }
   }, [searchTerm, keywordData]);
 
+  /**
+   * Fetches and processes keywords from all interviews
+   * 
+   * This function:
+   * 1. Aggregates keywords from all interview segments
+   * 2. Counts occurrences and collects associated clips
+   * 3. Calculates total duration for each keyword
+   * 4. Filters out keywords with only one occurrence
+   * 
+   * @returns {Promise<void>}
+   */
   const fetchAndProcessKeywords = async () => {
     try {
       setLoading(true);
@@ -127,6 +169,12 @@ export default function KeywordDirectory({ onViewAllClips }) {
     }
   };
 
+  /**
+   * Extracts YouTube video ID from various URL formats
+   * 
+   * @param {string} videoEmbedLink - YouTube URL
+   * @returns {string|null} YouTube video ID or null if not valid
+   */
   const extractVideoId = (videoEmbedLink) => {
     if (!videoEmbedLink) return null;
     
@@ -136,11 +184,23 @@ export default function KeywordDirectory({ onViewAllClips }) {
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
+  /**
+   * Extracts timestamp from formatted string, handling brackets
+   * 
+   * @param {string} rawTimestamp - Raw timestamp string (possibly with brackets)
+   * @returns {string} Clean timestamp in MM:SS or HH:MM:SS format
+   */
   const extractStartTimestamp = (rawTimestamp) => {
     const match = rawTimestamp.match(/(?:\[)?(\d{1,2}:\d{2}(?::\d{2})?)/);
     return match ? match[1] : "00:00";
   };
 
+  /**
+   * Converts a timestamp string to seconds
+   * 
+   * @param {string} timestamp - Timestamp in MM:SS or HH:MM:SS format
+   * @returns {number} Total seconds
+   */
   const convertTimestampToSeconds = (timestamp) => {
     const parts = timestamp.split(":").map(Number);
     if (parts.length === 2) return parts[0] * 60 + parts[1];
@@ -148,6 +208,11 @@ export default function KeywordDirectory({ onViewAllClips }) {
     return 0;
   };
 
+  /**
+   * Toggles expanded/collapsed state of a keyword section
+   * 
+   * @param {string} keyword - Keyword to toggle
+   */
   const toggleKeyword = (keyword) => {
     if (expandedKeyword === keyword) {
       setExpandedKeyword(null);
@@ -156,17 +221,48 @@ export default function KeywordDirectory({ onViewAllClips }) {
     }
   };
 
+  /**
+   * Navigates to playlist builder with selected keyword
+   * 
+   * @param {string} keyword - Keyword to create playlist from
+   */
   const handleViewPlaylist = (keyword) => {
     navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`);
   };
   
+  /**
+   * Navigates to playlist editor with selected keyword
+   * 
+   * @param {string} keyword - Keyword to edit playlist for
+   */
   const handleEditPlaylist = (keyword) => {
     navigate(`/playlist-editor?keywords=${encodeURIComponent(keyword)}`);
   };
 
+  /**
+   * Navigates to clip player for a specific clip
+   * 
+   * @param {string} documentName - Parent interview document ID
+   * @param {string} clipId - Clip/segment ID to view
+   */
   const handleViewClip = (documentName, clipId) => {
     navigate(`/clip-player?documentName=${encodeURIComponent(documentName)}&clipId=${encodeURIComponent(clipId)}`);
   };
+
+  /**
+   * Formats seconds as a timestamp string
+   * 
+   * @param {number} seconds - Time in seconds
+   * @returns {string} Formatted time string (MM:SS or HH:MM:SS)
+   */
+  function formatTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return hrs > 0
+      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+      : `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
 
   // Loading state
   if (loading) {
@@ -345,13 +441,4 @@ export default function KeywordDirectory({ onViewAllClips }) {
       </div>
     </>
   );
-  
-  function formatTime(seconds) {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return hrs > 0
-      ? `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-      : `${mins}:${secs.toString().padStart(2, "0")}`;
-  }
 }

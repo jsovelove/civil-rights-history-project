@@ -1,9 +1,31 @@
+/**
+ * @fileoverview TranscriptSummary component for processing interview transcripts with AI.
+ * 
+ * This component provides an interface for uploading, processing, and viewing
+ * AI-generated summaries of interview transcripts. It uses the OpenAI API to analyze
+ * transcript text and generate structured summaries with timestamps and keywords,
+ * then saves the results to Firebase for integration with the rest of the application.
+ */
+
 import { useState, useRef } from 'react';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { FileText, Upload, Clock, Tag, ChevronRight } from 'lucide-react';
 
+/**
+ * TranscriptSummary - Component for AI-powered transcript analysis
+ * 
+ * This component:
+ * 1. Provides an interface for uploading transcript and audio files
+ * 2. Processes transcripts using the OpenAI API to generate structured summaries
+ * 3. Saves processed summaries to Firebase for future retrieval
+ * 4. Displays results with timestamps, keywords, and audio playback integration
+ * 5. Supports navigating to specific points in audio based on timestamps
+ * 
+ * @returns {React.ReactElement} The transcript summary interface
+ */
 export default function TranscriptSummary() {
+  // Component state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summaries, setSummaries] = useState(null);
@@ -11,7 +33,12 @@ export default function TranscriptSummary() {
   const [audioUrl, setAudioUrl] = useState(null);
   const [step, setStep] = useState(1); // 1: Upload, 2: Results
 
-  // All the original logic functions remain unchanged
+  /**
+   * Handles the processing of uploaded transcript and audio files
+   * 
+   * @param {File} transcriptFile - The uploaded transcript file
+   * @param {File|null} audioFile - The uploaded audio file (optional)
+   */
   const handleFileUpload = async (transcriptFile, audioFile) => {
     try {
       setLoading(true);
@@ -46,6 +73,12 @@ export default function TranscriptSummary() {
     }
   };
 
+  /**
+   * Reads a file as text using FileReader
+   * 
+   * @param {File} file - The file to read
+   * @returns {Promise<string>} The file contents as text
+   */
   const readFileAsText = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -54,8 +87,18 @@ export default function TranscriptSummary() {
       reader.readAsText(file);
     });
   };
+
   console.log(import.meta.env.VITE_OPENAI_API_KEY)
 
+  /**
+   * Sends transcript to OpenAI API for analysis and summary generation
+   * Includes retry logic for rate limiting
+   * 
+   * @param {string} transcript - The transcript text to analyze
+   * @param {number} retries - Number of retries remaining for rate limit handling
+   * @param {number} delay - Delay in ms before retry
+   * @returns {Promise<Object>} Parsed summaries from the API response
+   */
   const getSummariesFromChatGPT = async (transcript, retries = 3, delay = 2000) => {
     try {
       const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -107,7 +150,12 @@ export default function TranscriptSummary() {
     }
   };
   
-
+  /**
+   * Parses the GPT response text into structured format
+   * 
+   * @param {string} response - Raw text response from GPT
+   * @returns {Object} Structured summary object with overall summary and key points
+   */
   const parseGPTResponse = (response) => {
     const overallSummaryMatch = response.match(/Overall Summary:\s*(.+)/i);
     const overallSummary = overallSummaryMatch 
@@ -130,6 +178,12 @@ export default function TranscriptSummary() {
     return { overallSummary, keyPoints };
   };
 
+  /**
+   * Saves processed transcript data to Firebase Firestore
+   * 
+   * @param {string} documentName - Name of the interview document
+   * @param {Object} summaries - Structured summary data to save
+   */
   const saveProcessedTranscript = async (documentName, summaries) => {
     try {
       // Save main summary
@@ -161,6 +215,11 @@ export default function TranscriptSummary() {
     }
   };
 
+  /**
+   * Navigates the audio player to a specific timestamp
+   * 
+   * @param {string} timestamp - Timestamp in format "MM:SS - ..."
+   */
   const jumpToTimestamp = (timestamp) => {
     if (!audioRef.current) return;
 
