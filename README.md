@@ -25,7 +25,7 @@ This project provides a dynamic interface for users to engage with oral history 
 ## Key Features
 
 - **Keyword-based Search**: Find relevant interview segments across the entire collection
-- **Custom Playlists**: Create and share playlists of interview segments on specific themes
+- **Dynamic Playlists**: Dynamic creation of playlists of interview segments based on keywords
 - **Interactive Visualizations**: Explore connections between topics, people, and places
 - **Timeline Navigation**: Navigate interviews with timestamps and segment navigation
 - **Transcript Summarization**: Automatically generate summaries of interview transcripts
