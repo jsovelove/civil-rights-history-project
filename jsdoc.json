@@ -5,44 +5,46 @@
       "excludePattern": "(node_modules/|docs)"
     },
     "plugins": [
-      "plugins/markdown",
-      "better-docs/component",
-      "better-docs/jsx"
+      "plugins/markdown"
     ],
     "tags": {
-      "allowUnknownTags": ["component"],
+      "allowUnknownTags": true,
       "dictionaries": ["jsdoc", "closure"]
-    },
-    "templates": {
-      "better-docs": {
-        "name": "Your React Components",
-        "title": "React Components Documentation",
-        "navLinks": [
-          {
-            "label": "GitHub",
-            "href": "https://github.com/jsovelove/civil-rights-history-project"
-          },
-          {
-            "label": "Project Website",
-            "href": "https://jsovelove.github.io/civil-rights-history-project/"
-          }
-        ]
-      },
-      "cleverLinks": false,
-      "monospaceLinks": false,
-      "search": true,
-      "default": {
-        "staticFiles": {
-          "include": [
-            "./README.md"
-          ]
-        }
-      }
     },
     "opts": {
       "destination": "docs",
       "recurse": true,
       "readme": "README.md",
-      "template": "node_modules/better-docs"
+      "template": "node_modules/clean-jsdoc-theme"
+    },
+    "templates": {
+      "cleverLinks": false,
+      "monospaceLinks": false,
+      "default": {
+        "outputSourceFiles": true,
+        "includeDate": false
+      },
+      "clean-jsdoc-theme": {
+        "homepageTitle": "Civil Rights Project Documentation",
+        "theme": "light",
+        "menu": [
+          {
+            "title": "GitHub",
+            "link": "https://github.com/yourusername/civil-rights",
+            "target": "_blank"
+          }
+        ],
+        "meta": [
+          {
+            "name": "author",
+            "content": "Your Name"
+          },
+          {
+            "name": "description",
+            "content": "Documentation for Civil Rights Project"
+          }
+        ],
+        "sections": ["Classes", "Modules", "Components", "Pages", "Global", "Tutorials"]
+      }
     }
   }

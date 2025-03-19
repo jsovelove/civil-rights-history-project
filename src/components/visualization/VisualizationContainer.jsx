@@ -1,7 +1,6 @@
 import BubbleChart from './BubbleChart'
 import MapVisualization from './MapVisualization'
 import TimelineVisualization from './TimelineVisualization'
-import PeopleGrid from './PeopleGrid'
 
 export default function VisualizationContainer({ activeVisualization }) {
   return (
@@ -9,7 +8,6 @@ export default function VisualizationContainer({ activeVisualization }) {
       {activeVisualization === 'keywords' && <BubbleChart />}
       {activeVisualization === 'map' && <MapVisualization />}
       {activeVisualization === 'timeline' && <TimelineVisualization />}
-      {activeVisualization === 'people' && <PeopleGrid />}
     </div>
   );
 }
