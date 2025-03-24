@@ -1,72 +1,549 @@
 /**
- * @fileoverview TranscriptSummary component for processing interview transcripts with AI.
+ * @fileoverview TranscriptSummary component for processing interview transcripts with AI using React Flow.
  * 
  * This component provides an interface for uploading, processing, and viewing
- * AI-generated summaries of interview transcripts. It uses the OpenAI API to analyze
- * transcript text and generate structured summaries with timestamps and keywords,
- * then saves the results to Firebase for integration with the rest of the application.
+ * AI-generated summaries of interview transcripts. It uses React Flow to create a workflow
+ * with nodes for transcript input, prompt editing, and result display.
  */
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { FileText, Upload, Clock, Tag, ChevronRight } from 'lucide-react';
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Panel,
+  useReactFlow,
+  ReactFlowProvider,
+  BezierEdge,
+  StraightEdge,
+  StepEdge
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { FaUpload, FaPlay, FaYoutube, FaSave, FaPlusCircle, FaMinusCircle, FaEdit } from 'react-icons/fa';
+
+// Import node components and utilities
+import { nodeTypes } from '../components/nodes';
+import VisualizationToolbar from '../components/VisualizationToolbar';
+import TranscriptHeader from '../components/TranscriptHeader';
+import ErrorDisplay from '../components/ErrorDisplay';
+import LoadingIndicator from '../components/LoadingIndicator';
+import AlignmentTools from '../components/AlignmentTools';
+
+// Import hooks and utilities
+import useTranscriptData from '../hooks/useTranscriptData';
+import useDragAndDrop from '../hooks/useDragAndDrop';
+import { 
+  readFileAsText, 
+  getSummariesFromChatGPT, 
+  saveProcessedTranscript 
+} from '../utils/transcriptUtils';
+import {
+  getDefaultNodes,
+  getDefaultEdges,
+  getEdgeTypes,
+  connectNodes,
+  alignNodesHorizontally,
+  alignNodesVertically,
+  distributeNodesHorizontally,
+  distributeNodesVertically,
+  makeEdgesOrthogonal
+} from '../utils/flowUtils';
+
+// Development mode flag
+const DEV_MODE = import.meta.env.DEV;
+
+// Edge type definition moved outside component
+const getEdgeTypesObject = ({ BezierEdge, StraightEdge, StepEdge }) => ({
+  bezier: BezierEdge,
+  step: StepEdge,
+  straight: StraightEdge,
+  default: BezierEdge
+});
 
 /**
- * TranscriptSummary - Component for AI-powered transcript analysis
+ * TranscriptSummaryContent - Component for AI-powered transcript analysis using React Flow
  * 
- * This component:
- * 1. Provides an interface for uploading transcript and audio files
- * 2. Processes transcripts using the OpenAI API to generate structured summaries
- * 3. Saves processed summaries to Firebase for future retrieval
- * 4. Displays results with timestamps, keywords, and audio playback integration
- * 5. Supports navigating to specific points in audio based on timestamps
- * 
- * @returns {React.ReactElement} The transcript summary interface
+ * @returns {React.ReactElement} The transcript summary interface with React Flow
  */
-export default function TranscriptSummary() {
+function TranscriptSummaryContent() {
+  // React refs
+  const reactFlowWrapper = useRef(null);
+  const audioRef = useRef(null);
+  const videoRef = useRef(null);
+  
   // Component state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [summaries, setSummaries] = useState(null);
-  const audioRef = useRef(null);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [step, setStep] = useState(1); // 1: Upload, 2: Results
+  
+  // Testing mode - Set to true to disable actual database operations
+  const [testingMode] = useState(true);
+  
+  // Initialize transcript data
+  const transcriptData = useTranscriptData();
+  const {
+    transcript,
+    setTranscript,
+    transcriptFile,
+    setTranscriptFile,
+    audioUrl,
+    setAudioUrl,
+    summaries,
+    setSummaries,
+    documentName,
+    setDocumentName,
+    systemMessage,
+    setSystemMessage,
+    savedToDatabase,
+    setSavedToDatabase,
+    youtubeUrl,
+    setYoutubeUrl,
+    youtubeEmbedUrl,
+    setYoutubeEmbedUrl,
+    currentTimestamp,
+    setCurrentTimestamp,
+    savingToDatabase,
+    setSavingToDatabase,
+    handleSummaryChange,
+    handleEditSummary,
+    handleKeyPointChange,
+    handleAddKeyPoint,
+    handleRemoveKeyPoint,
+    handleYoutubeUrlSubmit,
+    jumpToTimestamp,
+    handleResetData
+  } = transcriptData;
+  
+  // React Flow state
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNodes, setSelectedNodes] = useState([]);
+  const [reactFlowInitialized, setReactFlowInitialized] = useState(false);
+  
+  // Development mode state
+  const [isDevMode, setIsDevMode] = useState(() => {
+    return DEV_MODE && localStorage.getItem('flow_dev_mode') === 'true';
+  });
+
+  // Grid and alignment settings
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(10);
+
+  // React Flow instance
+  const reactFlowInstance = useReactFlow();
+  
+  // Edge types - memoized to prevent re-creation on each render
+  const edgeTypes = useMemo(() => 
+    getEdgeTypesObject({ BezierEdge, StraightEdge, StepEdge }), 
+    [BezierEdge, StraightEdge, StepEdge]
+  );
+
+  // Set up drag and drop handlers
+  const {
+    isDragging,
+    onDragStart,
+    onDragEnd,
+    onDragOver,
+    onDrop
+  } = useDragAndDrop(reactFlowInstance, setNodes, setEdges, summaries);
+
+  // Initialize React Flow nodes and edges
+  useEffect(() => {
+    // Define the spacing and dimensions with more generous values
+    const nodeWidth = 320;
+    const nodeHeight = 400;
+    const horizontalGap = 150;
+    const verticalGap = 80;
+
+    // Calculate positions with more generous spacing
+    const column1X = 50;
+    const column2X = column1X + nodeWidth + horizontalGap;
+    const row1Y = 50;
+    const row2Y = row1Y + nodeHeight + verticalGap;
+
+    // Create default nodes with all the required data
+    const defaultNodes = getDefaultNodes(column1X, column2X, row1Y, row2Y, nodeWidth, {
+      handleTranscriptUpload,
+      handleAudioUpload,
+      documentName,
+      setDocumentName,
+      youtubeUrl,
+      setYoutubeUrl,
+      handleYoutubeUrlSubmit,
+      systemMessage,
+      setSystemMessage,
+      processTranscript,
+      transcript,
+      summaries,
+      audioUrl,
+      audioRef,
+      jumpToTimestamp: (timestamp) => jumpToTimestamp(timestamp, audioRef, videoRef),
+      handleSaveToDatabase,
+      savingToDatabase,
+      savedToDatabase,
+      handleSummaryChange,
+      handleKeyPointChange,
+      handleAddKeyPoint,
+      handleRemoveKeyPoint,
+      handleEditSummary,
+      youtubeEmbedUrl,
+      videoRef,
+      currentTimestamp,
+      setCurrentTimestamp
+    });
+    
+    // Create default edges
+    const defaultEdges = getDefaultEdges();
+
+    // Try to load saved layout from localStorage
+    const savedLayout = localStorage.getItem('flow_layout');
+    
+    if (savedLayout) {
+      try {
+        // Parse the saved positions
+        const layoutPositions = JSON.parse(savedLayout);
+        
+        // Merge the saved positions with the default nodes
+        const updatedNodes = defaultNodes.map(defaultNode => {
+          // Find matching saved node position
+          const savedNode = layoutPositions.nodes.find(n => n.id === defaultNode.id);
+          
+          if (savedNode) {
+            // Merge the position and style from saved layout with data from default node
+            return {
+              ...defaultNode,
+              position: savedNode.position,
+              style: { ...defaultNode.style, ...savedNode.style }
+            };
+          }
+          
+          return defaultNode;
+        });
+        
+        // Restore visualization nodes from saved layout
+        const visualizationNodes = layoutPositions.nodes
+          .filter(node => node.isVisualization && node.id.startsWith('viz-'))
+          .map(node => ({
+            id: node.id,
+            type: node.type,
+            position: node.position,
+            style: node.style || { width: 400, height: 400 },
+            data: { 
+              label: node.type === 'keywordBubble' ? 'Keyword Bubble Chart' : 'Location Map',
+              summaries: summaries ? {
+                overallSummary: summaries.overallSummary,
+                keyPoints: summaries.keyPoints
+              } : null
+            }
+          }));
+        
+        // Create edges for visualization nodes
+        const visualizationEdges = visualizationNodes.map(node => ({
+          id: `e3-${node.id}`,
+          source: '3', // Results node
+          target: node.id,
+          sourceHandle: 'results-output',
+          targetHandle: 'viz-input',
+          animated: true,
+          style: { stroke: '#3b82f6', strokeWidth: 2 }
+        }));
+        
+        // Set nodes and edges
+        setNodes([...updatedNodes, ...visualizationNodes]);
+        setEdges([...defaultEdges, ...visualizationEdges]);
+      } catch (error) {
+        console.error('Error loading saved layout:', error);
+        // Fall back to default layout if there's an error
+        setNodes(defaultNodes);
+        setEdges(defaultEdges);
+      }
+    } else {
+      // Use default layout
+      setNodes(defaultNodes);
+      setEdges(defaultEdges);
+    }
+  }, [summaries]);
+
+  // Save current layout to localStorage
+  const saveLayout = () => {
+    try {
+      // Get all node positions, including visualization nodes
+      const positionsAndStyles = {
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          style: node.style,
+          // For visualization nodes, save the data too
+          ...(node.id.startsWith('viz-') ? { 
+            isVisualization: true 
+          } : {})
+        }))
+      };
+      
+      localStorage.setItem('flow_layout', JSON.stringify(positionsAndStyles));
+      
+      // Show a non-blocking toast-like message instead of an alert
+      const messageDiv = document.createElement('div');
+      messageDiv.innerHTML = 'Layout saved successfully!';
+      messageDiv.style.position = 'fixed';
+      messageDiv.style.bottom = '20px';
+      messageDiv.style.left = '50%';
+      messageDiv.style.transform = 'translateX(-50%)';
+      messageDiv.style.backgroundColor = '#4CAF50';
+      messageDiv.style.color = 'white';
+      messageDiv.style.padding = '10px 20px';
+      messageDiv.style.borderRadius = '4px';
+      messageDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+      messageDiv.style.zIndex = '1000';
+      
+      document.body.appendChild(messageDiv);
+      
+      // Remove the message after 2 seconds
+      setTimeout(() => {
+        document.body.removeChild(messageDiv);
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving layout:', error);
+      setError('Failed to save layout. Please try again.');
+    }
+  };
+
+  // Reset layout to default
+  const resetLayout = () => {
+    if (window.confirm('Are you sure you want to reset the layout to default?')) {
+      try {
+        localStorage.removeItem('flow_layout');
+        
+        // Instead of reloading the page, just reset the nodes and edges
+        const column1X = 50;
+        const column2X = column1X + 320 + 150;
+        const row1Y = 50;
+        const row2Y = row1Y + 400 + 80;
+        
+        const defaultNodes = getDefaultNodes(column1X, column2X, row1Y, row2Y, 320, {
+          handleTranscriptUpload,
+          handleAudioUpload,
+          documentName,
+          setDocumentName,
+          youtubeUrl,
+          setYoutubeUrl,
+          handleYoutubeUrlSubmit,
+          systemMessage,
+          setSystemMessage,
+          processTranscript,
+          transcript,
+          summaries,
+          audioUrl,
+          audioRef,
+          jumpToTimestamp: (timestamp) => jumpToTimestamp(timestamp, audioRef, videoRef),
+          handleSaveToDatabase,
+          savingToDatabase,
+          savedToDatabase,
+          handleSummaryChange,
+          handleKeyPointChange,
+          handleAddKeyPoint,
+          handleRemoveKeyPoint,
+          handleEditSummary,
+          youtubeEmbedUrl,
+          videoRef,
+          currentTimestamp,
+          setCurrentTimestamp
+        });
+        
+        const defaultEdges = getDefaultEdges();
+        
+        setNodes(defaultNodes);
+        setEdges(defaultEdges);
+        
+        // Show success message
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = 'Layout reset successfully!';
+        messageDiv.style.position = 'fixed';
+        messageDiv.style.bottom = '20px';
+        messageDiv.style.left = '50%';
+        messageDiv.style.transform = 'translateX(-50%)';
+        messageDiv.style.backgroundColor = '#2196F3';
+        messageDiv.style.color = 'white';
+        messageDiv.style.padding = '10px 20px';
+        messageDiv.style.borderRadius = '4px';
+        messageDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        messageDiv.style.zIndex = '1000';
+        
+        document.body.appendChild(messageDiv);
+        
+        // Remove the message after 2 seconds
+        setTimeout(() => {
+          document.body.removeChild(messageDiv);
+        }, 2000);
+      } catch (error) {
+        console.error('Error resetting layout:', error);
+        setError('Failed to reset layout. Please try again.');
+      }
+    }
+  };
+
+  // Toggle development mode
+  const toggleDevMode = () => {
+    const newDevMode = !isDevMode;
+    setIsDevMode(newDevMode);
+    localStorage.setItem('flow_dev_mode', newDevMode);
+    // Don't remove saved layout when toggling dev mode
+    window.location.reload();
+  };
+
+  // Toggle grid snapping
+  const toggleGrid = useCallback(() => {
+    setSnapToGrid(!snapToGrid);
+  }, [snapToGrid]);
+
+  // Update node styles when state changes
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        // Maintain node width settings to prevent resizing
+        const style = node.style || {};
+        
+        if (node.id === '1') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              documentName,
+              youtubeUrl,
+            },
+            style
+          };
+        } else if (node.id === '2') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              systemMessage,
+              canProcess: !!transcript
+            },
+            style
+          };
+        } else if (node.id === '3') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              summaries,
+              audioUrl,
+              audioRef,
+              jumpToTimestamp: (timestamp) => jumpToTimestamp(timestamp, audioRef, videoRef),
+              onSaveToDatabase: handleSaveToDatabase,
+              savingToDatabase,
+              savedToDatabase,
+              onSummaryChange: handleSummaryChange,
+              onKeyPointChange: handleKeyPointChange,
+              onAddKeyPoint: handleAddKeyPoint,
+              onRemoveKeyPoint: handleRemoveKeyPoint,
+              onEditSummary: handleEditSummary
+            },
+            style
+          };
+        } else if (node.id === '4') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              youtubeEmbedUrl,
+              videoRef,
+              currentTimestamp,
+              summaries,
+              onUpdateTimestamp: setCurrentTimestamp
+            },
+            style
+          };
+        }
+        return node;
+      })
+    );
+  }, [
+    systemMessage, 
+    transcript, 
+    summaries, 
+    audioUrl, 
+    savingToDatabase, 
+    savedToDatabase, 
+    documentName, 
+    youtubeUrl, 
+    youtubeEmbedUrl,
+    currentTimestamp
+  ]);
 
   /**
-   * Handles the processing of uploaded transcript and audio files
+   * Handles transcript file upload
    * 
-   * @param {File} transcriptFile - The uploaded transcript file
-   * @param {File|null} audioFile - The uploaded audio file (optional)
+   * @param {File} file - The uploaded transcript file
    */
-  const handleFileUpload = async (transcriptFile, audioFile) => {
+  const handleTranscriptUpload = async (file) => {
+    try {
+      setTranscriptFile(file);
+      const text = await readFileAsText(file);
+      setTranscript(text);
+      
+      // Update node data to reflect that transcript is available
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === '2') {
+            node.data = {
+              ...node.data,
+              canProcess: true
+            };
+          }
+          return node;
+        })
+      );
+    } catch (error) {
+      console.error("Error reading transcript file:", error);
+      setError("Failed to read transcript file");
+    }
+  };
+
+  /**
+   * Handles audio file upload
+   * 
+   * @param {File} file - The uploaded audio file
+   */
+  const handleAudioUpload = (file) => {
+    const audioUrl = URL.createObjectURL(file);
+    setAudioUrl(audioUrl);
+  };
+
+  /**
+   * Processes the transcript using OpenAI API
+   */
+  const processTranscript = async () => {
+    if (!transcript) return;
+    
     try {
       setLoading(true);
       setError(null);
 
-      const documentName = prompt("Enter the name of the document for this interview:");
       if (!documentName) {
+        const name = prompt("Enter the name of the document for this interview:");
+        if (!name) {
         setError("Document name is required");
+          setLoading(false);
         return;
       }
-
-      // Handle audio file
-      if (audioFile) {
-        const audioUrl = URL.createObjectURL(audioFile);
-        setAudioUrl(audioUrl);
+        setDocumentName(name.trim());
       }
-
-      // Read and process transcript
-      const transcript = await readFileAsText(transcriptFile);
-      const summaries = await getSummariesFromChatGPT(transcript);
       
-      // Save to Firebase
-      await saveProcessedTranscript(documentName.trim(), summaries);
+      const summaries = await getSummariesFromChatGPT(transcript, systemMessage);
       
       setSummaries(summaries);
-      setStep(2); // Move to results view
+      // Reset the saved state when generating new results
+      setSavedToDatabase(false);
     } catch (error) {
-      console.error("Error processing files:", error);
+      console.error("Error processing transcript:", error);
       setError("Failed to process transcript");
     } finally {
       setLoading(false);
@@ -74,395 +551,237 @@ export default function TranscriptSummary() {
   };
 
   /**
-   * Reads a file as text using FileReader
-   * 
-   * @param {File} file - The file to read
-   * @returns {Promise<string>} The file contents as text
+   * Handles saving processed results to the database
    */
-  const readFileAsText = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (e) => reject(e);
-      reader.readAsText(file);
-    });
-  };
-
-  console.log(import.meta.env.VITE_OPENAI_API_KEY)
-
-  /**
-   * Sends transcript to OpenAI API for analysis and summary generation
-   * Includes retry logic for rate limiting
-   * 
-   * @param {string} transcript - The transcript text to analyze
-   * @param {number} retries - Number of retries remaining for rate limit handling
-   * @param {number} delay - Delay in ms before retry
-   * @returns {Promise<Object>} Parsed summaries from the API response
-   */
-  const getSummariesFromChatGPT = async (transcript, retries = 3, delay = 2000) => {
+  const handleSaveToDatabase = async () => {
     try {
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  
-      const systemMessage = `
-        You are an assistant that processes interview transcripts into structured summaries with timestamps and keywords.
-        
-        Always output the content in the following strict format:
-        Overall Summary:
-        [Provide a concise overall summary here.]
-        
-        Key Points:
-        1. Title: [First key topic]
-           Timestamp: [Start time - End time]
-           Keywords: [Comma-separated list of keywords]
-           Summary: [Provide a short summary of the first key topic.]
-      `;
-  
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemMessage },
-            { role: "user", content: `Here is a transcript:\n${transcript}\n\nGenerate an overall summary, key points with timestamps, and keywords.` },
-          ],
-          max_tokens: 1000,
-        }),
-      });
-  
-      if (!response.ok) {
-        if (response.status === 429 && retries > 0) {
-          console.warn(`Rate limit exceeded. Retrying in ${delay}ms...`);
-          await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before retrying
-          return getSummariesFromChatGPT(transcript, retries - 1, delay * 2); // Retry with increased delay
-        }
-        throw new Error(`API request failed: ${response.statusText}`);
+      setSavingToDatabase(true);
+      
+      // In testing mode, we just simulate the saving process
+      if (testingMode) {
+        // Simulate database operation
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setSavedToDatabase(true);
+        setSavingToDatabase(false);
+        return;
       }
-  
-      const data = await response.json();
-      return parseGPTResponse(data.choices[0].message.content);
+
+      // This would be the real database operation in production
+      await saveProcessedTranscript(documentName, summaries, db);
+      
+      setSavedToDatabase(true);
     } catch (error) {
-      console.error("Error communicating with OpenAI API:", error);
-      throw error;
-    }
-  };
-  
-  /**
-   * Parses the GPT response text into structured format
-   * 
-   * @param {string} response - Raw text response from GPT
-   * @returns {Object} Structured summary object with overall summary and key points
-   */
-  const parseGPTResponse = (response) => {
-    const overallSummaryMatch = response.match(/Overall Summary:\s*(.+)/i);
-    const overallSummary = overallSummaryMatch 
-      ? overallSummaryMatch[1].trim() 
-      : "No summary found.";
-
-    const keyPoints = [];
-    const keyPointRegex = /\d+\.\s*Title:\s*(.+?)\s*Timestamp:\s*(.+?)\s*Keywords:\s*(.+?)\s*Summary:\s*(.+?)(?=\d+\.|$)/gs;
-
-    let match;
-    while ((match = keyPointRegex.exec(response)) !== null) {
-      keyPoints.push({
-        topic: match[1].trim(),
-        timestamp: match[2].trim(),
-        keywords: match[3].trim(),
-        summary: match[4].trim()
-      });
-    }
-
-    return { overallSummary, keyPoints };
-  };
-
-  /**
-   * Saves processed transcript data to Firebase Firestore
-   * 
-   * @param {string} documentName - Name of the interview document
-   * @param {Object} summaries - Structured summary data to save
-   */
-  const saveProcessedTranscript = async (documentName, summaries) => {
-    try {
-      // Save main summary
-      const interviewDocRef = doc(collection(db, "interviewSummaries"), documentName);
-      await setDoc(interviewDocRef, {
-        documentName,
-        mainSummary: summaries.overallSummary,
-        createdAt: new Date(),
-      });
-
-      // Save subsummaries
-      for (const subSummary of summaries.keyPoints) {
-        const sanitizedTitle = subSummary.topic.replace(/[^a-zA-Z0-9-_]/g, "_");
-        const subSummaryDocRef = doc(
-          collection(db, "interviewSummaries", documentName, "subSummaries"),
-          sanitizedTitle
-        );
-
-        await setDoc(subSummaryDocRef, {
-          topic: subSummary.topic,
-          timestamp: subSummary.timestamp,
-          keywords: subSummary.keywords,
-          summary: subSummary.summary,
-        });
-      }
-    } catch (error) {
-      console.error("Error storing processed transcript:", error);
-      throw error;
+      console.error("Error saving to database:", error);
+      setError("Failed to save to database");
+    } finally {
+      setSavingToDatabase(false);
     }
   };
 
-  /**
-   * Navigates the audio player to a specific timestamp
-   * 
-   * @param {string} timestamp - Timestamp in format "MM:SS - ..."
-   */
-  const jumpToTimestamp = (timestamp) => {
-    if (!audioRef.current) return;
+  // Connect two nodes with an edge
+  const onConnect = useCallback(
+    (params) => connectNodes(params, setEdges),
+    [setEdges]
+  );
 
-    const startTime = timestamp.split(" - ")[0];
-    const timeParts = startTime.split(":").map(Number);
+  // Handle edge deletion
+  const onEdgesDelete = useCallback(
+    (edgesToDelete) => {
+      if (!isDevMode) return; // Only allow deletion in dev mode
+      setEdges((eds) => eds.filter((edge) => !edgesToDelete.some((e) => e.id === edge.id)));
+    },
+    [setEdges, isDevMode]
+  );
+
+  // Handle node selection
+  const onSelectionChange = useCallback((params) => {
+    setSelectedNodes(params.nodes || []);
+  }, []);
+
+  // Straighten all connections to be either horizontal or vertical
+  const straightenConnections = useCallback(() => {
+    // First identify nodes that need to be aligned
+    const edgePairs = edges.map(edge => {
+      const sourceNode = nodes.find(node => node.id === edge.source);
+      const targetNode = nodes.find(node => node.id === edge.target);
+      
+      return { edge, sourceNode, targetNode };
+    }).filter(pair => pair.sourceNode && pair.targetNode);
     
-    if (timeParts.length !== 2 || timeParts.some(isNaN)) {
-      console.error("Invalid timestamp format:", startTime);
-      return;
-    }
+    // Adjust node positions to create straight lines
+    setNodes(nds => {
+      const newNodes = [...nds];
+      
+      // For each edge pair, determine if horizontal or vertical alignment makes more sense
+      edgePairs.forEach(({ sourceNode, targetNode }) => {
+        // Calculate distances
+        const xDiff = Math.abs(sourceNode.position.x - targetNode.position.x);
+        const yDiff = Math.abs(sourceNode.position.y - targetNode.position.y);
+        
+        // Find the node to adjust (prefer moving target)
+        const nodeToAdjust = newNodes.find(node => node.id === targetNode.id);
+        
+        // Determine if we should align horizontally or vertically based on which 
+        // requires the smaller movement
+        if (xDiff < yDiff) {
+          // Align horizontally (adjust x)
+          nodeToAdjust.position = {
+            ...nodeToAdjust.position,
+            x: sourceNode.position.x,
+          };
+        } else {
+          // Align vertically (adjust y)
+          nodeToAdjust.position = {
+            ...nodeToAdjust.position,
+            y: sourceNode.position.y,
+          };
+        }
+      });
+      
+      return newNodes;
+    });
+    
+    // Make edges orthogonal to complete the effect
+    makeEdgesOrthogonal(nodes, setEdges);
+  }, [edges, nodes, setNodes, setEdges]);
 
-    const minutes = timeParts[0];
-    const seconds = timeParts[1];
-    const totalSeconds = minutes * 60 + seconds;
+  // React Flow initialization callback
+  const onInit = useCallback((instance) => {
+    setReactFlowInitialized(true);
+  }, []);
 
-    if (isFinite(totalSeconds)) {
-      audioRef.current.currentTime = totalSeconds;
-      audioRef.current.play();
-    }
-  };
+  // Update visualization nodes when summaries change
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.type === 'keywordBubble' || node.type === 'mapVisualization') {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              summaries
+            }
+          };
+        }
+        return node;
+      })
+    );
+  }, [summaries, setNodes]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
+    <div className="max-w-full mx-auto p-4 bg-gray-50 min-h-screen font-sans">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
-          Transcript Summarizer
-        </h1>
-        <p className="text-base leading-relaxed text-gray-600 max-w-3xl">
-          Upload interview transcripts to generate AI-powered summaries with timestamps and keywords
-        </p>
-      </div>
-
-      {/* Main Content */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        {/* Step 1: Upload Files */}
-        {step === 1 && (
-          <div className="p-8">
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900 flex items-center">
-                <FileText className="mr-2 text-blue-600" size={20} />
-                Upload Interview Files
-              </h2>
-              
-              <div className="flex flex-col gap-6">
-                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Transcript File (.txt)
-                  </label>
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors p-4">
-                      <div className="flex flex-col items-center justify-center">
-                        <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                        <p className="mb-2 text-sm text-gray-500">
-                          <span className="font-semibold">Click to upload</span> or drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Upload your interview transcript file (TXT)
-                        </p>
-                      </div>
-                      <input 
-                        type="file" 
-                        accept=".txt" 
-                        className="hidden"
-                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], null)}
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Audio File (optional)
-                  </label>
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors p-4">
-                      <div className="flex flex-col items-center justify-center">
-                        <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                        <p className="mb-2 text-sm text-gray-500">
-                          <span className="font-semibold">Click to upload</span> or drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          MP3, WAV, or other audio formats
-                        </p>
-                      </div>
-                      <input 
-                        type="file" 
-                        accept="audio/*" 
-                        className="hidden"
-                        onChange={(e) => e.target.files?.[0] && setAudioUrl(URL.createObjectURL(e.target.files[0]))}
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {audioUrl && (
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="text-base font-medium mb-3 text-gray-900">
-                  Audio Preview
-                </h3>
-                <audio 
-                  ref={audioRef}
-                  src={audioUrl}
-                  controls
-                  className="w-full"
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex flex-col justify-center items-center py-20">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500 animate-pulse">
-              Processing transcript...
-            </p>
-            <style>{`
-              @keyframes spin {
-                to { transform: rotate(360deg); }
-              }
-              @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-              }
-            `}</style>
-          </div>
-        )}
+      <TranscriptHeader
+        isDevMode={isDevMode}
+        DEV_MODE={DEV_MODE}
+        toggleDevMode={toggleDevMode}
+        saveLayout={saveLayout}
+        resetLayout={resetLayout}
+        summaries={summaries}
+        handleResetData={handleResetData}
+        testingMode={testingMode}
+      />
 
         {/* Error State */}
-        {error && (
-          <div className="m-8 bg-red-100 border border-red-300 text-red-700 px-6 py-4 rounded-lg">
-            <div className="flex">
-              <svg className="w-6 h-6 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
-              </svg>
-              <div>
-                <p className="font-medium">Error</p>
-                <p className="text-sm">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
+      <ErrorDisplay error={error} />
 
-        {/* Step 2: Results */}
-        {step === 2 && summaries && (
-          <div>
-            {/* Audio Player (if available) */}
-            {audioUrl && (
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
-                <audio 
-                  ref={audioRef}
-                  src={audioUrl}
-                  controls
-                  className="w-full"
-                />
-              </div>
-            )}
-            
-            {/* Overall Summary */}
-            <div className="p-8 border-b border-gray-200">
-              <h2 className="text-2xl font-bold mb-4 text-gray-900">
-                Overall Summary
-              </h2>
-              <p className="text-gray-600 leading-relaxed text-base">
-                {summaries.overallSummary}
-              </p>
-            </div>
-
-            {/* Key Points */}
-            <div className="p-8">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900">
-                Key Points
-              </h2>
-              
-              <div className="flex flex-col gap-6">
-                {summaries.keyPoints.map((point, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-gray-50 rounded-lg p-6 transition-all duration-300 shadow-sm hover:shadow-md"
-                  >
-                    <div className="flex items-start mb-4">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3 flex-shrink-0 font-semibold">
-                        {index + 1}
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {point.topic}
-                      </h3>
-                    </div>
-                    
-                    <div 
-                      className="flex items-center mb-4 text-blue-600 hover:text-blue-800 cursor-pointer transition-colors"
-                      onClick={() => jumpToTimestamp(point.timestamp)}
-                    >
-                      <Clock size={16} className="mr-2" />
-                      <span className="font-medium">{point.timestamp}</span>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <div className="flex items-start mb-2">
-                        <Tag size={16} className="mr-2 text-gray-500 mt-0.5" />
-                        <div className="flex flex-wrap gap-2">
-                          {point.keywords.split(',').map((keyword, idx) => (
-                            <span 
-                              key={idx}
-                              className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium"
-                            >
-                              {keyword.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 leading-relaxed text-sm">
-                      {point.summary}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Reset button */}
-            <div className="p-8 border-t border-gray-200 flex justify-center">
-              <button
-                onClick={() => {
-                  setStep(1);
-                  setSummaries(null);
-                  setAudioUrl(null);
-                  setError(null);
-                }}
-                className="flex items-center px-6 py-3 bg-gray-100 text-gray-600 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 mr-2 transform rotate-180" />
-                Process Another Transcript
-              </button>
-            </div>
-          </div>
-        )}
+      {/* React Flow Canvas */}
+      <div 
+        style={{ width: '100%', height: '85vh' }} 
+        className="bg-white rounded-xl shadow-md overflow-hidden"
+        ref={reactFlowWrapper}
+      >
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onEdgesDelete={onEdgesDelete}
+          onSelectionChange={onSelectionChange}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={{ 
+            style: { stroke: '#3b82f6', strokeWidth: 2 },
+            animated: true
+          }}
+          fitView={true}
+          fitViewOptions={{ 
+            padding: 0.2,
+            includeHiddenNodes: false,
+            minZoom: 0.5,
+            maxZoom: 1.5
+          }}
+          minZoom={0.3}
+          maxZoom={2.5}
+          snapToGrid={snapToGrid}
+          snapGrid={[gridSize, gridSize]}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+          nodesDraggable={true}
+          nodesConnectable={true}
+          elementsSelectable={true}
+          proOptions={{ hideAttribution: false }}
+          connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
+          style={{ background: '#f9fafb' }}
+          onInit={onInit}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        >
+          <Controls 
+            showInteractive={true} 
+            position="bottom-right"
+          />
+          <MiniMap
+            nodeStrokeWidth={3}
+            nodeColor={(node) => {
+              switch (node.id) {
+                case '1': return '#93c5fd'; // blue-300
+                case '2': return '#bfdbfe'; // blue-200
+                case '3': return '#dbeafe'; // blue-100
+                case '4': return '#ef4444'; // red-500 for video player
+                default: return node.type === 'keywordBubble' ? '#60a5fa' : 
+                        node.type === 'mapVisualization' ? '#34d399' : '#ccc';
+              }
+            }}
+            maskColor="rgba(240, 240, 240, 0.3)"
+          />
+          <Background variant="dots" gap={16} size={1} color="#e2e8f0" />
+          
+          {/* Loading indicator */}
+          <LoadingIndicator loading={loading} message="Processing transcript..." />
+          
+          {/* Node Alignment Tools */}
+          <AlignmentTools
+            isDevMode={isDevMode}
+            selectedNodes={selectedNodes}
+            alignHorizontally={() => alignNodesHorizontally(selectedNodes, setNodes)}
+            alignVertically={() => alignNodesVertically(selectedNodes, setNodes)}
+            distributeHorizontally={() => distributeNodesHorizontally(selectedNodes, setNodes)}
+            distributeVertically={() => distributeNodesVertically(selectedNodes, setNodes)}
+            straightenConnections={straightenConnections}
+            makeEdgesOrthogonal={() => makeEdgesOrthogonal(nodes, setEdges)}
+            snapToGrid={snapToGrid}
+            toggleGrid={toggleGrid}
+          />
+          
+          {/* Visualization Toolbar - Only show after summaries are generated */}
+          {summaries && (
+            <Panel position="top-right" className="visualization-toolbar-panel">
+              <VisualizationToolbar onDragStart={onDragStart} />
+            </Panel>
+          )}
+        </ReactFlow>
       </div>
     </div>
+  );
+}
+
+export default function TranscriptSummary() {
+  return (
+    <ReactFlowProvider>
+      <TranscriptSummaryContent />
+    </ReactFlowProvider>
   );
 }

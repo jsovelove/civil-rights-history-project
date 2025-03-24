@@ -42,6 +42,8 @@
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.1.5",
     "react-vertical-timeline-component": "^3.5.3",
+    "react-youtube": "^10.1.0",
+    "reactflow": "^11.11.4",
     "recharts": "^2.15.1",
     "timelinejs3": "^3.4.0",
     "xlsx": "^0.18.5"
