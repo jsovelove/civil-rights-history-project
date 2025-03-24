@@ -214,7 +214,7 @@ const MapVisualizationNode = ({ data }) => {
         type="target" 
         position={Position.Left} 
         id="viz-input"
-        style={{ left: -10, background: '#3b82f6' }}
+        style={{ left: -10, background: '#818cf8', top: '50%', transform: 'translateY(-50%)' }}
       />
       
       <h3 className="text-lg font-semibold mb-2 flex items-center">

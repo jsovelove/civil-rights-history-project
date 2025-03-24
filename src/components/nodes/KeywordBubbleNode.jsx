@@ -157,7 +157,7 @@ const KeywordBubbleNode = ({ data }) => {
         type="target" 
         position={Position.Left} 
         id="viz-input"
-        style={{ left: -10, background: '#3b82f6' }}
+        style={{ left: -10, background: '#818cf8', top: '50%', transform: 'translateY(-50%)' }}
       />
       
       <div className="p-4">

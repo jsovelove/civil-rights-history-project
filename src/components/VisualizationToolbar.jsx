@@ -83,7 +83,7 @@ const VisualizationToolbar = ({ onDragStart }) => {
       
       <div className="mt-4 pt-3 border-t border-gray-100">
         <p className="text-xs text-gray-500">
-          Connects automatically to results when dropped
+          Connects automatically to metadata when dropped
         </p>
       </div>
     </div>

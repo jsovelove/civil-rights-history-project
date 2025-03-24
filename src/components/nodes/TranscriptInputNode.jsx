@@ -66,18 +66,6 @@ const TranscriptInputNode = ({ data }) => {
             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Upload Audio
-          </label>
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={(e) => data.onAudioUpload(e.target.files[0])}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
       </div>
     </div>
   );

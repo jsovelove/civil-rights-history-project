@@ -204,13 +204,13 @@ function TranscriptSummaryContent() {
     
     if (savedLayout) {
       try {
-        // Parse the saved positions
-        const layoutPositions = JSON.parse(savedLayout);
+        // Parse the saved layout
+        const layoutData = JSON.parse(savedLayout);
         
         // Merge the saved positions with the default nodes
         const updatedNodes = defaultNodes.map(defaultNode => {
           // Find matching saved node position
-          const savedNode = layoutPositions.nodes.find(n => n.id === defaultNode.id);
+          const savedNode = layoutData.nodes.find(n => n.id === defaultNode.id);
           
           if (savedNode) {
             // Merge the position and style from saved layout with data from default node
@@ -225,7 +225,7 @@ function TranscriptSummaryContent() {
         });
         
         // Restore visualization nodes from saved layout
-        const visualizationNodes = layoutPositions.nodes
+        const visualizationNodes = layoutData.nodes
           .filter(node => node.isVisualization && node.id.startsWith('viz-'))
           .map(node => ({
             id: node.id,
@@ -241,20 +241,40 @@ function TranscriptSummaryContent() {
             }
           }));
         
-        // Create edges for visualization nodes
-        const visualizationEdges = visualizationNodes.map(node => ({
-          id: `e3-${node.id}`,
-          source: '3', // Results node
-          target: node.id,
-          sourceHandle: 'results-output',
-          targetHandle: 'viz-input',
-          animated: true,
-          style: { stroke: '#3b82f6', strokeWidth: 2 }
-        }));
+        // Get all saved edges plus the default edges
+        let allEdges = [...defaultEdges];
+        
+        // Add saved edges if they exist
+        if (layoutData.edges) {
+          // Filter out edges that connect to visualization nodes, as we'll restore them from saved layout
+          allEdges = allEdges.filter(edge => 
+            !edge.target.startsWith('viz-') && !edge.source.startsWith('viz-')
+          );
+          
+          // Add edges from saved layout that connect to visualization nodes
+          const visualizationEdges = layoutData.edges.filter(edge => 
+            edge.target.startsWith('viz-') || edge.source.startsWith('viz-')
+          );
+          
+          allEdges = [...allEdges, ...visualizationEdges];
+        } else {
+          // Fallback to creating default visualization edges if no saved edges
+          const visualizationEdges = visualizationNodes.map(node => ({
+            id: `e5-${node.id}`,
+            source: '5', // Metadata node
+            target: node.id,
+            sourceHandle: 'metadata-output',
+            targetHandle: 'viz-input',
+            animated: true,
+            style: { stroke: '#818cf8', strokeWidth: 2 }
+          }));
+          
+          allEdges = [...allEdges, ...visualizationEdges];
+        }
         
         // Set nodes and edges
         setNodes([...updatedNodes, ...visualizationNodes]);
-        setEdges([...defaultEdges, ...visualizationEdges]);
+        setEdges(allEdges);
       } catch (error) {
         console.error('Error loading saved layout:', error);
         // Fall back to default layout if there's an error
@@ -271,8 +291,8 @@ function TranscriptSummaryContent() {
   // Save current layout to localStorage
   const saveLayout = () => {
     try {
-      // Get all node positions, including visualization nodes
-      const positionsAndStyles = {
+      // Get all node positions and edges
+      const layout = {
         nodes: nodes.map(node => ({
           id: node.id,
           type: node.type,
@@ -282,10 +302,19 @@ function TranscriptSummaryContent() {
           ...(node.id.startsWith('viz-') ? { 
             isVisualization: true 
           } : {})
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle,
+          animated: edge.animated,
+          style: edge.style
         }))
       };
       
-      localStorage.setItem('flow_layout', JSON.stringify(positionsAndStyles));
+      localStorage.setItem('flow_layout', JSON.stringify(layout));
       
       // Show a non-blocking toast-like message instead of an alert
       const messageDiv = document.createElement('div');

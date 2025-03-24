@@ -69,15 +69,15 @@ const useDragAndDrop = (reactFlowInstance, setNodes, setEdges, summaries) => {
       // Add the node to the canvas
       setNodes((nds) => nds.concat(newNode));
       
-      // Create an edge connecting results to the visualization
+      // Create an edge connecting metadata node to the visualization
       const newEdge = {
-        id: `e3-${newNode.id}`,
-        source: '3', // Results node
+        id: `e5-${newNode.id}`,
+        source: '5', // Metadata node
         target: newNode.id,
-        sourceHandle: 'results-output',
+        sourceHandle: 'metadata-output',
         targetHandle: 'viz-input',
         animated: true,
-        style: { stroke: '#3b82f6', strokeWidth: 2 }
+        style: { stroke: '#818cf8', strokeWidth: 2 }
       };
       
       // Add the edge

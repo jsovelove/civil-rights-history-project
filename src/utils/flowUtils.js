@@ -46,7 +46,7 @@ export const getDefaultNodes = (column1X, column2X, row1Y, row2Y, nodeWidth, pro
     id: '3',
     type: 'resultsDisplay',
     position: { x: column2X, y: row1Y },
-    style: { width: nodeWidth + 200 },
+    style: { width: nodeWidth + 350 },
     data: { 
       summaries: props.summaries,
       audioUrl: props.audioUrl,
@@ -73,6 +73,22 @@ export const getDefaultNodes = (column1X, column2X, row1Y, row2Y, nodeWidth, pro
       currentTimestamp: props.currentTimestamp,
       summaries: props.summaries,
       onUpdateTimestamp: props.setCurrentTimestamp
+    },
+  },
+  {
+    id: '5',
+    type: 'metadata',
+    position: { x: column2X + nodeWidth + 200, y: row1Y },
+    style: { width: nodeWidth + 100, height: 550 },
+    data: {
+      documentName: props.documentName,
+      youtubeUrl: props.youtubeUrl,
+      youtubeEmbedUrl: props.youtubeEmbedUrl,
+      summaries: props.summaries,
+      transcript: props.transcript,
+      onSaveToDatabase: props.handleSaveToDatabase,
+      savingToDatabase: props.savingToDatabase,
+      savedToDatabase: props.savedToDatabase
     },
   }
 ];
@@ -109,6 +125,15 @@ export const getDefaultEdges = () => [
     targetHandle: 'results-input',
     animated: true,
     style: { stroke: '#3b82f6', strokeWidth: 2 }
+  },
+  {
+    id: 'e3-5',
+    source: '3',
+    target: '5',
+    sourceHandle: 'results-output',
+    targetHandle: 'metadata-input',
+    animated: true,
+    style: { stroke: '#818cf8', strokeWidth: 2 }
   }
 ];
 
