@@ -54,7 +54,8 @@ const useNodeDragAndDrop = (options = {}) => {
         // Create the new node
         const newNode = createNodeFromType(nodeData.type, position, nodeData.label);
         
-        // Update nodes state
+        // Update nodes state with the new node at the exact position dropped
+        // This avoids automatic layout being triggered
         onNodesChange((nds) => [...nds, newNode]);
       } catch (error) {
         console.error('Error handling node drop:', error);

@@ -241,8 +241,9 @@ function TranscriptSummaryContent() {
   const [error, setError] = useState(null);
   const [testingMode] = useState(true);
   const [flowView, setFlowView] = useState('none'); // 'none' or 'basic'
-  const [showToolbar, setShowToolbar] = useState(true);
+  const [showToolbar, setShowToolbar] = useState(false);
   const [queuedTranscripts, setQueuedTranscripts] = useState([]);
+  const [showNotification, setShowNotification] = useState(true);
   const [processingStatus, setProcessingStatus] = useState({
     inProgress: false,
     current: 0,
@@ -302,32 +303,22 @@ function TranscriptSummaryContent() {
   // Custom node changes handler that applies auto layout after changes
   const onNodesChange = useCallback((changes) => {
     setNodes((nds) => {
+      // Simply apply changes without automatic layout
       const newNodes = applyNodeChanges(changes, nds);
-      // Don't apply layout for position changes to avoid recursion
-      if (!changes.some(change => change.type === 'position')) {
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, edges);
-        setEdges(layoutedEdges);
-        return layoutedNodes;
-      }
       return newNodes;
     });
-  }, [edges, setEdges]);
+  }, []);
 
   // Custom edge changes handler that applies auto layout after changes
   const onEdgesChange = useCallback((changes) => {
     setEdges((eds) => {
+      // Simply apply changes without automatic layout
       const newEdges = applyEdgeChanges(changes, eds);
-      // Only apply layout for significant changes (add/remove)
-      if (changes.some(change => change.type === 'add' || change.type === 'remove')) {
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, newEdges);
-        setNodes(layoutedNodes);
-        return layoutedEdges;
-      }
       return newEdges;
     });
-  }, [nodes, setNodes]);
+  }, []);
 
-  // Connect nodes with auto layout
+  // Connect nodes with auto layout - keep layout here as it's an explicit user action
   const onConnect = useCallback((params) => {
     setEdges((eds) => {
       const newEdges = addEdge({ 
@@ -336,7 +327,7 @@ function TranscriptSummaryContent() {
         type: 'default'
       }, eds);
       
-      // Apply layout after connection
+      // Apply layout after connection as this is a good UX expectation
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, newEdges);
       setNodes(layoutedNodes);
       return layoutedEdges;
@@ -742,54 +733,28 @@ function TranscriptSummaryContent() {
 
   return (
     <div className="max-w-full mx-auto p-4 bg-gray-50 min-h-screen font-sans">
-      {/* Header */}
+      {/* Header with integrated Application Views */}
       <TranscriptHeader
         summaries={summaries}
         handleResetData={handleResetData}
         testingMode={testingMode}
+        flowView={flowView}
+        setFlowView={setFlowView}
       />
       
-      {/* Toggle Button */}
-      <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-medium text-blue-600">Application Views</h3>
-          <div className="text-sm text-gray-600">
-            {flowView !== 'none' && (
-              <>Currently viewing the complete workflow demonstration</>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex space-x-2">
-          <button 
-            onClick={() => setFlowView('none')} 
-            className={`px-3 py-1 rounded font-medium text-sm ${
-              flowView === 'none' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Build Your Own Analysis
-          </button>
-          
-          <button 
-            onClick={() => setFlowView('basic')} 
-            className={`px-3 py-1 rounded font-medium text-sm ${
-              flowView === 'basic' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            }`}
-          >
-            See Complete Workflow Demo
-          </button>
-        </div>
-      </div>
-
       {/* Error State */}
       <ErrorDisplay error={error} />
 
+      {/* Loading indicator outside of ReactFlow for initial loading */}
+      {loading && !flowView && (
+        <div className="flex justify-center items-center p-4">
+          <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin mr-3"></div>
+          <span className="text-gray-500">Loading...</span>
+        </div>
+      )}
+
+      {/* ReactFlow Area for Custom Analysis */}
       {flowView === 'none' ? (
-        /* React Flow Canvas - Original View */
         <div 
           style={{ width: '100%', height: '85vh' }} 
           className="bg-white rounded-xl shadow-md overflow-hidden relative"
@@ -861,12 +826,33 @@ function TranscriptSummaryContent() {
             <Panel position="top-right">
               <button
                 onClick={applyLayout}
-                className="bg-indigo-500 text-white p-2 rounded-lg shadow-md hover:bg-indigo-600 transition-colors text-sm"
+                className="bg-indigo-500 text-white p-3 rounded-lg shadow-md hover:bg-indigo-600 transition-colors flex items-center font-medium"
                 title="Re-apply auto layout to organize nodes"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                </svg>
                 Auto Layout
               </button>
             </Panel>
+            
+            {/* User notification about drag behavior */}
+            {showNotification && (
+              <Panel position="top-center" className="mt-2">
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg shadow-md max-w-md text-sm relative">
+                  <button 
+                    onClick={() => setShowNotification(false)} 
+                    className="absolute top-1 right-1 text-blue-500 hover:text-blue-700"
+                    aria-label="Close notification"
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  <p>Nodes will now stay where you drop them! Use the <strong>Auto Layout</strong> button to organize your flow.</p>
+                </div>
+              </Panel>
+            )}
             
             {/* Processing Status */}
             {processingStatus.inProgress && (

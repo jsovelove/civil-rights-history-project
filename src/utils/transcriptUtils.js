@@ -174,4 +174,52 @@ export const saveProcessedTranscript = async (documentName, summaries, db) => {
     console.error("Error storing processed transcript:", error);
     throw error;
   }
+};
+
+/**
+ * Sends audio file to OpenAI Whisper API for transcription
+ * 
+ * @param {File} audioFile - The audio or video file to transcribe
+ * @param {string} language - Optional language code (default: null for auto-detection)
+ * @param {number} retries - Number of retries for rate limiting
+ * @param {number} delay - Delay between retries in milliseconds
+ * @returns {Promise<string>} Transcribed text from the audio
+ */
+export const transcribeAudioWithWhisper = async (audioFile, language = null, retries = 3, delay = 2000) => {
+  try {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', audioFile);
+    formData.append('model', 'whisper-1');
+    
+    // Add language parameter if specified
+    if (language) {
+      formData.append('language', language);
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      if (response.status === 429 && retries > 0) {
+        console.warn(`Rate limit exceeded. Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return transcribeAudioWithWhisper(audioFile, language, retries - 1, delay * 2);
+      }
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.text;
+  } catch (error) {
+    console.error("Error communicating with OpenAI Whisper API:", error);
+    throw error;
+  }
 }; 

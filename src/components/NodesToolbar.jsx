@@ -8,9 +8,10 @@ import {
   FaRegFileAlt,
   FaVideo,
   FaInfoCircle,
-  FaRegLightbulb
+  FaRegLightbulb,
+  FaMicrophone
 } from 'react-icons/fa';
-import { Edit, FileText, Video, Zap, BarChart, Map, Info } from 'lucide-react';
+import { Edit, FileText, Video, Zap, BarChart, Map, Info, Mic } from 'lucide-react';
 
 /**
  * NodesToolbar - Comprehensive toolbar for adding nodes to the flow canvas
@@ -31,6 +32,13 @@ const NodesToolbar = ({ onDragStart }) => {
         label: 'Transcript Input',
         description: 'Upload and process transcript files',
         icon: <FileText className="text-blue-600" size={20} />,
+      },
+      {
+        id: 'whisper-transcription',
+        type: 'whisperTranscription',
+        label: 'Whisper Transcription',
+        description: 'Transcribe audio/video using OpenAI Whisper',
+        icon: <Mic className="text-indigo-600" size={20} />,
       }
     ],
     processing: [

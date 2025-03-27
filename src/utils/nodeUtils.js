@@ -117,6 +117,22 @@ export const getNodeConfig = (type, props = {}) => {
         }
       };
     
+    case 'whisperTranscription':
+      return {
+        data: {
+          onQueueUpdate: props.onQueueUpdate,
+          onProcessMultiple: props.processMultipleTranscripts || props.processTranscript,
+          onSetTranscript: (text, docName) => {
+            if (props.setTranscript) {
+              props.setTranscript(text);
+            }
+            if (props.setDocumentName && docName) {
+              props.setDocumentName(docName);
+            }
+          }
+        }
+      };
+    
     case 'promptEditing':
       return {
         data: {

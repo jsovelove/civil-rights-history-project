@@ -362,7 +362,8 @@ function BasicFlowContent({ embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedInterview, setSelectedInterview] = useState(null);
-  const [showToolbar, setShowToolbar] = useState(true);
+  const [showToolbar, setShowToolbar] = useState(false);
+  const [showNotification, setShowNotification] = useState(true);
   
   // Video panel state
   const [videoPanel, setVideoPanel] = useState({
@@ -436,6 +437,18 @@ function BasicFlowContent({ embedded = false }) {
     setNodes([...layoutedNodes]);
     setEdges([...layoutedEdges]);
   }, [nodes, edges, layoutDirection, setNodes, setEdges]);
+  
+  // Custom node changes handler - replace React Flow's built-in handlers
+  const handleNodesChange = useCallback((changes) => {
+    // Simply apply changes without automatically applying layout
+    onNodesChange(changes);
+  }, [onNodesChange]);
+
+  // Custom edge changes handler - replace React Flow's built-in handlers
+  const handleEdgesChange = useCallback((changes) => {
+    // Simply apply changes without automatically applying layout
+    onEdgesChange(changes);
+  }, [onEdgesChange]);
   
   // Fetch interview data
   useEffect(() => {
@@ -529,12 +542,19 @@ function BasicFlowContent({ embedded = false }) {
   }, [selectedInterview, interviews, setNodes, setEdges]);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({
-      ...params,
-      animated: true,
-      type: 'default'
-    }, eds)),
-    [setEdges]
+    (params) => {
+      const newEdges = addEdge({
+        ...params,
+        animated: true,
+        type: 'default'
+      }, edges);
+      
+      // Apply layout after connection as this is a good UX expectation
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, newEdges, layoutDirection);
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+    },
+    [edges, nodes, layoutDirection, setNodes, setEdges]
   );
   
   // Function to handle interview selection
@@ -566,15 +586,6 @@ function BasicFlowContent({ embedded = false }) {
             <p>Base URL: {window.location.origin}</p>
             <p>Error details: {error.toString()}</p>
           </div>
-          
-          {!embedded && (
-            <Link 
-              to="/transcript-summary" 
-              className="inline-block mt-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
-            >
-              Return to Transcript Summary
-            </Link>
-          )}
         </div>
       </div>
     );
@@ -587,8 +598,8 @@ function BasicFlowContent({ embedded = false }) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
@@ -669,8 +680,38 @@ function BasicFlowContent({ embedded = false }) {
                 <span>Showing interview: {interviews[selectedInterview]?.docName}</span>
               )}
             </div>
+            
+            {/* Auto Layout Button */}
+            <button
+              onClick={applyLayout}
+              className="bg-indigo-500 text-white p-2 rounded-lg shadow-md hover:bg-indigo-600 transition-colors flex items-center justify-center font-medium mt-2"
+              title="Re-apply auto layout to organize nodes"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              Auto Layout
+            </button>
           </div>
         </Panel>
+        
+        {/* User notification about drag behavior */}
+        {showNotification && (
+          <Panel position="top-center" className="mt-2">
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg shadow-md max-w-md text-sm relative">
+              <button 
+                onClick={() => setShowNotification(false)} 
+                className="absolute top-1 right-1 text-blue-500 hover:text-blue-700"
+                aria-label="Close notification"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <p>Nodes will now stay where you drop them! Use the <strong>Auto Layout</strong> button to organize your flow.</p>
+            </div>
+          </Panel>
+        )}
       </ReactFlow>
       
       {/* Video Panel */}
@@ -696,12 +737,6 @@ export default function BasicFlow() {
             Complete demonstration of transcript processing workflow from input to visualization
           </p>
         </div>
-        <Link 
-          to="/transcript-summary"
-          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded"
-        >
-          Back to Transcript Summary
-        </Link>
       </div>
       
       <ReactFlowProvider>

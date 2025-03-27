@@ -3,6 +3,7 @@ import { registerNodeType, getFlattenedNodeTypes } from './registry';
 // Import node types by category
 // Input nodes
 import TranscriptInputNode from './input/TranscriptInputNode';
+import WhisperTranscriptionNode from './input/WhisperTranscriptionNode';
 
 // Processing nodes
 import PromptEditingNode from './processing/PromptEditingNode';
@@ -32,6 +33,20 @@ registerNodeType({
   metadata: {
     description: 'Node for uploading and processing transcript files',
     icon: 'file-upload'
+  }
+});
+
+registerNodeType({
+  type: 'whisperTranscription',
+  category: 'input',
+  component: WhisperTranscriptionNode,
+  defaults: {
+    style: { width: 320 },
+    data: { label: 'Whisper Transcription' }
+  },
+  metadata: {
+    description: 'Node for transcribing audio and video using OpenAI Whisper',
+    icon: 'microphone'
   }
 });
 
@@ -119,19 +134,20 @@ registerNodeType({
   }
 });
 
-// Get all registered node types flattened for React Flow
-export const nodeTypes = getFlattenedNodeTypes();
-
-// Log node types for debugging
-console.log("Registered node types:", nodeTypes);
-
 // Export individual nodes for direct import
 export {
   TranscriptInputNode,
+  WhisperTranscriptionNode,
   PromptEditingNode,
   ResultsDisplayNode,
   VideoPlayerNode,
   KeywordBubbleNode,
   MapVisualizationNode,
   MetadataNode
-}; 
+};
+
+// Export flattened node types for ReactFlow
+export const nodeTypes = getFlattenedNodeTypes();
+
+// Log node types for debugging
+console.log("Registered node types:", nodeTypes); 
