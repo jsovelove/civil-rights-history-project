@@ -11,6 +11,7 @@ import SearchPage from './pages/SearchPage'
 import InterviewPlayer from './pages/InterviewPlayer'
 import ClipPlayer from './pages/ClipPlayer'
 import ContentDirectory from './pages/ContentDirectory'
+import BasicFlow from './examples/BasicFlow'
 
 
 export default function App() {
@@ -87,6 +88,13 @@ export default function App() {
         }
       />
 
+      <Route path="/examples/basic-flow" element={
+        <ProtectedRoute>
+          <Layout>
+            <BasicFlow />
+          </Layout>
+        </ProtectedRoute>
+      } />
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />

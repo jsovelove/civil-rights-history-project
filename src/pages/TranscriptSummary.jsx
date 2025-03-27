@@ -6,69 +6,229 @@
  * with nodes for transcript input, prompt editing, and result display.
  */
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { collection, doc, setDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
   Background,
+  Panel,
+  BezierEdge, 
+  StraightEdge, 
+  StepEdge,
+  MarkerType,
   useNodesState,
   useEdgesState,
   addEdge,
-  Panel,
-  useReactFlow,
   ReactFlowProvider,
-  BezierEdge,
-  StraightEdge,
-  StepEdge
+  applyNodeChanges,
+  applyEdgeChanges
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { FaUpload, FaPlay, FaYoutube, FaSave, FaPlusCircle, FaMinusCircle, FaEdit } from 'react-icons/fa';
+import { FaUpload, FaPlay, FaYoutube, FaSave, FaPlusCircle, FaMinusCircle, FaEdit, FaMagic } from 'react-icons/fa';
+import dagre from 'dagre';
+
+// Import Firebase
+import { db } from '../services/firebase';
+
+// Import BasicFlow component
+import BasicFlowContent from '../examples/BasicFlow';
 
 // Import node components and utilities
 import { nodeTypes } from '../components/nodes';
-import VisualizationToolbar from '../components/VisualizationToolbar';
 import TranscriptHeader from '../components/TranscriptHeader';
 import ErrorDisplay from '../components/ErrorDisplay';
 import LoadingIndicator from '../components/LoadingIndicator';
-import AlignmentTools from '../components/AlignmentTools';
+import NodesToolbar from '../components/NodesToolbar';
+import VideoPanel from '../components/VideoPanel';
 
 // Import hooks and utilities
 import useTranscriptData from '../hooks/useTranscriptData';
-import useDragAndDrop from '../hooks/useDragAndDrop';
+import useNodeDragAndDrop from '../hooks/useNodeDragAndDrop';
 import { 
   readFileAsText, 
   getSummariesFromChatGPT, 
   saveProcessedTranscript 
 } from '../utils/transcriptUtils';
 import {
-  getDefaultNodes,
-  getDefaultEdges,
-  getEdgeTypes,
-  connectNodes,
-  alignNodesHorizontally,
-  alignNodesVertically,
-  distributeNodesHorizontally,
-  distributeNodesVertically,
-  makeEdgesOrthogonal
-} from '../utils/flowUtils';
+  createNodeFromType, 
+  getNodeConfig 
+} from '../utils/nodeUtils';
 
-// Development mode flag
+// Development mode flag (we're keeping this for other potential uses, but not for layout)
 const DEV_MODE = import.meta.env.DEV;
 
-// Edge type definition moved outside component
-const getEdgeTypesObject = ({ BezierEdge, StraightEdge, StepEdge }) => ({
-  bezier: BezierEdge,
-  step: StepEdge,
+// Define edge types once outside the component
+const edgeTypes = {
+  default: BezierEdge,
   straight: StraightEdge,
-  default: BezierEdge
-});
+  step: StepEdge
+};
+
+// Layout direction enum
+const LAYOUT_DIRECTION = {
+  HORIZONTAL: 'LR',
+  VERTICAL: 'TB',
+};
+
+// Auto layout function using dagre
+const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONTAL) => {
+  if (nodes.length === 0) return { nodes, edges };
+  
+  // Create a new dagre graph
+  const dagreGraph = new dagre.graphlib.Graph();
+  
+  // Optimized parameters for horizontal layout
+  const nodeWidth = 350;
+  const nodeHeight = 250;
+  const rankSeparation = 350;  // Space between columns
+  const nodeSeparation = 450;  // Space between rows
+  
+  // Set graph options
+  dagreGraph.setGraph({
+    rankdir: direction,
+    ranksep: rankSeparation,
+    nodesep: nodeSeparation,
+    edgesep: 100,
+    marginx: 70,
+    marginy: 120,
+  });
+  
+  // Default to assigning node and edge data as a new object to avoid mutations
+  dagreGraph.setDefaultNodeLabel(() => ({}));
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  // Add nodes to dagre graph with dimensions
+  nodes.forEach((node) => {
+    // Get node style dimensions if specified
+    const nodeStyle = node.style || {};
+    const nodeStyleWidth = nodeStyle.width;
+    const nodeStyleHeight = nodeStyle.height;
+    
+    dagreGraph.setNode(node.id, { 
+      width: nodeStyleWidth || (
+        node.type === 'resultsDisplay' ? nodeWidth + 100 : 
+        node.type === 'metadata' ? nodeWidth + 50 : 
+        node.type === 'keywordBubble' ? 600 :
+        nodeWidth
+      ),
+      height: nodeStyleHeight || (
+        node.type === 'resultsDisplay' ? nodeHeight + 100 : 
+        node.type === 'videoPlayer' ? nodeHeight + 150 : 
+        node.type === 'keywordBubble' ? 550 :
+        nodeHeight 
+      )
+    });
+  });
+  
+  // Add edges to dagre graph
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+  
+  // Calculate layout
+  dagre.layout(dagreGraph);
+  
+  // Assign calculated positions to nodes
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    
+    // Keep the original style properties
+    const style = { ...(node.style || {}) };
+    
+    // For keyword bubble node, use a fixed position far to the right
+    if (node.type === 'keywordBubble') {
+      style.width = style.width || 600;
+      style.height = style.height || 550;
+      
+      // Calculate the average y position of all metadata nodes for centering
+      let metadataNodes = [];
+      let avgY = 0;
+      
+      // Find all metadata nodes to calculate average Y position
+      nodes.forEach(otherNode => {
+        if (otherNode.type === 'metadata') {
+          const otherPosition = dagreGraph.node(otherNode.id);
+          if (otherPosition) {
+            metadataNodes.push({
+              id: otherNode.id,
+              y: otherPosition.y
+            });
+          }
+        }
+      });
+      
+      if (metadataNodes.length > 0) {
+        const totalY = metadataNodes.reduce((sum, node) => sum + node.y, 0);
+        avgY = totalY / metadataNodes.length;
+      } else {
+        // If no metadata nodes, use the provided position
+        avgY = nodeWithPosition ? nodeWithPosition.y : 0;
+      }
+      
+      // Use a fixed absolute X position that's far to the right
+      // This ensures consistent positioning regardless of other nodes
+      const fixedXPosition = 3000;
+      
+      console.log('Using fixed position for keyword bubble:', fixedXPosition);
+      
+      return {
+        ...node,
+        position: {
+          x: fixedXPosition,
+          y: avgY - (style.height / 2), // Center vertically using average metadata node Y position
+        },
+        style
+      };
+    }
+    
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWithPosition.width / 2,
+        y: nodeWithPosition.y - nodeWithPosition.height / 2,
+      },
+      style
+    };
+  });
+  
+  return { nodes: layoutedNodes, edges };
+};
+
+// Helper function to format YouTube URLs
+const formatYoutubeUrl = (url) => {
+  if (!url) return "";
+  
+  // If it's already an embed URL, return it
+  if (url.includes('youtube.com/embed')) {
+    return url;
+  }
+  
+  try {
+    // Handle standard YouTube URLs
+    if (url.includes('youtube.com/watch')) {
+      const videoId = new URL(url).searchParams.get('v');
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+    
+    // Handle youtu.be format
+    if (url.includes('youtu.be')) {
+      const videoId = url.split('/').pop().split('?')[0];
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+  } catch (error) {
+    console.warn("Error parsing YouTube URL:", error);
+  }
+  
+  // Return original if we couldn't parse it
+  return url;
+};
 
 /**
  * TranscriptSummaryContent - Component for AI-powered transcript analysis using React Flow
- * 
- * @returns {React.ReactElement} The transcript summary interface with React Flow
  */
 function TranscriptSummaryContent() {
   // React refs
@@ -79,9 +239,24 @@ function TranscriptSummaryContent() {
   // Component state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Testing mode - Set to true to disable actual database operations
   const [testingMode] = useState(true);
+  const [flowView, setFlowView] = useState('none'); // 'none' or 'basic'
+  const [showToolbar, setShowToolbar] = useState(true);
+  const [queuedTranscripts, setQueuedTranscripts] = useState([]);
+  const [processingStatus, setProcessingStatus] = useState({
+    inProgress: false,
+    current: 0,
+    total: 0,
+    message: ''
+  });
+  
+  // State for video panel
+  const [videoPanel, setVideoPanel] = useState({
+    isOpen: false,
+    videoUrl: '',
+    documentName: '',
+    summaries: null
+  });
   
   // Initialize transcript data
   const transcriptData = useTranscriptData();
@@ -115,480 +290,264 @@ function TranscriptSummaryContent() {
     handleRemoveKeyPoint,
     handleYoutubeUrlSubmit,
     jumpToTimestamp,
-    handleResetData
+    handleResetData,
+    model,
+    setModel
   } = transcriptData;
   
   // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNodes, setSelectedNodes] = useState([]);
-  const [reactFlowInitialized, setReactFlowInitialized] = useState(false);
-  
-  // Development mode state
-  const [isDevMode, setIsDevMode] = useState(() => {
-    return DEV_MODE && localStorage.getItem('flow_dev_mode') === 'true';
-  });
+  const [nodes, setNodes] = useNodesState([]);
+  const [edges, setEdges] = useEdgesState([]);
 
-  // Grid and alignment settings
-  const [snapToGrid, setSnapToGrid] = useState(true);
-  const [gridSize, setGridSize] = useState(10);
-
-  // React Flow instance
-  const reactFlowInstance = useReactFlow();
-  
-  // Edge types - memoized to prevent re-creation on each render
-  const edgeTypes = useMemo(() => 
-    getEdgeTypesObject({ BezierEdge, StraightEdge, StepEdge }), 
-    [BezierEdge, StraightEdge, StepEdge]
-  );
-
-  // Set up drag and drop handlers
-  const {
-    isDragging,
-    onDragStart,
-    onDragEnd,
-    onDragOver,
-    onDrop
-  } = useDragAndDrop(reactFlowInstance, setNodes, setEdges, summaries);
-
-  // Initialize React Flow nodes and edges
-  useEffect(() => {
-    // Define the spacing and dimensions with more generous values
-    const nodeWidth = 320;
-    const nodeHeight = 400;
-    const horizontalGap = 150;
-    const verticalGap = 80;
-
-    // Calculate positions with more generous spacing
-    const column1X = 50;
-    const column2X = column1X + nodeWidth + horizontalGap;
-    const row1Y = 50;
-    const row2Y = row1Y + nodeHeight + verticalGap;
-
-    // Create default nodes with all the required data
-    const defaultNodes = getDefaultNodes(column1X, column2X, row1Y, row2Y, nodeWidth, {
-      handleTranscriptUpload,
-      handleAudioUpload,
-      documentName,
-      setDocumentName,
-      youtubeUrl,
-      setYoutubeUrl,
-      handleYoutubeUrlSubmit,
-      systemMessage,
-      setSystemMessage,
-      processTranscript,
-      transcript,
-      summaries,
-      audioUrl,
-      audioRef,
-      jumpToTimestamp: (timestamp) => jumpToTimestamp(timestamp, audioRef, videoRef),
-      handleSaveToDatabase,
-      savingToDatabase,
-      savedToDatabase,
-      handleSummaryChange,
-      handleKeyPointChange,
-      handleAddKeyPoint,
-      handleRemoveKeyPoint,
-      handleEditSummary,
-      youtubeEmbedUrl,
-      videoRef,
-      currentTimestamp,
-      setCurrentTimestamp
+  // Custom node changes handler that applies auto layout after changes
+  const onNodesChange = useCallback((changes) => {
+    setNodes((nds) => {
+      const newNodes = applyNodeChanges(changes, nds);
+      // Don't apply layout for position changes to avoid recursion
+      if (!changes.some(change => change.type === 'position')) {
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, edges);
+        setEdges(layoutedEdges);
+        return layoutedNodes;
+      }
+      return newNodes;
     });
-    
-    // Create default edges
-    const defaultEdges = getDefaultEdges();
+  }, [edges, setEdges]);
 
-    // Try to load saved layout from localStorage
-    const savedLayout = localStorage.getItem('flow_layout');
-    
-    if (savedLayout) {
-      try {
-        // Parse the saved layout
-        const layoutData = JSON.parse(savedLayout);
-        
-        // Merge the saved positions with the default nodes
-        const updatedNodes = defaultNodes.map(defaultNode => {
-          // Find matching saved node position
-          const savedNode = layoutData.nodes.find(n => n.id === defaultNode.id);
-          
-          if (savedNode) {
-            // Merge the position and style from saved layout with data from default node
-            return {
-              ...defaultNode,
-              position: savedNode.position,
-              style: { ...defaultNode.style, ...savedNode.style }
-            };
-          }
-          
-          return defaultNode;
-        });
-        
-        // Restore visualization nodes from saved layout
-        const visualizationNodes = layoutData.nodes
-          .filter(node => node.isVisualization && node.id.startsWith('viz-'))
-          .map(node => ({
-            id: node.id,
-            type: node.type,
-            position: node.position,
-            style: node.style || { width: 400, height: 400 },
-            data: { 
-              label: node.type === 'keywordBubble' ? 'Keyword Bubble Chart' : 'Location Map',
-              summaries: summaries ? {
-                overallSummary: summaries.overallSummary,
-                keyPoints: summaries.keyPoints
-              } : null
-            }
-          }));
-        
-        // Get all saved edges plus the default edges
-        let allEdges = [...defaultEdges];
-        
-        // Add saved edges if they exist
-        if (layoutData.edges) {
-          // Filter out edges that connect to visualization nodes, as we'll restore them from saved layout
-          allEdges = allEdges.filter(edge => 
-            !edge.target.startsWith('viz-') && !edge.source.startsWith('viz-')
-          );
-          
-          // Add edges from saved layout that connect to visualization nodes
-          const visualizationEdges = layoutData.edges.filter(edge => 
-            edge.target.startsWith('viz-') || edge.source.startsWith('viz-')
-          );
-          
-          allEdges = [...allEdges, ...visualizationEdges];
-        } else {
-          // Fallback to creating default visualization edges if no saved edges
-          const visualizationEdges = visualizationNodes.map(node => ({
-            id: `e5-${node.id}`,
-            source: '5', // Metadata node
-            target: node.id,
-            sourceHandle: 'metadata-output',
-            targetHandle: 'viz-input',
-            animated: true,
-            style: { stroke: '#818cf8', strokeWidth: 2 }
-          }));
-          
-          allEdges = [...allEdges, ...visualizationEdges];
-        }
-        
-        // Set nodes and edges
-        setNodes([...updatedNodes, ...visualizationNodes]);
-        setEdges(allEdges);
-      } catch (error) {
-        console.error('Error loading saved layout:', error);
-        // Fall back to default layout if there's an error
-        setNodes(defaultNodes);
-        setEdges(defaultEdges);
+  // Custom edge changes handler that applies auto layout after changes
+  const onEdgesChange = useCallback((changes) => {
+    setEdges((eds) => {
+      const newEdges = applyEdgeChanges(changes, eds);
+      // Only apply layout for significant changes (add/remove)
+      if (changes.some(change => change.type === 'add' || change.type === 'remove')) {
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, newEdges);
+        setNodes(layoutedNodes);
+        return layoutedEdges;
       }
-    } else {
-      // Use default layout
-      setNodes(defaultNodes);
-      setEdges(defaultEdges);
-    }
-  }, [summaries]);
+      return newEdges;
+    });
+  }, [nodes, setNodes]);
 
-  // Save current layout to localStorage
-  const saveLayout = () => {
-    try {
-      // Get all node positions and edges
-      const layout = {
-        nodes: nodes.map(node => ({
-          id: node.id,
-          type: node.type,
-          position: node.position,
-          style: node.style,
-          // For visualization nodes, save the data too
-          ...(node.id.startsWith('viz-') ? { 
-            isVisualization: true 
-          } : {})
-        })),
-        edges: edges.map(edge => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          sourceHandle: edge.sourceHandle,
-          targetHandle: edge.targetHandle,
-          animated: edge.animated,
-          style: edge.style
-        }))
-      };
+  // Connect nodes with auto layout
+  const onConnect = useCallback((params) => {
+    setEdges((eds) => {
+      const newEdges = addEdge({ 
+        ...params, 
+        animated: true,
+        type: 'default'
+      }, eds);
       
-      localStorage.setItem('flow_layout', JSON.stringify(layout));
-      
-      // Show a non-blocking toast-like message instead of an alert
-      const messageDiv = document.createElement('div');
-      messageDiv.innerHTML = 'Layout saved successfully!';
-      messageDiv.style.position = 'fixed';
-      messageDiv.style.bottom = '20px';
-      messageDiv.style.left = '50%';
-      messageDiv.style.transform = 'translateX(-50%)';
-      messageDiv.style.backgroundColor = '#4CAF50';
-      messageDiv.style.color = 'white';
-      messageDiv.style.padding = '10px 20px';
-      messageDiv.style.borderRadius = '4px';
-      messageDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-      messageDiv.style.zIndex = '1000';
-      
-      document.body.appendChild(messageDiv);
-      
-      // Remove the message after 2 seconds
-      setTimeout(() => {
-        document.body.removeChild(messageDiv);
-      }, 2000);
-    } catch (error) {
-      console.error('Error saving layout:', error);
-      setError('Failed to save layout. Please try again.');
-    }
-  };
+      // Apply layout after connection
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, newEdges);
+      setNodes(layoutedNodes);
+      return layoutedEdges;
+    });
+  }, [nodes, setNodes]);
 
-  // Reset layout to default
-  const resetLayout = () => {
-    if (window.confirm('Are you sure you want to reset the layout to default?')) {
-      try {
-        localStorage.removeItem('flow_layout');
-        
-        // Instead of reloading the page, just reset the nodes and edges
-        const column1X = 50;
-        const column2X = column1X + 320 + 150;
-        const row1Y = 50;
-        const row2Y = row1Y + 400 + 80;
-        
-        const defaultNodes = getDefaultNodes(column1X, column2X, row1Y, row2Y, 320, {
-          handleTranscriptUpload,
-          handleAudioUpload,
-          documentName,
-          setDocumentName,
-          youtubeUrl,
-          setYoutubeUrl,
-          handleYoutubeUrlSubmit,
-          systemMessage,
-          setSystemMessage,
-          processTranscript,
-          transcript,
-          summaries,
-          audioUrl,
-          audioRef,
-          jumpToTimestamp: (timestamp) => jumpToTimestamp(timestamp, audioRef, videoRef),
-          handleSaveToDatabase,
-          savingToDatabase,
-          savedToDatabase,
-          handleSummaryChange,
-          handleKeyPointChange,
-          handleAddKeyPoint,
-          handleRemoveKeyPoint,
-          handleEditSummary,
-          youtubeEmbedUrl,
-          videoRef,
-          currentTimestamp,
-          setCurrentTimestamp
-        });
-        
-        const defaultEdges = getDefaultEdges();
-        
-        setNodes(defaultNodes);
-        setEdges(defaultEdges);
-        
-        // Show success message
-        const messageDiv = document.createElement('div');
-        messageDiv.innerHTML = 'Layout reset successfully!';
-        messageDiv.style.position = 'fixed';
-        messageDiv.style.bottom = '20px';
-        messageDiv.style.left = '50%';
-        messageDiv.style.transform = 'translateX(-50%)';
-        messageDiv.style.backgroundColor = '#2196F3';
-        messageDiv.style.color = 'white';
-        messageDiv.style.padding = '10px 20px';
-        messageDiv.style.borderRadius = '4px';
-        messageDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-        messageDiv.style.zIndex = '1000';
-        
-        document.body.appendChild(messageDiv);
-        
-        // Remove the message after 2 seconds
-        setTimeout(() => {
-          document.body.removeChild(messageDiv);
-        }, 2000);
-      } catch (error) {
-        console.error('Error resetting layout:', error);
-        setError('Failed to reset layout. Please try again.');
-      }
-    }
-  };
-
-  // Toggle development mode
-  const toggleDevMode = () => {
-    const newDevMode = !isDevMode;
-    setIsDevMode(newDevMode);
-    localStorage.setItem('flow_dev_mode', newDevMode);
-    // Don't remove saved layout when toggling dev mode
-    window.location.reload();
-  };
-
-  // Toggle grid snapping
-  const toggleGrid = useCallback(() => {
-    setSnapToGrid(!snapToGrid);
-  }, [snapToGrid]);
-
-  // Update node styles when state changes
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        // Maintain node width settings to prevent resizing
-        const style = node.style || {};
-        
-        if (node.id === '1') {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              documentName,
-              youtubeUrl,
-            },
-            style
-          };
-        } else if (node.id === '2') {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              systemMessage,
-              canProcess: !!transcript
-            },
-            style
-          };
-        } else if (node.id === '3') {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              summaries,
-              audioUrl,
-              audioRef,
-              jumpToTimestamp: (timestamp) => jumpToTimestamp(timestamp, audioRef, videoRef),
-              onSaveToDatabase: handleSaveToDatabase,
-              savingToDatabase,
-              savedToDatabase,
-              onSummaryChange: handleSummaryChange,
-              onKeyPointChange: handleKeyPointChange,
-              onAddKeyPoint: handleAddKeyPoint,
-              onRemoveKeyPoint: handleRemoveKeyPoint,
-              onEditSummary: handleEditSummary
-            },
-            style
-          };
-        } else if (node.id === '4') {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              youtubeEmbedUrl,
-              videoRef,
-              currentTimestamp,
-              summaries,
-              onUpdateTimestamp: setCurrentTimestamp
-            },
-            style
-          };
-        }
-        return node;
-      })
-    );
-  }, [
-    systemMessage, 
-    transcript, 
-    summaries, 
-    audioUrl, 
-    savingToDatabase, 
-    savedToDatabase, 
-    documentName, 
-    youtubeUrl, 
-    youtubeEmbedUrl,
-    currentTimestamp
-  ]);
-
-  /**
-   * Handles transcript file upload
-   * 
-   * @param {File} file - The uploaded transcript file
-   */
+  // Handle transcript file upload
   const handleTranscriptUpload = async (file) => {
     try {
       setTranscriptFile(file);
       const text = await readFileAsText(file);
       setTranscript(text);
-      
-      // Update node data to reflect that transcript is available
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === '2') {
-            node.data = {
-              ...node.data,
-              canProcess: true
-            };
-          }
-          return node;
-        })
-      );
     } catch (error) {
       console.error("Error reading transcript file:", error);
       setError("Failed to read transcript file");
     }
   };
 
-  /**
-   * Handles audio file upload
-   * 
-   * @param {File} file - The uploaded audio file
-   */
+  // Handle audio file upload
   const handleAudioUpload = (file) => {
     const audioUrl = URL.createObjectURL(file);
     setAudioUrl(audioUrl);
   };
 
-  /**
-   * Processes the transcript using OpenAI API
-   */
-  const processTranscript = async () => {
-    if (!transcript) return;
+  // Update the queued transcripts
+  const handleQueueUpdate = (updatedQueue) => {
+    setQueuedTranscripts(updatedQueue);
+  };
+
+  // Process a single transcript
+  const processTranscript = async (transcriptText, docName, ytUrl, useModel = model) => {
+    if (!transcriptText) return null;
+    
+    try {
+      // Automatically set document name if not provided
+      const processedDocName = docName || `Transcript-${Date.now()}`;
+      
+      // Process with OpenAI
+      const summaryData = await getSummariesFromChatGPT(transcriptText, systemMessage, useModel);
+      
+      // Format YouTube URL if provided
+      const formattedYoutubeUrl = ytUrl ? formatYoutubeUrl(ytUrl) : "";
+      
+      // Return the processed data
+      return {
+        documentName: processedDocName,
+        transcript: transcriptText,
+        summary: summaryData,
+        youtubeUrl: ytUrl,
+        youtubeEmbedUrl: formattedYoutubeUrl
+      };
+    } catch (error) {
+      console.error("Error processing transcript:", error);
+      throw error;
+    }
+  };
+
+  // Process multiple transcripts
+  const processMultipleTranscripts = async (transcriptQueue) => {
+    if (transcriptQueue.length === 0) return;
     
     try {
       setLoading(true);
       setError(null);
-
-      if (!documentName) {
-        const name = prompt("Enter the name of the document for this interview:");
-        if (!name) {
-        setError("Document name is required");
-          setLoading(false);
-        return;
-      }
-        setDocumentName(name.trim());
+      setProcessingStatus({
+        inProgress: true,
+        current: 0,
+        total: transcriptQueue.length,
+        message: 'Starting batch processing...'
+      });
+      
+      const processedResults = [];
+      const newNodes = [...nodes];
+      const newEdges = [...edges];
+      
+      // Get ID for prompt editing node if it exists
+      const promptNodeId = nodes.find(node => node.type === 'promptEditing')?.id;
+      // Get ID for transcript input node if it exists
+      const inputNodeId = nodes.find(node => node.type === 'transcriptInput')?.id;
+      
+      // Process each transcript
+      for (let i = 0; i < transcriptQueue.length; i++) {
+        const item = transcriptQueue[i];
+        
+        setProcessingStatus({
+          inProgress: true,
+          current: i + 1,
+          total: transcriptQueue.length,
+          message: `Processing "${item.documentName}" (${i + 1}/${transcriptQueue.length})`
+        });
+        
+        try {
+          // Read file content
+          const text = await readFileAsText(item.file);
+          
+          // Process the transcript
+          const result = await processTranscript(text, item.documentName, item.youtubeUrl);
+          
+          if (result) {
+            processedResults.push(result);
+            
+            // Create nodes for this transcript
+            const baseId = `transcript-${Date.now()}-${i}`;
+            const resultsNodeId = `${baseId}-results`;
+            const metadataNodeId = `${baseId}-metadata`;
+            
+            // Results display node
+            const resultsNode = {
+              id: resultsNodeId,
+              type: 'resultsDisplay',
+              position: { x: 0, y: 0 }, // Position will be set by auto-layout
+              data: { 
+                label: `Results: ${result.documentName}`,
+                documentName: result.documentName,
+                summaries: result.summary,
+                onSummaryChange: handleSummaryChange,
+                onKeyPointChange: handleKeyPointChange,
+                onAddKeyPoint: handleAddKeyPoint,
+                onRemoveKeyPoint: handleRemoveKeyPoint,
+                onEditSummary: handleEditSummary,
+                onSaveToDatabase: handleSaveToDatabase,
+                savingToDatabase: false,
+                savedToDatabase: false,
+                youtubeEmbedUrl: result.youtubeEmbedUrl,
+                openVideoPanel: openVideoPanel
+              }
+            };
+            
+            // Metadata node
+            const metadataNode = {
+              id: metadataNodeId,
+              type: 'metadata',
+              position: { x: 0, y: 0 }, // Position will be set by auto-layout
+              data: { 
+                label: `Metadata: ${result.documentName}`,
+                documentName: result.documentName,
+                youtubeUrl: result.youtubeUrl || "",
+                youtubeEmbedUrl: result.youtubeEmbedUrl,
+                summaries: result.summary,
+                transcript: text.substring(0, 300) + "...", // Preview of transcript
+                savingToDatabase: false,
+                savedToDatabase: false
+              }
+            };
+            
+            newNodes.push(resultsNode);
+            newNodes.push(metadataNode);
+            
+            // Add edge from prompt node to results node if prompt node exists
+            if (promptNodeId) {
+              newEdges.push({
+                id: `e-${promptNodeId}-${resultsNodeId}`,
+                source: promptNodeId,
+                target: resultsNodeId,
+                animated: true,
+                type: 'default'
+              });
+            }
+            
+            // Add edge from results node to metadata node
+            newEdges.push({
+              id: `e-${resultsNodeId}-${metadataNodeId}`,
+              source: resultsNodeId,
+              target: metadataNodeId,
+              animated: true,
+              type: 'default'
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing "${item.documentName}":`, error);
+        }
       }
       
-      const summaries = await getSummariesFromChatGPT(transcript, systemMessage);
+      // Apply auto layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, newEdges);
       
-      setSummaries(summaries);
-      // Reset the saved state when generating new results
-      setSavedToDatabase(false);
+      // Update the state with laid out nodes
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+      
+      setProcessingStatus({
+        inProgress: false,
+        current: transcriptQueue.length,
+        total: transcriptQueue.length,
+        message: `Completed processing ${transcriptQueue.length} transcripts`
+      });
+      
+      // Clear the queue after processing
+      setQueuedTranscripts([]);
+      
     } catch (error) {
-      console.error("Error processing transcript:", error);
-      setError("Failed to process transcript");
+      console.error("Error in batch processing:", error);
+      setError("Failed to process transcripts batch");
+      setProcessingStatus({
+        inProgress: false,
+        current: 0,
+        total: 0,
+        message: 'Error processing transcripts'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Handles saving processed results to the database
-   */
+  // Save to database
   const handleSaveToDatabase = async () => {
     try {
       setSavingToDatabase(true);
       
-      // In testing mode, we just simulate the saving process
+      // Simulate database operation in testing mode
       if (testingMode) {
-        // Simulate database operation
         await new Promise(resolve => setTimeout(resolve, 1500));
         setSavedToDatabase(true);
         setSavingToDatabase(false);
@@ -607,206 +566,357 @@ function TranscriptSummaryContent() {
     }
   };
 
-  // Connect two nodes with an edge
-  const onConnect = useCallback(
-    (params) => connectNodes(params, setEdges),
-    [setEdges]
-  );
+  // Function to open video panel
+  const openVideoPanel = (videoUrl, documentName, summaries) => {
+    setVideoPanel({
+      isOpen: true,
+      videoUrl,
+      documentName,
+      summaries
+    });
+  };
+  
+  // Function to close video panel
+  const closeVideoPanel = () => {
+    setVideoPanel(prev => ({
+      ...prev,
+      isOpen: false
+    }));
+  };
 
-  // Handle edge deletion
-  const onEdgesDelete = useCallback(
-    (edgesToDelete) => {
-      if (!isDevMode) return; // Only allow deletion in dev mode
-      setEdges((eds) => eds.filter((edge) => !edgesToDelete.some((e) => e.id === edge.id)));
-    },
-    [setEdges, isDevMode]
-  );
-
-  // Handle node selection
-  const onSelectionChange = useCallback((params) => {
-    setSelectedNodes(params.nodes || []);
-  }, []);
-
-  // Straighten all connections to be either horizontal or vertical
-  const straightenConnections = useCallback(() => {
-    // First identify nodes that need to be aligned
-    const edgePairs = edges.map(edge => {
-      const sourceNode = nodes.find(node => node.id === edge.source);
-      const targetNode = nodes.find(node => node.id === edge.target);
+  // Create a function to create nodes with the right props
+  const createNodeWithProps = useCallback((type, position, label) => {
+    // Get default node configuration
+    const nodeConfig = getNodeConfig(type, {
+      // Input node props
+      handleTranscriptUpload,
+      handleAudioUpload,
+      documentName,
+      setDocumentName,
+      youtubeUrl,
+      setYoutubeUrl,
+      handleYoutubeUrlSubmit,
+      queuedTranscripts,
+      onQueueUpdate: handleQueueUpdate,
+      onProcessMultiple: processMultipleTranscripts,
       
-      return { edge, sourceNode, targetNode };
-    }).filter(pair => pair.sourceNode && pair.targetNode);
-    
-    // Adjust node positions to create straight lines
-    setNodes(nds => {
-      const newNodes = [...nds];
+      // Processing node props
+      systemMessage,
+      setSystemMessage,
+      processTranscript,
+      transcript,
+      model,
+      setModel,
       
-      // For each edge pair, determine if horizontal or vertical alignment makes more sense
-      edgePairs.forEach(({ sourceNode, targetNode }) => {
-        // Calculate distances
-        const xDiff = Math.abs(sourceNode.position.x - targetNode.position.x);
-        const yDiff = Math.abs(sourceNode.position.y - targetNode.position.y);
-        
-        // Find the node to adjust (prefer moving target)
-        const nodeToAdjust = newNodes.find(node => node.id === targetNode.id);
-        
-        // Determine if we should align horizontally or vertically based on which 
-        // requires the smaller movement
-        if (xDiff < yDiff) {
-          // Align horizontally (adjust x)
-          nodeToAdjust.position = {
-            ...nodeToAdjust.position,
-            x: sourceNode.position.x,
-          };
-        } else {
-          // Align vertically (adjust y)
-          nodeToAdjust.position = {
-            ...nodeToAdjust.position,
-            y: sourceNode.position.y,
-          };
-        }
-      });
+      // Output node props
+      summaries,
+      audioUrl,
+      audioRef,
+      jumpToTimestamp,
+      handleSaveToDatabase,
+      savingToDatabase,
+      savedToDatabase,
+      handleSummaryChange,
+      handleKeyPointChange,
+      handleAddKeyPoint,
+      handleRemoveKeyPoint,
+      handleEditSummary,
       
-      return newNodes;
+      // Media node props
+      youtubeEmbedUrl,
+      videoRef,
+      currentTimestamp,
+      setCurrentTimestamp,
+      
+      // Add open video panel function for ResultsDisplayNode
+      openVideoPanel
     });
     
-    // Make edges orthogonal to complete the effect
-    makeEdgesOrthogonal(nodes, setEdges);
-  }, [edges, nodes, setNodes, setEdges]);
+    // Create the node with the right props
+    return createNodeFromType(type, position, label, nodeConfig.data);
+  }, [
+    handleTranscriptUpload, handleAudioUpload, documentName, setDocumentName, 
+    youtubeUrl, setYoutubeUrl, handleYoutubeUrlSubmit, systemMessage, 
+    setSystemMessage, processTranscript, transcript, model, setModel, 
+    summaries, audioUrl, audioRef, jumpToTimestamp, handleSaveToDatabase, 
+    savingToDatabase, savedToDatabase, handleSummaryChange, handleKeyPointChange, 
+    handleAddKeyPoint, handleRemoveKeyPoint, handleEditSummary, youtubeEmbedUrl, 
+    videoRef, currentTimestamp, setCurrentTimestamp, queuedTranscripts,
+    processMultipleTranscripts, openVideoPanel
+  ]);
 
-  // React Flow initialization callback
-  const onInit = useCallback((instance) => {
-    setReactFlowInitialized(true);
-  }, []);
+  // Setup drag and drop functionality
+  const { onDragOver, onDrop } = useNodeDragAndDrop({
+    onNodesChange: setNodes,
+    createNodeFromType: createNodeWithProps
+  });
 
-  // Update visualization nodes when summaries change
+  // Initialize nodes with default layout
   useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.type === 'keywordBubble' || node.type === 'mapVisualization') {
-          return {
-            ...node,
+    if (nodes.length === 0) {
+      console.log("Initializing nodes with default layout");
+      
+      // Example of basic nodes
+      const defaultNodes = [
+        {
+          id: '1',
+          type: 'transcriptInput',
+          position: { x: 100, y: 100 },
+          data: { 
+            label: 'Transcript Input',
+            onTranscriptUpload: handleTranscriptUpload,
+            onAudioUpload: handleAudioUpload,
+            documentName,
+            onDocumentNameChange: setDocumentName,
+            youtubeUrl,
+            onYoutubeUrlChange: setYoutubeUrl,
+            onYoutubeUrlSubmit: handleYoutubeUrlSubmit,
+            queuedTranscripts: [],
+            onQueueUpdate: handleQueueUpdate,
+            onProcessMultiple: processMultipleTranscripts
+          }
+        },
+        {
+          id: '2',
+          type: 'promptEditing',
+          position: { x: 100, y: 300 },
             data: {
-              ...node.data,
-              summaries
-            }
-          };
+            label: 'Prompt Editing',
+            systemMessage,
+            onSystemMessageChange: setSystemMessage,
+            onProcess: processTranscript,
+            model,
+            onModelChange: setModel,
+            canProcess: !!transcript
+          }
         }
-        return node;
-      })
-    );
-  }, [summaries, setNodes]);
+      ];
+      
+      // Set initial nodes and apply layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+        defaultNodes, 
+        [{
+          id: 'e1-2',
+          source: '1',
+          target: '2',
+          type: 'default',
+          animated: true,
+          style: { stroke: '#3b82f6', strokeWidth: 2 }
+        }]
+      );
+      
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+    }
+  }, [
+    nodes.length, 
+    setNodes, 
+    setEdges, 
+    handleTranscriptUpload, 
+    handleAudioUpload, 
+    systemMessage, 
+    setSystemMessage, 
+    processTranscript, 
+    model, 
+    setModel, 
+    transcript,
+    documentName,
+    setDocumentName,
+    youtubeUrl,
+    setYoutubeUrl,
+    handleYoutubeUrlSubmit,
+    processMultipleTranscripts
+  ]);
+
+  // Toggle toolbar visibility
+  const toggleToolbar = () => {
+    setShowToolbar(!showToolbar);
+  };
+
+  // Apply layout function for manual layout triggering if needed
+  const applyLayout = useCallback(() => {
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges);
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+  }, [nodes, edges, setNodes, setEdges]);
 
   return (
     <div className="max-w-full mx-auto p-4 bg-gray-50 min-h-screen font-sans">
       {/* Header */}
       <TranscriptHeader
-        isDevMode={isDevMode}
-        DEV_MODE={DEV_MODE}
-        toggleDevMode={toggleDevMode}
-        saveLayout={saveLayout}
-        resetLayout={resetLayout}
         summaries={summaries}
         handleResetData={handleResetData}
         testingMode={testingMode}
       />
+      
+      {/* Toggle Button */}
+      <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-medium text-blue-600">Application Views</h3>
+          <div className="text-sm text-gray-600">
+            {flowView !== 'none' && (
+              <>Currently viewing the complete workflow demonstration</>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex space-x-2">
+          <button 
+            onClick={() => setFlowView('none')} 
+            className={`px-3 py-1 rounded font-medium text-sm ${
+              flowView === 'none' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Build Your Own Analysis
+          </button>
+          
+          <button 
+            onClick={() => setFlowView('basic')} 
+            className={`px-3 py-1 rounded font-medium text-sm ${
+              flowView === 'basic' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-green-100 text-green-700 hover:bg-green-200'
+            }`}
+          >
+            See Complete Workflow Demo
+          </button>
+        </div>
+      </div>
 
-        {/* Error State */}
+      {/* Error State */}
       <ErrorDisplay error={error} />
 
-      {/* React Flow Canvas */}
-      <div 
-        style={{ width: '100%', height: '85vh' }} 
-        className="bg-white rounded-xl shadow-md overflow-hidden"
-        ref={reactFlowWrapper}
-      >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onEdgesDelete={onEdgesDelete}
-          onSelectionChange={onSelectionChange}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          defaultEdgeOptions={{ 
-            style: { stroke: '#3b82f6', strokeWidth: 2 },
-            animated: true
-          }}
-          fitView={true}
-          fitViewOptions={{ 
-            padding: 0.2,
-            includeHiddenNodes: false,
-            minZoom: 0.5,
-            maxZoom: 1.5
-          }}
-          minZoom={0.3}
-          maxZoom={2.5}
-          snapToGrid={snapToGrid}
-          snapGrid={[gridSize, gridSize]}
-          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-          nodesDraggable={true}
-          nodesConnectable={true}
-          elementsSelectable={true}
-          proOptions={{ hideAttribution: false }}
-          connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
-          style={{ background: '#f9fafb' }}
-          onInit={onInit}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
+      {flowView === 'none' ? (
+        /* React Flow Canvas - Original View */
+        <div 
+          style={{ width: '100%', height: '85vh' }} 
+          className="bg-white rounded-xl shadow-md overflow-hidden relative"
+          ref={reactFlowWrapper}
         >
-          <Controls 
-            showInteractive={true} 
-            position="bottom-right"
-          />
-          <MiniMap
-            nodeStrokeWidth={3}
-            nodeColor={(node) => {
-              switch (node.id) {
-                case '1': return '#93c5fd'; // blue-300
-                case '2': return '#bfdbfe'; // blue-200
-                case '3': return '#dbeafe'; // blue-100
-                case '4': return '#ef4444'; // red-500 for video player
-                default: return node.type === 'keywordBubble' ? '#60a5fa' : 
-                        node.type === 'mapVisualization' ? '#34d399' : '#ccc';
-              }
-            }}
-            maskColor="rgba(240, 240, 240, 0.3)"
-          />
-          <Background variant="dots" gap={16} size={1} color="#e2e8f0" />
-          
-          {/* Loading indicator */}
-          <LoadingIndicator loading={loading} message="Processing transcript..." />
-          
-          {/* Node Alignment Tools */}
-          <AlignmentTools
-            isDevMode={isDevMode}
-            selectedNodes={selectedNodes}
-            alignHorizontally={() => alignNodesHorizontally(selectedNodes, setNodes)}
-            alignVertically={() => alignNodesVertically(selectedNodes, setNodes)}
-            distributeHorizontally={() => distributeNodesHorizontally(selectedNodes, setNodes)}
-            distributeVertically={() => distributeNodesVertically(selectedNodes, setNodes)}
-            straightenConnections={straightenConnections}
-            makeEdgesOrthogonal={() => makeEdgesOrthogonal(nodes, setEdges)}
-            snapToGrid={snapToGrid}
-            toggleGrid={toggleGrid}
-          />
-          
-          {/* Visualization Toolbar - Only show after summaries are generated */}
-          {summaries && (
-            <Panel position="top-right" className="visualization-toolbar-panel">
-              <VisualizationToolbar onDragStart={onDragStart} />
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            defaultEdgeOptions={{ animated: true }}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            fitView
+            minZoom={0.1}
+            maxZoom={2}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+          >
+            <Controls 
+              position="bottom-right"
+              showZoom={true}
+              showFitView={true}
+              showInteractive={true}
+              fitViewOptions={{ padding: 0.2 }}
+              className="bg-white bg-opacity-80 p-1 rounded-lg shadow-md"
+            />
+            <MiniMap />
+            <Background 
+              variant="dots" 
+              gap={16} 
+              size={1.5}
+              color="#aaaaaa"
+              style={{ backgroundColor: "#f8fafc" }}
+            />
+            
+            {/* Nodes Toolbar */}
+            <Panel position="top-left" className={`transition-all duration-300 ${showToolbar ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <div className="relative">
+                <button
+                  onClick={toggleToolbar}
+                  className="absolute -right-2 -top-2 bg-white p-1 rounded-full shadow-md hover:bg-gray-100 z-10"
+                  title={showToolbar ? "Hide toolbar" : "Show toolbar"}
+                >
+                  {showToolbar ? "✕" : "✚"}
+                </button>
+                <NodesToolbar onDragStart={(event) => {
+                  // This callback will be handled by the NodesToolbar component's handleDragStart function
+                }} />
+              </div>
+            </Panel>
+            
+            {/* Show toolbar button when hidden */}
+            {!showToolbar && (
+              <Panel position="top-left">
+                <button
+                  onClick={toggleToolbar}
+                  className="bg-blue-500 text-white p-2 rounded-lg shadow-md hover:bg-blue-600 transition-colors flex items-center"
+                >
+                  <FaPlusCircle className="mr-2" />
+                  Show Node Toolkit
+                </button>
+              </Panel>
+            )}
+            
+            {/* Layout button */}
+            <Panel position="top-right">
+              <button
+                onClick={applyLayout}
+                className="bg-indigo-500 text-white p-2 rounded-lg shadow-md hover:bg-indigo-600 transition-colors text-sm"
+                title="Re-apply auto layout to organize nodes"
+              >
+                Auto Layout
+              </button>
+            </Panel>
+            
+            {/* Processing Status */}
+            {processingStatus.inProgress && (
+              <Panel position="bottom-center" className="mb-8 bg-white p-3 rounded-lg shadow-lg">
+                <div className="text-center">
+                  <div className="font-medium mb-1">Batch Processing</div>
+                  <div className="text-sm text-gray-600">{processingStatus.message}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
+                      style={{ width: `${(processingStatus.current / processingStatus.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {processingStatus.current} of {processingStatus.total} transcripts processed
+                  </div>
+                </div>
             </Panel>
           )}
-        </ReactFlow>
-      </div>
+            
+            {/* Loading indicator */}
+            <LoadingIndicator loading={loading} message="Processing transcript..." />
+          </ReactFlow>
+          
+          {/* Video Panel */}
+          <VideoPanel 
+            isOpen={videoPanel.isOpen}
+            onClose={closeVideoPanel}
+            videoUrl={videoPanel.videoUrl}
+            documentName={videoPanel.documentName}
+            summaries={videoPanel.summaries}
+            currentTimestamp={currentTimestamp}
+            setCurrentTimestamp={setCurrentTimestamp}
+          />
+        </div>
+      ) : (
+        /* BasicFlow Component - Example View */
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <ReactFlowProvider>
+            <BasicFlowContent embedded={true} />
+          </ReactFlowProvider>
+        </div>
+      )}
     </div>
   );
 }
 
+/**
+ * TranscriptSummary - Main component with ReactFlowProvider
+ */
 export default function TranscriptSummary() {
   return (
     <ReactFlowProvider>

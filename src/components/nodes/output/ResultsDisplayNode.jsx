@@ -1,24 +1,18 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { FaSave, FaPlusCircle, FaMinusCircle, FaEdit, FaChartLine } from 'react-icons/fa';
+import { FaSave, FaPlusCircle, FaMinusCircle, FaEdit, FaChartLine, FaPlayCircle } from 'react-icons/fa';
 
 /**
  * ResultsDisplayNode - Node for displaying and editing AI-generated summaries
  */
-const ResultsDisplayNode = ({ data }) => {
+const ResultsDisplayNode = ({ data, selected }) => {
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 w-full min-w-[520px] max-h-[700px] overflow-y-auto resize-both overflow-auto border-2 border-transparent hover:border-blue-100">
-      <Handle 
-        type="target" 
-        position={Position.Top} 
-        id="results-input"
-        style={{ top: -10, background: '#3b82f6' }}
-      />
+    <div className={`bg-white rounded-xl shadow-md p-4 w-full min-w-[520px] max-h-[700px] overflow-y-auto resize-both overflow-auto border-2 border-transparent hover:border-blue-100 ${selected ? 'border-2 border-blue-400' : ''}`}>
       <Handle 
         type="target" 
         position={Position.Left} 
-        id="results-left-input"
-        style={{ left: -10, background: '#3b82f6' }}
+        id="results-input"
+        style={{ background: '#3b82f6', width: 12, height: 12 }}
       />
       <Handle 
         type="source" 
@@ -27,14 +21,27 @@ const ResultsDisplayNode = ({ data }) => {
         style={{ right: -10, background: '#3b82f6' }}
       />
       
-      <h3 className="text-lg font-semibold mb-2 flex items-center">
-        <FaSave className="mr-2 text-blue-600" />
-        Results Display
-        {data.summaries && (
-          <div className="ml-auto text-xs text-gray-500 flex items-center">
-            <FaChartLine className="mr-1 text-blue-500" />
-            <span>Drag visualizations from toolbar</span>
-          </div>
+      <h3 className="text-lg font-semibold mb-2 flex items-center justify-between">
+        <div className="flex items-center">
+          <FaSave className="mr-2 text-blue-600" />
+          Results Display
+          {data.summaries && (
+            <div className="ml-auto text-xs text-gray-500 flex items-center">
+              <FaChartLine className="mr-1 text-blue-500" />
+              <span>Drag visualizations from toolbar</span>
+            </div>
+          )}
+        </div>
+        
+        {data.openVideoPanel && data.summaries && (
+          <button
+            onClick={() => data.openVideoPanel(data.youtubeEmbedUrl, data.documentName, data.summaries)}
+            className="text-sm px-2 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100 flex items-center"
+            title="Play in video panel"
+          >
+            <FaPlayCircle className="mr-1" />
+            Play Video
+          </button>
         )}
       </h3>
       

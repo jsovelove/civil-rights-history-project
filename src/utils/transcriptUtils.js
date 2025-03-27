@@ -22,11 +22,12 @@ export const readFileAsText = (file) => {
  * 
  * @param {string} transcript - The transcript text to analyze
  * @param {string} systemMessage - The system message to use for the API call
+ * @param {string} model - The OpenAI model to use (defaults to gpt-4o-mini)
  * @param {number} retries - Number of retries for rate limiting
  * @param {number} delay - Delay between retries in milliseconds
  * @returns {Promise<Object>} Parsed summaries from the API response
  */
-export const getSummariesFromChatGPT = async (transcript, systemMessage, retries = 3, delay = 2000) => {
+export const getSummariesFromChatGPT = async (transcript, systemMessage, model = "gpt-4o-mini", retries = 3, delay = 2000) => {
   try {
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
@@ -37,7 +38,7 @@ export const getSummariesFromChatGPT = async (transcript, systemMessage, retries
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: model,
         messages: [
           { role: "system", content: systemMessage.trim() },
           { role: "user", content: `Here is a transcript:\n${transcript}\n\nGenerate an overall summary, key points with timestamps, and keywords.` },
@@ -50,7 +51,7 @@ export const getSummariesFromChatGPT = async (transcript, systemMessage, retries
       if (response.status === 429 && retries > 0) {
         console.warn(`Rate limit exceeded. Retrying in ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
-        return getSummariesFromChatGPT(transcript, systemMessage, retries - 1, delay * 2);
+        return getSummariesFromChatGPT(transcript, systemMessage, model, retries - 1, delay * 2);
       }
       throw new Error(`API request failed: ${response.statusText}`);
     }

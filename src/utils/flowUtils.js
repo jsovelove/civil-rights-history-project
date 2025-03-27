@@ -39,6 +39,8 @@ export const getDefaultNodes = (column1X, column2X, row1Y, row2Y, nodeWidth, pro
       systemMessage: props.systemMessage,
       onSystemMessageChange: props.setSystemMessage,
       onProcess: props.processTranscript,
+      model: props.model,
+      onModelChange: props.setModel,
       canProcess: !!props.transcript
     },
   },

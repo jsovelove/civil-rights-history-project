@@ -50,6 +50,22 @@ const VideoPlayerNode = ({ data }) => {
   const [videoDuration, setVideoDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const timeUpdateIntervalRef = useRef(null);
+  const localVideoRef = useRef(null);
+
+  // Use either the provided ref or our local ref
+  const videoRef = data.videoRef || localVideoRef;
+
+  // Ensure YouTube URL has required API parameters
+  const getEnhancedYoutubeUrl = (url) => {
+    if (!url) return '';
+    
+    // Parse the URL to add required parameters
+    const urlObj = new URL(url);
+    urlObj.searchParams.set('enablejsapi', '1');
+    urlObj.searchParams.set('origin', window.location.origin);
+    
+    return urlObj.toString();
+  };
 
   // Get timestamp markers from all of the key points
   const timestampMarkers = data.summaries && data.summaries.keyPoints ? 
@@ -61,28 +77,35 @@ const VideoPlayerNode = ({ data }) => {
   // Effect to set up interval for updating current time
   useEffect(() => {
     if (data.youtubeEmbedUrl) {
+      console.log('Setting up YouTube player communication');
+      
       // Create message event listener for YouTube iframe API messages
       const messageHandler = (event) => {
         if (event.data && typeof event.data === 'string') {
           try {
-            const data = JSON.parse(event.data);
-            if (data.event === 'onStateChange') {
+            const parsedData = JSON.parse(event.data);
+            console.log('YouTube API message:', parsedData);
+            
+            if (parsedData.event === 'onStateChange') {
               // Update playing state based on player state
-              setIsPlaying(data.info === 1); // 1 = playing
-            } else if (data.event === 'infoDelivery' && data.info) {
+              setIsPlaying(parsedData.info === 1); // 1 = playing
+              console.log('Player state changed:', parsedData.info);
+            } else if (parsedData.event === 'infoDelivery' && parsedData.info) {
               // Update time and other info
-              if (data.info.currentTime) {
-                setCurrentTime(data.info.currentTime);
+              if (parsedData.info.currentTime) {
+                setCurrentTime(parsedData.info.currentTime);
               }
-              if (data.info.playerState !== undefined) {
-                setIsPlaying(data.info.playerState === 1);
+              if (parsedData.info.playerState !== undefined) {
+                setIsPlaying(parsedData.info.playerState === 1);
               }
-              if (data.info.duration && data.info.duration !== videoDuration) {
-                setVideoDuration(data.info.duration);
+              if (parsedData.info.duration && parsedData.info.duration !== videoDuration) {
+                setVideoDuration(parsedData.info.duration);
+                console.log('Duration updated:', parsedData.info.duration);
               }
             }
           } catch (e) {
             // Not a parseable message, ignore
+            // console.log('Non-parseable message:', event.data);
           }
         }
       };
@@ -92,17 +115,17 @@ const VideoPlayerNode = ({ data }) => {
       
       // Set up interval to request current time
       timeUpdateIntervalRef.current = setInterval(() => {
-        if (data.videoRef && data.videoRef.current && data.videoRef.current.contentWindow) {
+        if (videoRef && videoRef.current && videoRef.current.contentWindow) {
           try {
             // Request current player state
-            data.videoRef.current.contentWindow.postMessage(JSON.stringify({
+            videoRef.current.contentWindow.postMessage(JSON.stringify({
               event: 'listening',
               id: 'player',
               channel: 'widget'
             }), '*');
             
             // Also request current player status
-            data.videoRef.current.contentWindow.postMessage(JSON.stringify({
+            videoRef.current.contentWindow.postMessage(JSON.stringify({
               event: 'command',
               func: 'getPlayerState',
               args: []
@@ -110,6 +133,8 @@ const VideoPlayerNode = ({ data }) => {
           } catch (error) {
             console.error('Error getting video time:', error);
           }
+        } else {
+          console.log('Video ref not ready yet');
         }
       }, 1000);
 
@@ -121,31 +146,36 @@ const VideoPlayerNode = ({ data }) => {
         }
       };
     }
-  }, [data.youtubeEmbedUrl, data.videoRef, videoDuration]);
+  }, [data.youtubeEmbedUrl, videoRef, videoDuration]);
 
   // Play/pause the video
   const handlePlayPause = () => {
-    if (!data.videoRef || !data.videoRef.current) return;
+    if (!videoRef || !videoRef.current) {
+      console.error('Video reference not available');
+      return;
+    }
     
     try {
+      console.log('Attempting to', isPlaying ? 'pause' : 'play', 'video');
+      
       if (isPlaying) {
         // Pause video
-        data.videoRef.current.contentWindow.postMessage(JSON.stringify({
+        videoRef.current.contentWindow.postMessage(JSON.stringify({
           event: 'command',
           func: 'pauseVideo',
           args: []
         }), '*');
       } else {
         // Play video
-        data.videoRef.current.contentWindow.postMessage(JSON.stringify({
+        videoRef.current.contentWindow.postMessage(JSON.stringify({
           event: 'command',
           func: 'playVideo',
           args: []
         }), '*');
       }
       
-      // Don't update isPlaying here - we'll let the message event listener handle this
-      // based on the actual player state change response
+      // Toggle locally in case the event listener doesn't catch it
+      setIsPlaying(!isPlaying);
     } catch (error) {
       console.error('Error controlling video:', error);
     }
@@ -153,16 +183,23 @@ const VideoPlayerNode = ({ data }) => {
 
   // Jump to a specific timestamp
   const jumpToTimestamp = (seconds) => {
-    if (!data.videoRef || !data.videoRef.current) return;
+    if (!videoRef || !videoRef.current) {
+      console.error('Video reference not available');
+      return;
+    }
     
     try {
-      data.videoRef.current.contentWindow.postMessage(JSON.stringify({
+      console.log('Jumping to timestamp:', seconds);
+      
+      videoRef.current.contentWindow.postMessage(JSON.stringify({
         event: 'command',
         func: 'seekTo',
         args: [seconds, true]
       }), '*');
       
       // Also update current position indicator
+      setCurrentTime(seconds);
+      
       if (data.onUpdateTimestamp) {
         data.onUpdateTimestamp(formatTime(seconds));
       }
@@ -216,6 +253,9 @@ const VideoPlayerNode = ({ data }) => {
   // Get current keypoint
   const currentKeypoint = getCurrentKeypoint();
 
+  // Enhanced YouTube embed URL with API parameters
+  const enhancedYoutubeUrl = getEnhancedYoutubeUrl(data.youtubeEmbedUrl);
+
   return (
     <div className="bg-white rounded-xl shadow-md p-4 w-full min-w-[520px] relative">
       <Handle 
@@ -248,11 +288,11 @@ const VideoPlayerNode = ({ data }) => {
       </h3>
       
       <div className="flex flex-col gap-4">
-        {data.youtubeEmbedUrl ? (
+        {enhancedYoutubeUrl ? (
           <div className="relative w-full pt-[56.25%]">
             <iframe
-              ref={data.videoRef}
-              src={data.youtubeEmbedUrl}
+              ref={videoRef}
+              src={enhancedYoutubeUrl}
               className="absolute top-0 left-0 w-full h-full rounded-lg"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -271,7 +311,7 @@ const VideoPlayerNode = ({ data }) => {
         )}
         
         {/* Video Controls */}
-        {data.youtubeEmbedUrl && (
+        {enhancedYoutubeUrl && (
           <div className="flex flex-col space-y-3">
             {/* Improved Timeline */}
             <div className="relative w-full h-8 bg-gray-100 rounded-lg cursor-pointer border border-gray-200">

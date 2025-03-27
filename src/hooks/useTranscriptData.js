@@ -29,7 +29,8 @@ const useTranscriptData = () => {
     `,
     savedToDatabase: false,
     youtubeUrl: '',
-    youtubeEmbedUrl: null
+    youtubeEmbedUrl: null,
+    model: 'gpt-4o-mini'
   });
 
   // Destructure the data from localStorage
@@ -44,10 +45,11 @@ const useTranscriptData = () => {
   const [youtubeEmbedUrl, setYoutubeEmbedUrl] = useState(transcriptData.youtubeEmbedUrl);
   const [currentTimestamp, setCurrentTimestamp] = useState('');
   const [savingToDatabase, setSavingToDatabase] = useState(false);
+  const [model, setModel] = useState(transcriptData.model || 'gpt-4o-mini');
 
   // Update local storage when state changes
   useEffect(() => {
-    if (transcript || summaries || documentName || audioUrl || youtubeUrl) {
+    if (transcript || summaries || documentName || audioUrl || youtubeUrl || model) {
       setTranscriptData({
         transcript,
         audioUrl,
@@ -56,7 +58,8 @@ const useTranscriptData = () => {
         systemMessage,
         savedToDatabase,
         youtubeUrl,
-        youtubeEmbedUrl
+        youtubeEmbedUrl,
+        model
       });
     }
   }, [
@@ -67,7 +70,8 @@ const useTranscriptData = () => {
     systemMessage, 
     savedToDatabase, 
     youtubeUrl, 
-    youtubeEmbedUrl, 
+    youtubeEmbedUrl,
+    model,
     setTranscriptData
   ]);
 
@@ -288,6 +292,8 @@ const useTranscriptData = () => {
     setCurrentTimestamp,
     savingToDatabase,
     setSavingToDatabase,
+    model,
+    setModel,
     handleSummaryChange,
     handleEditSummary,
     handleKeyPointChange,

@@ -9,7 +9,7 @@ const MetadataNode = ({ data }) => {
   // State for display mode (JSON or UI)
   const [viewMode, setViewMode] = useState('ui');
   // State for expanded subcollections
-  const [isSubcollectionExpanded, setIsSubcollectionExpanded] = useState(true);
+  const [isSubcollectionExpanded, setIsSubcollectionExpanded] = useState(false);
   
   // Create a timestamp for the current date/time
   const timestamp = new Date().toISOString();
