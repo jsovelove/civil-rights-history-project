@@ -73,7 +73,7 @@ const useFlowLayout = (options = {}) => {
       return true;
     } catch (error) {
       console.error('Error saving layout:', error);
-      return false;
+      return false; 
     }
   }, [activeLayout, layouts, storageKey]);
 

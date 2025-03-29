@@ -49,6 +49,7 @@
     "reactflow": "^11.11.4",
     "recharts": "^2.15.1",
     "timelinejs3": "^3.4.0",
+    "wavesurfer.js": "^7.9.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

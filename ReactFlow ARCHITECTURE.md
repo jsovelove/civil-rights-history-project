@@ -1,245 +1,281 @@
 # Civil Rights Oral History - Transcript Analysis Architecture
 
-This document provides an overview of the architecture of the Transcript Summary application, which uses React Flow to create an interactive interface for analyzing and visualizing civil rights oral history transcripts.
+## Project Overview
 
-## Application Overview
+This project provides an interactive, visual interface for analyzing and visualizing civil rights oral history transcripts. Using a node-based flow interface built with React Flow, it enables researchers, historians, and educators to:
 
-The application allows users to:
-- Upload and process multiple interview transcripts
-- Analyze transcripts using AI (GPT-4o-mini)
-- Visualize interview data as an interactive node-based flow
-- Display YouTube videos in a side panel with timestamp navigation
-- Generate metadata and key points from interview content
-- Auto-organize nodes for optimal visualization
+- Process multiple interview transcripts simultaneously
+- Generate AI-powered summaries and insights from interview content
+- Create visual representations of key themes and connections
+- Explore relationships between different interviews 
+- View associated video content with timestamp navigation
+- Extract keywords and metadata for further analysis
+
+The application is designed to enhance the accessibility and usefulness of oral history collections by transforming raw transcript text into structured, navigable, and visually engaging content.
 
 ## Technical Stack
 
-- **Frontend**: React with Vite
-- **UI Components**: TailwindCSS
-- **Flow Visualization**: React Flow
+- **Frontend**: React with Vite for fast development
+- **UI Components**: TailwindCSS for styling
+- **Flow Visualization**: React Flow for node-based interfaces
 - **Layout Algorithm**: Dagre for automatic node arrangement
-- **AI Integration**: OpenAI API (GPT-4o-mini)
-- **Storage**: Firebase (optional)
-- **Icons**: React Icons
+- **AI Integration**: OpenAI API (with GPT-4o-mini as default)
+- **Storage**: Firebase (optional for persistent storage)
+- **Icons**: React Icons library
+- **Testing**: Simulated API responses for development without API costs
 
-## Architecture Components
+## Core Architecture
 
-### 1. Core Pages
+The application is built around a modular, node-based architecture where different node types handle specific functions in the transcript analysis workflow.
 
-- **TranscriptSummary.jsx**: Main application page that orchestrates the entire flow 
-- **BasicFlow.jsx**: Example implementation for civil rights interview visualization
-
-### 2. Node Types
-
-The application uses a modular node-based architecture where each node type represents a different function:
+### 1. Node Types & Data Flow
 
 #### Input Nodes
-- **TranscriptInputNode**: Handles uploading and queuing multiple transcript files
-  - Supports batch processing
-  - Accepts YouTube URLs
-  - Manages document naming
+- **TranscriptInputNode**: Entry point for transcript data
+  - Handles file uploads (single or batch)
+  - Accepts YouTube URLs for associated video content
+  - Manages document naming and queuing
 
 #### Processing Nodes
-- **PromptEditingNode**: Configures AI system prompts for transcript analysis
-  - Uses GPT-4o-mini by default
-  - Allows customization of instructions
+- **PromptEditingNode**: Controls the AI analysis configuration
+  - Contains customizable system prompts for AI
+  - Allows model selection (GPT-4o-mini by default)
+  - Initiates the processing workflow
 
-#### Output/Visualization Nodes
-- **ResultsDisplayNode**: Shows AI-generated summaries and key points with video playback controls
-- **MetadataNode**: Displays additional metadata about interviews in a collapsible format
-- **KeywordBubbleNode**: Visualizes keywords extracted from all transcripts
-- **KeypointTimelineNode**: Displays key points on a chronological timeline
+#### Output & Visualization Nodes
+- **ResultsDisplayNode**: Displays AI-generated content
+  - Shows overall summary of the transcript
+  - Lists key points with timestamps
+  - Provides editing capabilities for summaries and key points
+  - Includes "locked" state to preserve processed content
+  
+- **MetadataNode**: Stores and displays metadata
+  - Extracts metadata from transcripts
+  - Receives data from connected results nodes
+  - Provides structured data for visualizations
+  - Features database saving functionality
+  
+- **KeywordBubbleNode**: Visualizes extracted keywords
+  - Displays keywords in an interactive bubble visualization
+  - Sizes bubbles based on keyword frequency
+  - Updates dynamically based on connected metadata
+  - Shows relationships between different themes
 
-### 3. Video Integration
+### 2. Data Flow Architecture
 
-- **VideoPanel Component**: A dedicated side panel for video playback
-  - Displays YouTube videos related to interviews
-  - Provides timestamp navigation based on key points
-  - Allows users to play videos without cluttering the flow canvas
-  - Improves UI by separating video playback from node visualization
+The application implements a directed data flow between nodes:
 
-### 4. Flow Management
+1. **Input → Processing**: 
+   - Transcript text flows from TranscriptInputNode to PromptEditingNode
+   - User configurations determine how transcripts will be analyzed
+   
+2. **Processing → Results**:
+   - PromptEditingNode sends data to AI for processing
+   - Results are captured in ResultsDisplayNode instances
+   - Each transcript generates its own results node
+   
+3. **Results → Metadata**:
+   - Result nodes connect to corresponding metadata nodes
+   - Summary data flows automatically to connected metadata nodes
+   - Changes in results update connected metadata
+   
+4. **Metadata → Visualization**:
+   - Metadata nodes connect to visualization nodes (e.g., KeywordBubbleNode)
+   - Keywords and themes are extracted and visualized
+   - Visualizations update when connected metadata changes
 
-- **Automatic Layout**: Uses Dagre library to automatically arrange nodes in a horizontal layout
-- **Custom Connections**: Implements specific node connection patterns:
-  - Results nodes connect to metadata nodes
-  - Prompt nodes connect to results nodes
-- **Event Handling**: Custom hooks for handling node interactions, connections, and updates
-- **Auto Layout Button**: Manual trigger to reorganize nodes when needed
+5. **Disconnection Handling**:
+   - When nodes are disconnected, dependent data is automatically cleared
+   - Re-connection re-establishes the data flow
+   - The UI updates to reflect current connection state
 
-### 5. Key Files and Components
+### 3. Node Locking & Processing States
 
-- **src/pages/TranscriptSummary.jsx**: Main application component
-- **src/components/nodes/**: Directory containing all node type implementations
-- **src/components/VideoPanel.jsx**: Side panel for YouTube video playback
-- **src/hooks/useTranscriptData.js**: Manages transcript data and processing state
-- **src/hooks/useNodeDragAndDrop.js**: Handles drag and drop functionality for adding nodes
-- **src/utils/transcriptUtils.js**: Utilities for processing transcripts and interacting with AI
-- **src/utils/nodeUtils.js**: Utilities for node creation and configuration
-- **src/examples/BasicFlow.jsx**: Example implementation of a civil rights interview flow
+The application implements a sophisticated state management system:
 
-### 6. Application Views
+1. **Processed Flag**:
+   - Nodes are marked with a `processed: true` flag after transcript processing
+   - Processed nodes are locked to prevent inadvertent changes
+   - Visual indicators show which nodes are in processed state
 
-The application offers two main views:
-1. **Transcript Summary**: The main workspace for processing and analyzing transcripts
-2. **Example Interview Flow**: A pre-populated example showing how interview data is visualized
+2. **Connection Validation**:
+   - The application enforces valid connection patterns:
+     - Results nodes can connect to metadata nodes
+     - Metadata nodes can connect to visualization nodes
+     - Invalid connections are prevented automatically
 
-Users can toggle between these views using buttons in the interface.
+3. **Data Preservation**:
+   - Input nodes (TranscriptInput and PromptEditing) are preserved during processing
+   - Their positions remain fixed while new result nodes are generated
+   - This allows for continuous processing of multiple transcripts
 
-### 7. Data Flow
+## Key Implementation Features
 
-1. **Input Phase**:
-   - User uploads transcript files through the TranscriptInputNode
-   - Files are queued for batch processing with associated metadata
+### 1. Smart Layout & Positioning
 
-2. **Processing Phase**:
-   - PromptEditingNode defines how the AI should analyze transcripts
-   - Transcripts are sent to OpenAI API (GPT-4o-mini)
-   - AI generates structured summaries and key points
+The application implements a sophisticated layout system:
 
-3. **Visualization Phase**:
-   - ResultsDisplayNodes show AI-generated summaries
-   - Metadata nodes store detailed information about transcripts
-   - Nodes are automatically arranged using the Dagre layout algorithm
+- **Horizontal Row Organization**: 
+  - Results nodes are arranged in a horizontal row
+  - Metadata nodes are positioned directly below their corresponding result nodes
+  - Equal spacing ensures clean visualization
 
-4. **User Interaction**:
-   - Users can view videos by clicking "Play Video" in the ResultsDisplayNode
-   - Video content appears in the VideoPanel component
-   - Users can edit AI-generated summaries if needed
-   - Users can navigate the flow to explore relationships between interviews
+- **Input Node Preservation**:
+  - Input nodes maintain their original positions during processing
+  - New nodes are positioned relative to existing nodes
+  - The layout adapts to the presence of existing nodes
 
-### 8. Auto-Layout Implementation
-
-The application implements automatic layout of nodes:
+- **Custom Layout Parameters**:
+  - Nodes are positioned with configurable spacing parameters
+  - Horizontal spacing between related nodes is consistent
+  - Vertical alignment creates clean, readable flows
 
 ```javascript
-// Auto layout function using dagre
-const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONTAL) => {
-  if (nodes.length === 0) return { nodes, edges };
-  
-  // Create a new dagre graph
-  const dagreGraph = new dagre.graphlib.Graph();
-  
-  // Optimized parameters for horizontal layout
-  const nodeWidth = 350;
-  const nodeHeight = 250;
-  const rankSeparation = 300;  // Space between columns
-  const nodeSeparation = 400;  // Space between rows
-  
-  // Set graph options
-  dagreGraph.setGraph({
-    rankdir: direction,
-    ranksep: rankSeparation,
-    nodesep: nodeSeparation,
-    edgesep: 80,
-    marginx: 50,
-    marginy: 100,
-  });
-  
-  // Add nodes to dagre graph with dimensions
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { 
-      width: node.type === 'resultsDisplay' ? nodeWidth + 100 : 
-             node.type === 'metadata' ? nodeWidth + 50 : 
-             nodeWidth,
-      height: node.type === 'resultsDisplay' ? nodeHeight + 100 : 
-              node.type === 'videoPlayer' ? nodeHeight + 150 : 
-              nodeHeight 
-    });
-  });
-  
-  // Add edges to dagre graph and calculate layout
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-  
-  dagre.layout(dagreGraph);
-  
-  // Apply calculated positions to nodes
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWithPosition.width / 2,
-        y: nodeWithPosition.y - nodeWithPosition.height / 2,
-      },
-    };
-  });
-  
-  return { nodes: layoutedNodes, edges };
+// Latest implementation for horizontal node positioning
+resultRows.forEach((node, index) => {
+  node.position = {
+    x: startX + (index * horizontalSpacing),
+    y: baseY
+  };
+});
+
+metadataRows.forEach((node, index) => {
+  node.position = {
+    x: startX + (index * horizontalSpacing),
+    y: baseY + rowSpacing
+  };
+});
+```
+
+### 2. Simulated Testing Environment
+
+The application includes a comprehensive simulation system for testing without consuming API credits:
+
+- **Simulated API Responses**:
+  - Mock data closely resembles actual AI-generated content
+  - Configurable delay times mimic real-world processing times
+  - Testing flag (`testingMode`) toggles between real and simulated APIs
+
+- **Mock Data Generation**:
+  - Predefined summaries and key points for testing
+  - Realistic keywords for visualization testing
+  - Timestamps and metadata matching real-world patterns
+
+```javascript
+// Example of simulated response structure
+const MOCK_SUMMARIES = {
+  overallSummary: "This is a simulated summary of the interview...",
+  keyPoints: [
+    {
+      topic: "Early Activism",
+      timestamp: "00:15",
+      summary: "Discussion of initial involvement in civil rights movement",
+      keywords: "activism, early experiences, community involvement"
+    },
+    // Additional key points...
+  ]
 };
 ```
 
-The layout is applied automatically when:
-- Nodes or edges are added or removed
-- Connections are changed
-- The application initializes
-- The user clicks the "Auto Layout" button
+### 3. Video Integration
 
-### 9. Batch Processing
+The application features a dedicated Video Panel component:
 
-The application supports processing multiple transcripts in a batch:
+- **Side Panel Approach**:
+  - Videos open in a dedicated panel rather than within nodes
+  - Provides more screen space for video viewing
+  - Keeps the flow interface clean and focused
 
-1. Users queue multiple transcripts with the TranscriptInputNode
-2. Each transcript can have a document name and optional YouTube URL
-3. The processMultipleTranscripts function processes each transcript sequentially
-4. For each transcript:
-   - A ResultsDisplayNode is created to show the analysis
-   - A MetadataNode is created to store detailed information
-   - Edges are created to connect the nodes
-5. After processing, all nodes are automatically arranged using the layout algorithm
+- **Timestamp Navigation**:
+  - Click on key points to navigate to specific video timestamps
+  - Timecodes in transcripts are linked to video playback
+  - Enhances exploration of video content
 
-### 10. Node Toolbar
+- **YouTube Integration**:
+  - Automatic conversion of standard YouTube URLs to embed format
+  - Support for various YouTube URL formats
+  - Responsive video player with playback controls
 
-The application includes a node toolbar that:
-- Provides easy access to different node types
-- Allows drag-and-drop creation of new nodes
-- Can be toggled on/off to save screen space
-- Enhances the user experience with visual node previews
+### 4. Batch Processing
 
-### 11. Customization Points
+The application supports efficient batch processing of multiple transcripts:
 
-The application provides several customization points:
+- **Queue Management**:
+  - TranscriptInputNode manages a queue of transcripts
+  - Progress indicators show processing status
+  - Batch operations process all queued transcripts
 
-- **System Prompts**: Users can customize the instructions given to the AI
-- **Node Arrangement**: The layout can be customized by adjusting parameters in getLayoutedElements
-- **Node Types**: New node types can be added by creating components in src/components/nodes/
-- **Node Styling**: Node appearance can be customized through CSS and component props
+- **Parallel Node Creation**:
+  - Each transcript generates its own set of nodes
+  - Nodes are automatically connected in the correct pattern
+  - Layout adapts to accommodate all new nodes
 
-## Key Workflows
+## Getting Started
 
-### Transcript Processing Workflow
+### Project Setup
 
-1. User uploads transcripts through the TranscriptInputNode
-2. Transcripts are queued for processing
-3. User configures the AI prompt in the PromptEditingNode (optional)
-4. User initiates batch processing
-5. For each transcript:
-   - AI analyzes the content
-   - Results are displayed in a ResultsDisplayNode
-   - Metadata is stored in a MetadataNode
-   - Nodes are connected with edges
-6. All nodes are automatically arranged for optimal visualization
-7. User can view videos by clicking "Play Video" in the ResultsDisplayNode, which opens the VideoPanel
+1. **Installation**:
+   ```bash
+   npm install
+   ```
 
-### Node Management Workflow
+2. **Configuration**:
+   - Create a `.env` file with your OpenAI API key (if using real API)
+   - Set `testingMode` to `true` in TranscriptSummary.jsx for API-free testing
 
-1. Nodes can be dragged from the NodesToolbar onto the canvas
-2. Nodes can be connected by dragging from one handle to another
-3. Auto-layout is applied after significant changes or can be manually triggered
-4. Nodes can be selected and configured through their UI
+3. **Development**:
+   ```bash
+   npm run dev
+   ```
+
+### Using the Application
+
+1. **Processing Transcripts**:
+   - Upload transcript files using the TranscriptInputNode
+   - Set system prompt in PromptEditingNode
+   - Click "Process" to analyze transcripts
+   - View results in the generated nodes
+
+2. **Exploring Data**:
+   - Connect nodes by dragging from handles
+   - View summaries and key points in ResultsDisplayNodes 
+   - Explore keywords in KeywordBubbleNode
+   - Click "Auto Layout" to organize nodes
+
+3. **Using Simulated Testing**:
+   - Enable `testingMode` for development without API usage
+   - Test with mock transcripts to see full workflow
+   - Use the provided delay times to simulate realistic processing
+
+## Customization Points
+
+The application provides several customization options:
+
+- **AI Prompts**: Modify the system prompt in PromptEditingNode
+- **Layout Parameters**: Adjust spacing and direction in layout functions
+- **Node Styling**: Customize appearance through CSS and component props
+- **Simulation Parameters**: Configure mock data and processing times
+- **New Node Types**: Extend with additional visualization nodes
 
 ## Future Extensions
 
-The architecture is designed to be extensible in several ways:
+The architecture supports several potential extensions:
 
-1. **New Node Types**: Additional node types can be created for different data visualizations
-2. **Advanced Layouts**: More sophisticated layout algorithms could be implemented
-3. **Collaboration Features**: Real-time collaboration could be added
-4. **Export/Import**: Functionality to save and load flows
-5. **Additional AI Models**: Support for different AI models beyond GPT-4o-mini
+1. **Advanced Analytics**: Integration with data analysis tools
+2. **Collaborative Editing**: Multi-user support for team analysis
+3. **Export/Import**: Save and load complete flow configurations
+4. **Additional AI Models**: Support for more AI providers and models
+5. **Timeline Visualization**: Chronological view of events from transcripts
+6. **Cross-Interview Analysis**: Tools to compare themes across multiple interviews
 
 ## Conclusion
 
-This application uses React Flow to create a powerful, flexible interface for transcript analysis and visualization. The node-based architecture allows for modular development and easy extension, while the automatic layout ensures that visualizations remain clean and comprehensible regardless of complexity. The VideoPanel approach improves user experience by providing a dedicated space for video playback without cluttering the node canvas. 
+This application provides a powerful, flexible interface for transcript analysis through its node-based architecture. The design emphasizes:
+
+1. **Modularity**: Each node handles a specific function
+2. **Data Flow**: Clear, directed connections between nodes
+3. **Visual Clarity**: Automatic layout ensures readability
+4. **Extensibility**: Easy addition of new node types and features
+5. **Testing Efficiency**: Simulated responses for development without API costs
+
+The architecture allows researchers to transform text-heavy oral histories into interactive, visual representations that enhance understanding and accessibility. 

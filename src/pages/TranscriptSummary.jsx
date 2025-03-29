@@ -49,6 +49,7 @@ import {
   getSummariesFromChatGPT, 
   saveProcessedTranscript 
 } from '../utils/transcriptUtils';
+import { simulatedTranscriptUtils } from '../utils/simulatedTranscriptUtils';
 import {
   createNodeFromType, 
   getNodeConfig 
@@ -97,8 +98,17 @@ const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONT
   dagreGraph.setDefaultNodeLabel(() => ({}));
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   
+  // Identify input nodes that should keep their positions
+  const inputNodes = nodes.filter(node => 
+    node.type === 'transcriptInput' || node.type === 'promptEditing'
+  );
+  const inputNodeIds = new Set(inputNodes.map(node => node.id));
+  
   // Add nodes to dagre graph with dimensions
   nodes.forEach((node) => {
+    // Skip input nodes in dagre layout
+    if (inputNodeIds.has(node.id)) return;
+    
     // Get node style dimensions if specified
     const nodeStyle = node.style || {};
     const nodeStyleWidth = nodeStyle.width;
@@ -120,9 +130,11 @@ const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONT
     });
   });
   
-  // Add edges to dagre graph
+  // Add edges to dagre graph, excluding edges connected to input nodes
   edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    if (!inputNodeIds.has(edge.source) && !inputNodeIds.has(edge.target)) {
+      dagreGraph.setEdge(edge.source, edge.target);
+    }
   });
   
   // Calculate layout
@@ -134,6 +146,15 @@ const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONT
     
     // Keep the original style properties
     const style = { ...(node.style || {}) };
+    
+    // For input nodes, keep their original positions
+    if (inputNodeIds.has(node.id)) {
+      return {
+        ...node,
+        position: node.position, // Keep original position
+        style
+      };
+    }
     
     // For keyword bubble node, use a fixed position far to the right
     if (node.type === 'keywordBubble') {
@@ -166,10 +187,7 @@ const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONT
       }
       
       // Use a fixed absolute X position that's far to the right
-      // This ensures consistent positioning regardless of other nodes
       const fixedXPosition = 3000;
-      
-      console.log('Using fixed position for keyword bubble:', fixedXPosition);
       
       return {
         ...node,
@@ -181,6 +199,7 @@ const getLayoutedElements = (nodes, edges, direction = LAYOUT_DIRECTION.HORIZONT
       };
     }
     
+    // For all other nodes, use the calculated position
     return {
       ...node,
       position: {
@@ -239,7 +258,7 @@ function TranscriptSummaryContent() {
   // Component state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [testingMode] = useState(true);
+  const [testingMode] = useState(false);
   const [flowView, setFlowView] = useState('none'); // 'none' or 'basic'
   const [showToolbar, setShowToolbar] = useState(false);
   const [queuedTranscripts, setQueuedTranscripts] = useState([]);
@@ -365,7 +384,7 @@ function TranscriptSummaryContent() {
       // Automatically set document name if not provided
       const processedDocName = docName || `Transcript-${Date.now()}`;
       
-      // Process with OpenAI
+      // Use real API utilities
       const summaryData = await getSummariesFromChatGPT(transcriptText, systemMessage, useModel);
       
       // Format YouTube URL if provided
@@ -395,18 +414,90 @@ function TranscriptSummaryContent() {
       setProcessingStatus({
         inProgress: true,
         current: 0,
+        total: 0,
+        message: 'Setting up initial nodes...'
+      });
+      
+      console.log("Starting transcript processing with nodes:", nodes);
+      
+      // Create default input nodes if they don't exist
+      let inputNodes = nodes.filter(node => 
+        node.type === 'transcriptInput' || node.type === 'promptEditing'
+      );
+      
+      let newEdges = [...edges];
+      
+      // If we don't have input nodes, create them now
+      if (inputNodes.length === 0) {
+        console.log("No input nodes found, creating default nodes");
+        
+        // Create the default nodes
+        const transcriptInputNode = {
+          id: '1',
+          type: 'transcriptInput',
+          position: { x: 100, y: 100 },
+          data: { 
+            label: 'Transcript Input',
+            onTranscriptUpload: handleTranscriptUpload,
+            onAudioUpload: handleAudioUpload,
+            documentName,
+            onDocumentNameChange: setDocumentName,
+            youtubeUrl,
+            onYoutubeUrlChange: setYoutubeUrl,
+            onYoutubeUrlSubmit: handleYoutubeUrlSubmit,
+            queuedTranscripts: [],
+            onQueueUpdate: handleQueueUpdate,
+            onProcessMultiple: processMultipleTranscripts
+          }
+        };
+        
+        const promptEditingNode = {
+          id: '2',
+          type: 'promptEditing',
+          position: { x: 100, y: 300 },
+          data: {
+            label: 'Prompt Editing',
+            systemMessage,
+            onSystemMessageChange: setSystemMessage,
+            onProcess: processTranscript,
+            model,
+            onModelChange: setModel,
+            canProcess: !!transcript
+          }
+        };
+        
+        // Add them to our input nodes collection
+        inputNodes = [transcriptInputNode, promptEditingNode];
+        
+        // Create the edge between them
+        const inputEdge = {
+          id: 'e1-2',
+          source: '1',
+          target: '2',
+          type: 'default',
+          animated: true,
+          style: { stroke: '#3b82f6', strokeWidth: 2 }
+        };
+        
+        newEdges.push(inputEdge);
+      } else {
+        console.log("Found existing input nodes:", inputNodes);
+        inputNodes = inputNodes.map(node => ({...node}));
+      }
+      
+      console.log("Input nodes to preserve:", inputNodes);
+      
+      // Start with our input nodes as the base collection
+      const newNodes = [...inputNodes];
+      
+      const processedResults = [];
+      
+      setProcessingStatus({
+        inProgress: true,
+        current: 0,
         total: transcriptQueue.length,
         message: 'Starting batch processing...'
       });
-      
-      const processedResults = [];
-      const newNodes = [...nodes];
-      const newEdges = [...edges];
-      
-      // Get ID for prompt editing node if it exists
-      const promptNodeId = nodes.find(node => node.type === 'promptEditing')?.id;
-      // Get ID for transcript input node if it exists
-      const inputNodeId = nodes.find(node => node.type === 'transcriptInput')?.id;
       
       // Process each transcript
       for (let i = 0; i < transcriptQueue.length; i++) {
@@ -421,10 +512,10 @@ function TranscriptSummaryContent() {
         
         try {
           // Read file content
-          const text = await readFileAsText(item.file);
+          const fileText = item.file ? await readFileAsText(item.file) : "Sample transcript content for testing";
           
           // Process the transcript
-          const result = await processTranscript(text, item.documentName, item.youtubeUrl);
+          const result = await processTranscript(fileText, item.documentName, item.youtubeUrl);
           
           if (result) {
             processedResults.push(result);
@@ -438,7 +529,7 @@ function TranscriptSummaryContent() {
             const resultsNode = {
               id: resultsNodeId,
               type: 'resultsDisplay',
-              position: { x: 0, y: 0 }, // Position will be set by auto-layout
+              position: { x: 500, y: 100 + (i * 300) }, // Start with a position away from input nodes
               data: { 
                 label: `Results: ${result.documentName}`,
                 documentName: result.documentName,
@@ -452,7 +543,8 @@ function TranscriptSummaryContent() {
                 savingToDatabase: false,
                 savedToDatabase: false,
                 youtubeEmbedUrl: result.youtubeEmbedUrl,
-                openVideoPanel: openVideoPanel
+                openVideoPanel: openVideoPanel,
+                processed: true // Mark as processed
               }
             };
             
@@ -460,27 +552,31 @@ function TranscriptSummaryContent() {
             const metadataNode = {
               id: metadataNodeId,
               type: 'metadata',
-              position: { x: 0, y: 0 }, // Position will be set by auto-layout
+              position: { x: 900, y: 100 + (i * 300) }, // Position to the right of results node
               data: { 
                 label: `Metadata: ${result.documentName}`,
                 documentName: result.documentName,
                 youtubeUrl: result.youtubeUrl || "",
                 youtubeEmbedUrl: result.youtubeEmbedUrl,
                 summaries: result.summary,
-                transcript: text.substring(0, 300) + "...", // Preview of transcript
+                transcript: fileText.substring(0, 300) + "...", // Preview of transcript
                 savingToDatabase: false,
-                savedToDatabase: false
+                savedToDatabase: false,
+                processed: true // Mark as processed
               }
             };
             
+            // Add new nodes
             newNodes.push(resultsNode);
             newNodes.push(metadataNode);
             
-            // Add edge from prompt node to results node if prompt node exists
-            if (promptNodeId) {
+            // Find the prompt node to connect to
+            const promptNode = inputNodes.find(node => node.type === 'promptEditing');
+            if (promptNode) {
+              // Add edge from prompt node to results node
               newEdges.push({
-                id: `e-${promptNodeId}-${resultsNodeId}`,
-                source: promptNodeId,
+                id: `e-${promptNode.id}-${resultsNodeId}`,
+                source: promptNode.id,
                 target: resultsNodeId,
                 animated: true,
                 type: 'default'
@@ -501,12 +597,12 @@ function TranscriptSummaryContent() {
         }
       }
       
-      // Apply auto layout
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, newEdges);
+      console.log("Final nodes before update:", newNodes);
+      console.log("Final edges before update:", newEdges);
       
-      // Update the state with laid out nodes
-      setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
+      // Update the state with our nodes
+      setNodes(newNodes);
+      setEdges(newEdges);
       
       setProcessingStatus({
         inProgress: false,
@@ -537,16 +633,8 @@ function TranscriptSummaryContent() {
     try {
       setSavingToDatabase(true);
       
-      // Simulate database operation in testing mode
-      if (testingMode) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setSavedToDatabase(true);
-        setSavingToDatabase(false);
-        return;
-      }
-
-      // This would be the real database operation in production
-      await saveProcessedTranscript(documentName, summaries, db);
+      // Use real API utilities
+      await saveProcessedTranscript(documentName, summaries);
       
       setSavedToDatabase(true);
     } catch (error) {
