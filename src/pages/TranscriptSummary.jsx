@@ -262,7 +262,6 @@ function TranscriptSummaryContent() {
   const [flowView, setFlowView] = useState('none'); // 'none' or 'basic'
   const [showToolbar, setShowToolbar] = useState(false);
   const [queuedTranscripts, setQueuedTranscripts] = useState([]);
-  const [showNotification, setShowNotification] = useState(true);
   const [processingStatus, setProcessingStatus] = useState({
     inProgress: false,
     current: 0,
@@ -923,24 +922,6 @@ function TranscriptSummaryContent() {
                 Auto Layout
               </button>
             </Panel>
-            
-            {/* User notification about drag behavior */}
-            {showNotification && (
-              <Panel position="top-center" className="mt-2">
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg shadow-md max-w-md text-sm relative">
-                  <button 
-                    onClick={() => setShowNotification(false)} 
-                    className="absolute top-1 right-1 text-blue-500 hover:text-blue-700"
-                    aria-label="Close notification"
-                  >
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                  <p>Nodes will now stay where you drop them! Use the <strong>Auto Layout</strong> button to organize your flow.</p>
-                </div>
-              </Panel>
-            )}
             
             {/* Processing Status */}
             {processingStatus.inProgress && (
