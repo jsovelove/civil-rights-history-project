@@ -12,6 +12,7 @@ import InterviewPlayer from './pages/InterviewPlayer'
 import ClipPlayer from './pages/ClipPlayer'
 import ContentDirectory from './pages/ContentDirectory'
 import BasicFlow from './examples/BasicFlow'
+import VectorSearchPage from './pages/VectorSearchPage'
 
 
 export default function App() {
@@ -65,6 +66,14 @@ export default function App() {
         <ProtectedRoute>
           <Layout>
             <SearchPage />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/semantic-search" element={
+        <ProtectedRoute>
+          <Layout>
+            <VectorSearchPage />
           </Layout>
         </ProtectedRoute>
       } />

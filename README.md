@@ -28,6 +28,7 @@ https://github.com/jsovelove/civil-rights-history-project/wiki
 ## Key Features
 
 - **Keyword-based Search**: Find relevant interview segments across the entire collection
+- **Semantic Search**: Search for concepts and meaning, not just exact keywords
 - **Dynamic Playlists**: Dynamic creation of playlists of interview segments based on keywords
 - **Interactive Visualizations**: Explore connections between topics, people, and places
 - **Timeline Navigation**: Navigate interviews with timestamps and segment navigation
@@ -42,6 +43,7 @@ https://github.com/jsovelove/civil-rights-history-project/wiki
 - **ContentDirectory**: Browse keywords, clips, and people
 - **Visualizations**: Keyword bubble chart, geographic map, and timeline visualizations
 - **TranscriptSummary**: Upload and automatically summarize interview transcripts
+- **VectorSearchPage**: Find conceptually similar content using semantic search
 
 ## Technologies Used
 
@@ -58,6 +60,10 @@ https://github.com/jsovelove/civil-rights-history-project/wiki
 - **Backend & Authentication**:
   - Firebase Firestore for database
   - Firebase Authentication for user management
+
+- **AI & Vector Search**:
+  - OpenAI Embeddings API for generating vector embeddings
+  - Vector similarity search for semantic content discovery
 
 - **Video Integration**:
   - YouTube IFrame API for video playback
@@ -82,6 +88,7 @@ https://github.com/jsovelove/civil-rights-history-project/wiki
 
 - Node.js (v14 or higher)
 - npm or yarn
+- OpenAI API key
 
   ### Installation Steps
 
@@ -111,6 +118,20 @@ https://github.com/jsovelove/civil-rights-history-project/wiki
    ```
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
    
+## Semantic Search Implementation
+
+The application includes a semantic search capability powered by vector embeddings:
+
+1. **Embeddings Generation**: Text from interview content is converted to vector embeddings using OpenAI's Embeddings API
+2. **Vector Storage**: Embeddings are stored in Firestore alongside the original text
+3. **Similarity Calculation**: When a user performs a semantic search, their query is converted to a vector and compared against stored embeddings
+4. **Results Ranking**: Results are ranked by cosine similarity, showing the most conceptually similar content first
+
+To initialize embeddings:
+1. Navigate to the Embeddings Admin page
+2. Click "Generate Embeddings" to process all content
+3. Once complete, the semantic search feature will be fully functional
+
 ## Firebase Data Structure
 
 The application uses the following Firestore collections:
@@ -119,6 +140,7 @@ The application uses the following Firestore collections:
   - **subSummaries** (subcollection): Individual interview segments with timestamps
 - **keywordSummaries**: Aggregated information about keywords across interviews
 - **timelineEvents**: Historical events linked to interview content
+- **embeddings**: Vector embeddings for semantic search functionality
 
 ## Acknowledgments
 

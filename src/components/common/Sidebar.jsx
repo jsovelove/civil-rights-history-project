@@ -12,7 +12,9 @@ import {
   ShoppingBag,
   Heart,
   Menu,
-  X
+  X,
+  Braces,
+  Database
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -95,6 +97,18 @@ export default function Sidebar() {
               <span>Search</span>
             </Link>
 
+            <Link
+              to="/semantic-search"
+              className={`flex items-center px-4 py-3 rounded-lg mb-2 transition-all duration-200 ease-in-out no-underline ${isActiveLink('/semantic-search')
+                  ? 'bg-indigo-50 text-blue-800 font-semibold'
+                  : 'bg-transparent text-gray-500 font-normal'
+                }`}
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="flex mr-3 text-inherit"><Braces size={20} /></span>
+              <span>Semantic Search</span>
+            </Link>
+
             {/* Commented out unused navigation items */}
             {/*
             <Link
@@ -128,6 +142,7 @@ export default function Sidebar() {
 
           {/* Settings & Logout */}
           <div>
+            {/* Admin Section */}
             {/* Commented out unused settings */}
             {/*
             <Link
