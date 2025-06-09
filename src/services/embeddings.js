@@ -244,74 +244,41 @@ export async function generateEmbeddingsForAllContent(progressCallback, statusCa
   }
 }
 
-/**
- * Perform vector search using embeddings
- * @param {string} query - The search query
- * @param {number} limit - Maximum number of results
- * @returns {Promise<Array>} - Ranked search results
- */
+import { getFunctions, httpsCallable } from "firebase/functions";
+
 export async function vectorSearch(query, limit = 10) {
   console.log(`Performing vector search for: "${query}"`);
-  
+
+  if (!query || query.trim().length === 0) {
+    console.error("Empty search query");
+    throw new Error("Search query cannot be empty");
+  }
+
   try {
-    // Generate embedding for the query
-    console.log('Generating embedding for search query...');
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        input: query,
-        model: "text-embedding-3-small"
-      })
+    const functions = getFunctions(); // Optionally: pass app instance
+    const searchFunction = httpsCallable(functions, 'vectorSearch');
+
+    console.log('Calling vector search Cloud Function...');
+    const result = await searchFunction({
+      query: query.trim(),
+      limit: Math.max(1, Math.min(50, limit))
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error during search:', errorData);
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+
+    console.log('Vector search response:', result);
+
+    if (!result.data || !result.data.success) {
+      throw new Error(result.data?.error || 'Vector search failed');
     }
-    
-    const data = await response.json();
-    const queryEmbedding = data.data[0].embedding;
-    console.log('Query embedding generated successfully');
-    
-    // Fetch all embeddings from the database
-    console.log('Fetching stored embeddings from Firestore...');
-    const embeddingsRef = collection(db, "embeddings");
-    const embeddingsSnapshot = await getDocs(embeddingsRef);
-    
-    if (embeddingsSnapshot.empty) {
-      console.log('No embeddings found in database');
-      return [];
-    }
-    
-    console.log(`Found ${embeddingsSnapshot.size} embeddings to compare against`);
-    
-    // Calculate similarity with each embedding
-    const results = embeddingsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      const similarity = cosineSimilarity(queryEmbedding, data.embedding);
-      return {
-        id: doc.id,
-        documentId: data.documentId,
-        segmentId: data.segmentId,
-        similarity,
-        textPreview: data.textContent
-      };
-    });
-    
-    // Sort by similarity and return top results
-    results.sort((a, b) => b.similarity - a.similarity);
-    console.log(`Returning top ${limit} results`);
-    return results.slice(0, limit);
+
+    return result.data.results;
   } catch (error) {
     console.error('Error in vector search:', error);
     throw error;
   }
 }
+
+
+
 
 /**
  * Calculate cosine similarity between two vectors

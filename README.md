@@ -127,10 +127,6 @@ The application includes a semantic search capability powered by vector embeddin
 3. **Similarity Calculation**: When a user performs a semantic search, their query is converted to a vector and compared against stored embeddings
 4. **Results Ranking**: Results are ranked by cosine similarity, showing the most conceptually similar content first
 
-To initialize embeddings:
-1. Navigate to the Embeddings Admin page
-2. Click "Generate Embeddings" to process all content
-3. Once complete, the semantic search feature will be fully functional
 
 ## Firebase Data Structure
 
