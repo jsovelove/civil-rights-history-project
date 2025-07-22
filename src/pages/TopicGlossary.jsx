@@ -1,21 +1,23 @@
 /**
- * @fileoverview TopicGlossary component for browsing interview topics in a card-based layout.
+ * @fileoverview TopicGlossary page for browsing interview topics in a card-based layout.
  * 
- * This component provides a glossary view of topics/keywords extracted from interviews,
+ * This page provides a glossary view of topics/keywords extracted from interviews,
  * displaying them in a clean card grid with topic titles and statistics.
  * It implements caching for performance and supports filtering and sorting.
  */
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, createContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { DirectoryCacheContext } from '../pages/ContentDirectory';
+
+// Create a context for caching (similar to ContentDirectory)
+const TopicGlossaryCacheContext = createContext();
 
 /**
- * TopicGlossary - Card-based topic directory with filtering and navigation
+ * TopicGlossary Page - Card-based topic directory with filtering and navigation
  * 
- * This component provides:
+ * This page provides:
  * 1. A card grid layout of topics/keywords from interviews
  * 2. Statistics about each topic (interview count, clip count, total duration)
  * 3. Filtering and sorting capabilities
@@ -23,24 +25,32 @@ import { DirectoryCacheContext } from '../pages/ContentDirectory';
  * 5. Efficient data loading with caching
  * 
  * @component
- * @example
- * <TopicGlossary onViewAllClips={handleViewAllClips} />
- * 
- * @param {Object} props - Component props
- * @param {Function} props.onViewAllClips - Callback when a topic card is clicked
- * @returns {React.ReactElement} Topic glossary interface
+ * @returns {React.ReactElement} Topic glossary page
  */
-export default function TopicGlossary({ onViewAllClips }) {
+export default function TopicGlossary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [topicData, setTopicData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTopics, setFilteredTopics] = useState([]);
   const [sortBy, setSortBy] = useState('alphabetical'); // 'alphabetical', 'clipCount', 'interviewCount'
+  const [cache, setCache] = useState({});
   const navigate = useNavigate();
 
-  // Get caching functions from context
-  const { cache, updateCache, addSearchToCache, getSearchFromCache } = useContext(DirectoryCacheContext);
+  // Cache functions
+  const updateCache = (key, data) => {
+    setCache(prev => ({ ...prev, [key]: data }));
+  };
+
+  const addSearchToCache = (type, searchTerm, results) => {
+    const searchKey = `${type}_search_${searchTerm.toLowerCase()}`;
+    setCache(prev => ({ ...prev, [searchKey]: results }));
+  };
+
+  const getSearchFromCache = (type, searchTerm) => {
+    const searchKey = `${type}_search_${searchTerm.toLowerCase()}`;
+    return cache[searchKey];
+  };
 
   /**
    * Initialize data from cache or fetch new data
@@ -97,89 +107,31 @@ export default function TopicGlossary({ onViewAllClips }) {
   }, [searchTerm, topicData, sortBy]);
 
   /**
-   * Fetches and processes topics from all interviews
-   * 
-   * This function:
-   * 1. Aggregates keywords from all interview segments
-   * 2. Counts occurrences, interviews, and collects associated clips
-   * 3. Calculates total duration for each keyword
-   * 4. Filters out keywords with only one occurrence
-   * 
-   * @returns {Promise<void>}
+   * Fetches pre-aggregated topics from the 'topicGlossary' collection in Firestore.
    */
   const fetchAndProcessTopics = async () => {
     try {
       setLoading(true);
-      const keywordCounts = {};
-      const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
+      
+      const glossaryCollection = collection(db, 'topicGlossary');
+      const glossarySnapshot = await getDocs(glossaryCollection);
+      
+      const processedData = glossarySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-      // Process interviews
-      for (const interviewDoc of interviewsSnapshot.docs) {
-        const interviewId = interviewDoc.id;
-        const interviewData = interviewDoc.data();
-        const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
-        const subSummariesSnapshot = await getDocs(subSummariesRef);
-
-        subSummariesSnapshot.forEach((doc) => {
-          const subSummary = doc.data();
-          if (subSummary.keywords) {
-            const keywords = subSummary.keywords.split(",").map(kw => kw.trim().toLowerCase());
-            keywords.forEach(keyword => {
-              if (!keywordCounts[keyword]) {
-                keywordCounts[keyword] = { 
-                  count: 0, 
-                  summaries: [], 
-                  interviewIds: new Set() 
-                };
-              }
-              keywordCounts[keyword].count++;
-              keywordCounts[keyword].interviewIds.add(interviewId);
-              
-              // Add parent interview data for thumbnails and person name
-              const enrichedSummary = {
-                ...subSummary,
-                id: doc.id,
-                documentName: interviewId,
-                videoEmbedLink: interviewData.videoEmbedLink,
-                personName: interviewData.name || "Unknown",
-                thumbnailUrl: interviewData.videoEmbedLink ? 
-                  `https://img.youtube.com/vi/${extractVideoId(interviewData.videoEmbedLink)}/mqdefault.jpg` : 
-                  null
-              };
-              
-              keywordCounts[keyword].summaries.push(enrichedSummary);
-            });
-          }
-        });
-      }
-
-      // Transform data for display and filter out keywords with only 1 clip
-      const processedData = Object.entries(keywordCounts)
-        .filter(([_, details]) => details.count > 1)
-        .map(([keyword, details]) => {
-          let totalLengthSeconds = 0;
-          details.summaries.forEach(subSummary => {
-            if (subSummary.timestamp && subSummary.timestamp.includes(" - ")) {
-              const start = extractStartTimestamp(subSummary.timestamp);
-              const end = extractStartTimestamp(subSummary.timestamp.split(" - ")[1]);
-              totalLengthSeconds += Math.max(0, convertTimestampToSeconds(end) - convertTimestampToSeconds(start));
-            }
-          });
-          
-          return {
-            keyword,
-            count: details.count,
-            interviewCount: details.interviewIds.size,
-            totalLengthSeconds,
-            summaries: details.summaries
-          };
-        });
+      // The keyword property is already on the document data, but we can ensure it's set
+      processedData.forEach(item => {
+        if (!item.keyword) {
+          item.keyword = item.id;
+        }
+      });
 
       setTopicData(processedData);
-      setFilteredTopics(processedData);
       
-      // Store in cache
-      updateCache('keywords', processedData);
+      // No need to cache this data as it's already optimized
+      // But if you want to, you can re-enable caching here.
       
       setLoading(false);
     } catch (error) {
@@ -222,9 +174,8 @@ export default function TopicGlossary({ onViewAllClips }) {
    * Handles topic card click to view all clips
    */
   const handleTopicClick = (keyword) => {
-    if (onViewAllClips) {
-      onViewAllClips(keyword);
-    }
+    // Navigate to content directory with keyword filter
+    navigate(`/content-directory?tab=keywords&keyword=${encodeURIComponent(keyword)}`);
   };
 
   /**
@@ -266,17 +217,9 @@ export default function TopicGlossary({ onViewAllClips }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-200">
+    <div className="min-h-screen" style={{ backgroundColor: '#EBEAE9' }}>
       {/* Header Section */}
       <div className="px-12 pt-9 pb-6">
-        {/* Logo/Title */}
-        <div className="mb-8">
-          <div className="text-stone-900 text-4xl font-normal" style={{ fontFamily: 'Freight Text Pro, serif' }}>
-            Civil Rights <br />
-            <span className="font-black leading-9">History Project</span>
-          </div>
-        </div>
-
         {/* Topic count */}
         <div className="mb-4">
           <span className="text-red-500 text-xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
@@ -382,4 +325,4 @@ export default function TopicGlossary({ onViewAllClips }) {
       </div>
     </div>
   );
-}
+} 

@@ -281,7 +281,7 @@ export default function PeopleGrid() {
         </button>
 
         {/* Modal content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full overflow-hidden animate-fadeIn z-50 relative">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-fadeIn z-50 relative border border-white/30">
           {/* Modal Header */}
           <div className="relative">
             {person.thumbnailUrl && (
@@ -305,12 +305,20 @@ export default function PeopleGrid() {
 
           {/* Modal Body */}
           <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{person.name}</h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">{person.role}</p>
+            <h2 className="text-2xl font-bold text-black mb-2" style={{
+              fontFamily: 'Freight Text Pro, Lora, serif'
+            }}>{person.name}</h2>
+            <p className="text-black/70 mb-6 font-mono tracking-wide text-sm">{person.role}</p>
 
             <button
               onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(person.id)}`)}
-              className="w-full bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium"
+              className="w-full text-white px-4 py-3 rounded-md transition-colors duration-200 font-medium"
+              style={{
+                backgroundColor: '#F2483C',
+                fontFamily: 'Freight Text Pro, Lora, serif'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#D63C30'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#F2483C'}
             >
               View Interview
             </button>
@@ -338,9 +346,12 @@ export default function PeopleGrid() {
         <div
           className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-md 
                     overflow-hidden shadow-md cursor-pointer transition-all duration-200
-                    ${isSelected ? 'ring-4 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'}`}
+                    ${isSelected ? 'ring-4' : 'hover:ring-2 hover:ring-black/30'}`}
           onClick={() => setSelectedPerson(person)}
-          style={{ touchAction: 'manipulation' }}
+          style={{ 
+            touchAction: 'manipulation',
+            ringColor: isSelected ? '#F2483C' : undefined
+          }}
         >
           {person.thumbnailUrl ? (
             <div className="w-full h-full overflow-hidden">
@@ -353,15 +364,20 @@ export default function PeopleGrid() {
               />
             </div>
           ) : (
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-400 text-xs">No photo</span>
+            <div className="w-full h-full bg-black/20 flex items-center justify-center">
+              <span className="text-black/40 text-xs font-mono">No photo</span>
             </div>
           )}
         </div>
 
         {/* Name below card */}
         <div className="text-center w-full">
-          <p className={`text-xs sm:text-sm truncate max-w-full ${isSelected ? 'font-bold text-blue-600' : 'text-gray-700'}`}>
+          <p className={`text-xs sm:text-sm truncate max-w-full ${
+            isSelected ? 'font-bold' : 'text-black/80'
+          }`} style={{
+            color: isSelected ? '#F2483C' : undefined,
+            fontFamily: 'Freight Text Pro, Lora, serif'
+          }}>
             {person.name}
           </p>
         </div>
@@ -373,7 +389,9 @@ export default function PeopleGrid() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-black/20" style={{
+          borderTopColor: '#F2483C'
+        }} />
       </div>
     );
   }
@@ -382,7 +400,9 @@ export default function PeopleGrid() {
   if (error) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-red-500">{error}</div>
+        <div className="text-black/70" style={{
+          fontFamily: 'Freight Text Pro, Lora, serif'
+        }}>{error}</div>
       </div>
     );
   }
@@ -391,7 +411,9 @@ export default function PeopleGrid() {
   if (people.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">No interview subjects found</div>
+        <div className="text-black/60" style={{
+          fontFamily: 'Freight Text Pro, Lora, serif'
+        }}>No interview subjects found</div>
       </div>
     );
   }
@@ -400,9 +422,11 @@ export default function PeopleGrid() {
     <>
       {/* Search header */}
       <div className="mb-6 max-w-xl mx-auto">
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-6 border border-white/20">
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-black mb-4" style={{
+              fontFamily: 'Freight Text Pro, Lora, serif'
+            }}>
               {searchTerm ? `${filteredPeople.length} of ${people.length} People` : `${people.length} People`}
             </h2>
             <input
@@ -410,14 +434,17 @@ export default function PeopleGrid() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name..."
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
+              className="w-full p-3 border border-black/20 rounded-md focus:outline-none focus:ring-2 focus:border-black/40 transition-colors bg-white/80 backdrop-blur-sm"
+              style={{
+                fontFamily: 'Freight Text Pro, Lora, serif'
+              }}
             />
           </div>
         </div>
       </div>
 
       {/* People Grid */}
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/20">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-x-4 gap-y-6">
             {filteredPeople.map((person) => (

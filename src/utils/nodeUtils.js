@@ -104,35 +104,6 @@ export const isValidConnection = (connection, nodes) => {
  */
 export const getNodeConfig = (type, props = {}) => {
   switch (type) {
-    case 'transcriptInput':
-      return {
-        data: {
-          onTranscriptUpload: props.handleTranscriptUpload,
-          onAudioUpload: props.handleAudioUpload,
-          documentName: props.documentName,
-          onDocumentNameChange: props.setDocumentName,
-          youtubeUrl: props.youtubeUrl,
-          onYoutubeUrlChange: props.setYoutubeUrl,
-          onYoutubeUrlSubmit: props.handleYoutubeUrlSubmit
-        }
-      };
-    
-    case 'whisperTranscription':
-      return {
-        data: {
-          onQueueUpdate: props.onQueueUpdate,
-          onProcessMultiple: props.processMultipleTranscripts || props.processTranscript,
-          onSetTranscript: (text, docName) => {
-            if (props.setTranscript) {
-              props.setTranscript(text);
-            }
-            if (props.setDocumentName && docName) {
-              props.setDocumentName(docName);
-            }
-          }
-        }
-      };
-    
     case 'promptEditing':
       return {
         data: {

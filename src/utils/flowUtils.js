@@ -16,21 +16,6 @@ import { addEdge } from 'reactflow';
  */
 export const getDefaultNodes = (column1X, column2X, row1Y, row2Y, nodeWidth, props) => [
   {
-    id: '1',
-    type: 'transcriptInput',
-    position: { x: column1X, y: row1Y },
-    style: { width: nodeWidth },
-    data: { 
-      onTranscriptUpload: props.handleTranscriptUpload,
-      onAudioUpload: props.handleAudioUpload,
-      documentName: props.documentName,
-      onDocumentNameChange: props.setDocumentName,
-      youtubeUrl: props.youtubeUrl,
-      onYoutubeUrlChange: props.setYoutubeUrl,
-      onYoutubeUrlSubmit: props.handleYoutubeUrlSubmit
-    },
-  },
-  {
     id: '2',
     type: 'promptEditing',
     position: { x: column1X, y: row2Y },
@@ -101,15 +86,6 @@ export const getDefaultNodes = (column1X, column2X, row1Y, row2Y, nodeWidth, pro
  * @returns {Array} Default edges configuration
  */
 export const getDefaultEdges = () => [
-  { 
-    id: 'e1-2', 
-    source: '1', 
-    target: '2',
-    sourceHandle: 'transcript-output',
-    targetHandle: 'prompt-left-input',
-    animated: true,
-    style: { stroke: '#3b82f6', strokeWidth: 2 }
-  },
   { 
     id: 'e2-3', 
     source: '2', 

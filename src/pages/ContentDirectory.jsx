@@ -2,12 +2,13 @@
  * @fileoverview ContentDirectory page for browsing and searching through collection content.
  * 
  * This component serves as the main directory interface for the Civil Rights History Collection,
- * allowing users to browse and search through keywords, clips, and people. It implements
+ * allowing users to browse and search through clips and people. It implements
  * a tabbed interface and manages a context-based caching system to improve performance.
+ * 
+ * Note: Keywords browsing is now available on the dedicated Topic Glossary page.
  */
 
 import { useState, createContext, useEffect } from 'react';
-import KeywordDirectory from '../components/KeywordDirectory';
 import ClipsDirectory from '../components/ClipsDirectory';
 import PeopleGrid from '../components/PeopleGrid';
 
@@ -21,7 +22,7 @@ export const DirectoryCacheContext = createContext(null);
  * ContentDirectory - Main component for browsing and searching collection content
  * 
  * This component:
- * 1. Manages navigation between three content tabs: keywords, clips, and people
+ * 1. Manages navigation between two content tabs: clips and people
  * 2. Implements a caching system for search results and directory data
  * 3. Persists cache to sessionStorage for improved performance across page refreshes
  * 4. Displays collection statistics
@@ -29,8 +30,8 @@ export const DirectoryCacheContext = createContext(null);
  * @returns {React.ReactElement} The directory interface with tabs and content panels
  */
 export default function ContentDirectory() {
-  // Active tab state (keywords, clips, or people)
-  const [activeTab, setActiveTab] = useState('keywords');
+  // Active tab state (clips or people)
+  const [activeTab, setActiveTab] = useState('clips');
   // Search term state for the clips tab
   const [clipSearchTerm, setClipSearchTerm] = useState('');
   // Collection statistics for display
@@ -45,19 +46,14 @@ export default function ContentDirectory() {
    * Cache state structure for storing directory data and search results
    * 
    * @type {Object} Structure:
-   * - keywords: Array of all keywords with metadata
-   * - keywordSearches: Object mapping search terms to results for keywords
    * - clipSearches: Object mapping search terms to results for clips
    * - people: Array of all people with metadata
    * - lastFetched: Timestamp tracking when each data type was last fetched
    */
   const [cache, setCache] = useState({
-    keywords: null,
-    keywordSearches: {}, // { searchTerm: results }
     clipSearches: {},    // { searchTerm: results }
     people: null,
     lastFetched: {
-      keywords: null,
       people: null
     }
   });
@@ -104,9 +100,7 @@ export default function ContentDirectory() {
   useEffect(() => {
     try {
       // Don't save empty cache
-      if (!cache.keywords && !cache.people && 
-          Object.keys(cache.keywordSearches).length === 0 && 
-          Object.keys(cache.clipSearches).length === 0) {
+      if (!cache.people && Object.keys(cache.clipSearches).length === 0) {
         return;
       }
       
@@ -123,18 +117,16 @@ export default function ContentDirectory() {
    * Update statistics whenever the cache data changes
    * 
    * Calculates and updates the stats displayed in the stats summary cards,
-   * including total keywords, clips, content duration, and people.
+   * including total people. Note: Keywords and clips stats are now handled 
+   * by the dedicated Topic Glossary page.
    */
   useEffect(() => {
     const newStats = {
-      keywordCount: cache.keywords?.length || 0,
-      clipCount: cache.keywords?.reduce((sum, item) => sum + item.count, 0) || 0,
-      totalDuration: cache.keywords?.reduce((sum, item) => sum + item.totalLengthSeconds, 0) || 0,
       peopleCount: cache.people?.length || 0
     };
     
     setStatsData(newStats);
-  }, [cache.keywords, cache.people]);
+  }, [cache.people]);
 
   /**
    * Updates a specific section of the cache with new data
@@ -156,12 +148,12 @@ export default function ContentDirectory() {
   /**
    * Adds search results to the appropriate cache section
    * 
-   * @param {string} type - The type of search ('keywords' or 'clips')
+   * @param {string} type - The type of search ('clips')
    * @param {string} searchTerm - The search term used
    * @param {Array} results - The search results to cache
    */
   const addSearchToCache = (type, searchTerm, results) => {
-    const cacheKey = type === 'keywords' ? 'keywordSearches' : 'clipSearches';
+    const cacheKey = 'clipSearches';
     setCache(prevCache => ({
       ...prevCache,
       [cacheKey]: {
@@ -177,12 +169,12 @@ export default function ContentDirectory() {
   /**
    * Retrieves search results from cache if available and recent
    * 
-   * @param {string} type - The type of search ('keywords' or 'clips')
+   * @param {string} type - The type of search ('clips')
    * @param {string} searchTerm - The search term to look up
    * @returns {Array|null} Cached search results if available and fresh, otherwise null
    */
   const getSearchFromCache = (type, searchTerm) => {
-    const cacheKey = type === 'keywords' ? 'keywordSearches' : 'clipSearches';
+    const cacheKey = 'clipSearches';
     const cachedSearch = cache[cacheKey][searchTerm.toLowerCase()];
     
     if (!cachedSearch) return null;
@@ -234,95 +226,90 @@ export default function ContentDirectory() {
       addSearchToCache, 
       getSearchFromCache 
     }}>
-      <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
-        {/* Page header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Directory
-          </h1>
-          <p className="text-base text-gray-600 max-w-3xl leading-relaxed">
-            Browse and search through keywords, clips, and people from the Civil Rights History Collection.
-          </p>
-        </div>
+      <div className="font-body" style={{ backgroundColor: '#EBEAE9', minHeight: '100vh' }}>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Page header */}
+          <div className="mb-8">
+            <h1 style={{
+              fontFamily: 'Freight Text Pro, Lora, serif',
+              fontWeight: 500,
+              fontSize: 'clamp(28px, 4vw, 48px)',
+              lineHeight: '1.2',
+              color: 'black'
+            }}>
+              Content{' '}
+              <span style={{
+                fontFamily: 'Freight Text Pro, Lora, serif',
+                fontWeight: 900,
+                color: '#F2483C'
+              }}>
+                Directory
+              </span>
+            </h1>
+            <p className="text-base text-black/70 max-w-3xl leading-relaxed mt-3" style={{
+              fontFamily: 'Freight Text Pro, Lora, serif',
+              fontWeight: 400
+            }}>
+              Browse and search through clips and people from the Civil Rights History Collection. 
+              Visit the <a href="#/topic-glossary" className="text-red-500 hover:underline" style={{ color: '#F2483C' }}>Topic Glossary</a> to explore keywords and topics.
+            </p>
+          </div>
 
-        {/* Stats summary - now shown on all tabs */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-800 mb-2">
-                {statsData.keywordCount}
+          {/* Stats summary */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/20">
+            <div className="flex justify-between items-center">
+              <div className="flex flex-col items-center p-4 rounded-xl" style={{ backgroundColor: 'rgba(242, 72, 60, 0.1)' }}>
+                <div className="text-2xl font-bold mb-2" style={{ 
+                  color: '#F2483C',
+                  fontFamily: 'Freight Text Pro, Lora, serif'
+                }}>
+                  {statsData.peopleCount}
+                </div>
+                <div className="text-sm text-black/60 font-mono tracking-wide">
+                  TOTAL PEOPLE
+                </div>
               </div>
-              <div className="text-sm text-gray-500">
-                Total Keywords
-              </div>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-800 mb-2">
-                {statsData.clipCount}
-              </div>
-              <div className="text-sm text-gray-500">
-                Total Clips
-              </div>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-800 mb-2">
-                {formatTime(statsData.totalDuration)}
-              </div>
-              <div className="text-sm text-gray-500">
-                Total Content Duration
-              </div>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-amber-50 rounded-lg">
-              <div className="text-2xl font-bold text-amber-800 mb-2">
-                {statsData.peopleCount}
-              </div>
-              <div className="text-sm text-gray-500">
-                Total People
+              <div className="text-sm text-black/60" style={{ fontFamily: 'Freight Text Pro, Lora, serif' }}>
+                For topic and keyword statistics, visit the{' '}
+                <a href="#/topic-glossary" className="text-red-500 hover:underline" style={{ color: '#F2483C' }}>
+                  Topic Glossary
+                </a>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('keywords')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'keywords'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Keywords
-            </button>
-            <button
-              onClick={() => setActiveTab('clips')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'clips'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Clips
-            </button>
-            <button
-              onClick={() => setActiveTab('people')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'people'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              People
-            </button>
-          </nav>
-        </div>
+          {/* Tab Navigation */}
+          <div className="border-b border-black/20 mb-8">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('clips')}
+                className={`pb-4 px-1 border-b-2 font-medium text-base transition-colors ${
+                  activeTab === 'clips'
+                    ? 'text-black border-black'
+                    : 'border-transparent text-black/60 hover:text-black hover:border-black/30'
+                }`}
+                style={{ fontFamily: 'Freight Text Pro, Lora, serif' }}
+              >
+                Clips
+              </button>
+              <button
+                onClick={() => setActiveTab('people')}
+                className={`pb-4 px-1 border-b-2 font-medium text-base transition-colors ${
+                  activeTab === 'people'
+                    ? 'text-black border-black'
+                    : 'border-transparent text-black/60 hover:text-black hover:border-black/30'
+                }`}
+                style={{ fontFamily: 'Freight Text Pro, Lora, serif' }}
+              >
+                People
+              </button>
+            </nav>
+          </div>
 
-        {/* Content Panels - Only one renders based on activeTab state */}
-        {activeTab === 'keywords' && <KeywordDirectory onViewAllClips={navigateToClips} />}
-        {activeTab === 'clips' && <ClipsDirectory initialSearchTerm={clipSearchTerm} />}
-        {activeTab === 'people' && <PeopleGrid />}
+          {/* Content Panels - Only one renders based on activeTab state */}
+          {activeTab === 'clips' && <ClipsDirectory initialSearchTerm={clipSearchTerm} />}
+          {activeTab === 'people' && <PeopleGrid />}
+        </div>
       </div>
     </DirectoryCacheContext.Provider>
   );

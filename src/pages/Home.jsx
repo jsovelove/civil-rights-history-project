@@ -1,84 +1,96 @@
 /**
- * @fileoverview Home page component for the Civil Rights History Project.
+ * @fileoverview Landing page component matching the Figma design for Civil Rights History Project.
  * 
- * This component serves as the landing page for the application, featuring
- * a tabbed visualization interface that allows users to explore civil rights
- * history through different visualization modes (timeline, keywords, map).
+ * This component replicates the exact design shown in Figma with a two-column layout,
+ * historical photograph, and red accent color (#F2483C).
  */
 
-import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import VisualizationContainer from '../components/visualization/VisualizationContainer.jsx';
+import { Link } from 'react-router-dom';
+import MLKImage from '../assetts/MLKandMalcolmX.png';
 
 /**
- * Home - Main landing page component
+ * Home - Landing page component matching Figma design
  * 
- * This component:
- * 1. Displays the application title and hero section
- * 2. Manages a tabbed interface for different data visualizations
- * 3. Renders the appropriate visualization based on active tab
- * 4. Provides user authentication context access
+ * Features:
+ * - Header with navigation and search
+ * - Two-column layout with text and image
+ * - Red accent color for "Civil Rights Movement"
+ * - Historical photograph with styled border
+ * - Library of Congress attribution
  * 
- * @returns {React.ReactElement} The home page with visualization interface
+ * @returns {React.ReactElement} The Figma-style landing page
  */
 export default function Home() {
-  /**
-   * State to track the currently active visualization tab
-   * Options: 'timeline', 'keywords', 'map'
-   * @type {[string, Function]} - Current active tab and setter function
-   */
-  const [activeTab, setActiveTab] = useState('timeline');
-  
-  /**
-   * Authentication context to access user information
-   * @type {Object} User authentication data and functions
-   */
   const { user } = useAuth();
-  
-  /**
-   * Array of available visualization tabs
-   * Intentionally ordered to show timeline first as the default view
-   * @type {string[]} Array of tab identifiers
-   */
-  const tabs = ['timeline', 'keywords', 'map'];
-  
+
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
-      {/* Hero Section - Main title and introduction */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text mb-6">
-          Civil Rights History Project
-        </h1>
-      </div>
-      
-      {/* Visualization Section - Contains tabs and visualization container */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 mb-6">
-        {/* Tab Navigation - Allows switching between visualization types */}
-        <div className="border-b border-gray-200">
-          <ul className="flex flex-wrap m-0 p-0 list-none">
-            {tabs.map((tab) => (
-              <li key={tab} className="flex-1">
-                <button
-                  onClick={() => setActiveTab(tab)}
-                  className={`w-full py-4 px-1 text-sm text-center transition-all duration-300 cursor-pointer border-0 ${
-                    activeTab === tab 
-                      ? 'bg-indigo-50 text-blue-800 font-semibold border-b-2 border-blue-600' 
-                      : 'bg-transparent text-gray-500 font-normal border-b-0'
-                  }`}
-                >
-                  {/* Capitalize first letter of tab name for display */}
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              </li>
-            ))}
-          </ul>
+    <div className="h-full font-body flex flex-col relative overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
+      {/* Main Content */}
+      <main className="flex-1 w-full py-4 sm:py-6 flex flex-col min-h-0 z-10">
+        <div className="w-full max-w-7xl ml-0 pr-4 sm:pr-6 lg:pr-8 pl-2 sm:pl-4 lg:pl-6 flex-1 flex items-start pt-8 sm:pt-12">
+          <div className="max-w-3xl">
+            {/* Text Content */}
+            <div className="space-y-4 flex flex-col justify-start">
+              {/* Main Headline */}
+              <div className="max-w-none">
+                <h2 style={{
+                  fontFamily: 'Freight Text Pro, Lora, serif',
+                  fontWeight: 500,
+                  fontSize: 'clamp(32px, 5vw, 64px)',
+                  lineHeight: '1.1',
+                  letterSpacing: '0%',
+                  color: 'black'
+                }}>
+                  The{' '}
+                  <span style={{
+                    fontFamily: 'Freight Text Pro, Lora, serif',
+                    fontWeight: 900,
+                    fontSize: 'clamp(32px, 5vw, 64px)',
+                    lineHeight: '1.1',
+                    letterSpacing: '0%',
+                    color: '#F2483C'
+                  }}>
+                    Civil Rights Movement
+                  </span>
+                  <br />
+                  narrated by the activists,
+                  <br />
+                  artists, and change-makers
+                  <br />
+                  who were really there.
+                </h2>
+              </div>
+
+              {/* Statistics */}
+              <div className="pt-1">
+                <p style={{ color: '#F2483C' }} className="font-mono font-light text-sm sm:text-base tracking-wide">
+                  145 Interviews, 8700 Minutes
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {/* Visualization Content - Renders the active visualization component */}
-        <div className="p-6">
-          <VisualizationContainer activeVisualization={activeTab} />
-        </div>
+      </main>
+
+      {/* Absolutely positioned image */}
+      <div className="absolute bottom-0 right-0 w-full sm:w-3/4 md:w-2/3 lg:w-3/5 xl:w-1/2 max-h-[90vh] z-0">
+        <img
+          src={MLKImage}
+          alt="Dr. Martin Luther King Jr. and other civil rights leaders"
+          className="w-full h-full object-cover sm:object-contain object-bottom sm:object-bottom"
+        />
       </div>
+
+      {/* Footer */}
+      <footer className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex-shrink-0 relative z-10">
+        <div className="flex items-center">
+          <p className="text-black font-body text-xs sm:text-sm mr-4 sm:mr-6 whitespace-nowrap">
+            Library of Congress
+          </p>
+          <div className="flex-1 h-px bg-black/20"></div>
+        </div>
+      </footer>
     </div>
   );
 }

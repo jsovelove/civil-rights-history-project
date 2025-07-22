@@ -3,16 +3,17 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/common/Layout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import Home from './pages/Home'
+import Visualizations from './pages/Visualizations'
 import Login from './pages/Login'
 import PlaylistBuilder from './pages/PlaylistBuilder'
 import PlaylistEditor from './pages/PlaylistEditor'
-import TranscriptSummary from './pages/TranscriptSummary'
 import SearchPage from './pages/SearchPage'
 import InterviewPlayer from './pages/InterviewPlayer'
 import ClipPlayer from './pages/ClipPlayer'
 import ContentDirectory from './pages/ContentDirectory'
-import BasicFlow from './examples/BasicFlow'
-import VectorSearchPage from './pages/VectorSearchPage'
+import TopicGlossary from './pages/TopicGlossary'
+import InterviewIndex from './pages/InterviewIndex'
+
 
 
 export default function App() {
@@ -26,6 +27,14 @@ export default function App() {
         <ProtectedRoute>
           <Layout>
             <Home />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/visualizations" element={
+        <ProtectedRoute>
+          <Layout>
+            <Visualizations />
           </Layout>
         </ProtectedRoute>
       } />
@@ -54,10 +63,18 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      <Route path="/transcript-summary" element={
+      <Route path="/interview-index" element={
         <ProtectedRoute>
           <Layout>
-            <TranscriptSummary />
+            <InterviewIndex />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/topic-glossary" element={
+        <ProtectedRoute>
+          <Layout>
+            <TopicGlossary />
           </Layout>
         </ProtectedRoute>
       } />
@@ -70,13 +87,7 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      <Route path="/semantic-search" element={
-        <ProtectedRoute>
-          <Layout>
-            <VectorSearchPage />
-          </Layout>
-        </ProtectedRoute>
-      } />
+
 
       <Route path="/interview-player" element={
         <ProtectedRoute>
@@ -97,13 +108,7 @@ export default function App() {
         }
       />
 
-      <Route path="/examples/basic-flow" element={
-        <ProtectedRoute>
-          <Layout>
-            <BasicFlow />
-          </Layout>
-        </ProtectedRoute>
-      } />
+
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -28,10 +28,10 @@ export default function Sidebar() {
 
   const navLinks = [
     { path: '/', label: 'Home', icon: <Home size={20} /> },
+    { path: '/visualizations', label: 'Visualizations', icon: <Database size={20} /> },
     { path: '/content-directory', label: 'Directory', icon: <List size={20} /> },
     // Commented out Playlists in navLinks
     // { path: '/playlist-builder', label: 'Playlists', icon: <PlayCircle size={20} /> },
-    { path: '/transcript-summary', label: 'Summarizer', icon: <FileText size={20} /> }
   ];
 
   const isActiveLink = (path) => {
@@ -56,7 +56,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 ease-in-out z-50 flex flex-col p-4 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 ease-in-out z-50 flex flex-col p-4 font-body ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Close Button */}
         <button
