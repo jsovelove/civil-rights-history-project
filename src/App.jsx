@@ -13,6 +13,7 @@ import ClipPlayer from './pages/ClipPlayer'
 import ContentDirectory from './pages/ContentDirectory'
 import TopicGlossary from './pages/TopicGlossary'
 import InterviewIndex from './pages/InterviewIndex'
+import About from './pages/About'
 
 
 
@@ -87,13 +88,17 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-
+      <Route path="/about" element={
+        <ProtectedRoute>
+          <Layout>
+            <About />
+          </Layout>
+        </ProtectedRoute>
+      } />
 
       <Route path="/interview-player" element={
         <ProtectedRoute>
-          <Layout>
-            <InterviewPlayer />
-          </Layout>
+          <InterviewPlayer />
         </ProtectedRoute>
       } />
 

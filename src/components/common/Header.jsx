@@ -47,33 +47,36 @@ export default function Header() {
   return (
     <>
       {/* Header */}
-      <header className="relative z-30 flex-shrink-0" style={{ backgroundColor: '#EBEAE9' }}>
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-2">
-          <div className="flex items-center justify-between">
+      <header className="relative" style={{ backgroundColor: '#EBEAE9' }}>
+        <div className="w-full px-4 sm:px-8 lg:px-12 py-6 lg:py-9">
+          <div className="flex justify-between items-start">
             {/* Logo/Title */}
             <Link to="/" className="text-decoration-none">
-              <div 
-                className="text-stone-900 text-2xl font-normal text-black hover:text-civil-red transition-colors"
-                style={{ fontFamily: "'Freight Text Pro', serif" }}
-              >
-                Civil Rights <br />
-                <span className="font-black leading-none">History Project</span>
+              <div>
+                <span className="text-stone-900 text-4xl font-normal font-['Source_Serif_Pro']">Civil Rights </span>
+                <br />
+                <span className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro'] leading-9">History Project</span>
               </div>
             </Link>
 
-            {/* Navigation Icons */}
-            <div className="flex items-center space-x-2">
-              <button 
-                onClick={() => setIsSearchOpen(true)}
-                className="p-2 text-black hover:text-civil-red transition-colors"
-              >
-                <Search size={20} className="sm:w-6 sm:h-6" />
-              </button>
+            {/* Navigation Icons - stacked vertically */}
+            <div className="flex flex-col items-end gap-3">
+              {/* Hamburger menu icon */}
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 text-black hover:text-civil-red transition-colors"
+                className="w-8 lg:w-12 flex flex-col justify-start items-end gap-1 hover:opacity-70 transition-opacity"
               >
-                <Menu size={20} className="sm:w-6 sm:h-6" />
+                <div className="w-6 lg:w-9 h-0.5 bg-black"></div>
+                <div className="w-6 lg:w-9 h-0.5 bg-black"></div>
+                <div className="w-6 lg:w-9 h-0.5 bg-black"></div>
+              </button>
+              
+              {/* Search button */}
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="p-1 text-black hover:opacity-70 transition-opacity"
+              >
+                <Search size={18} className="lg:w-6 lg:h-6" />
               </button>
             </div>
           </div>
@@ -116,7 +119,7 @@ export default function Header() {
             {/* Timeline */}
             <div className="border-b border-black">
               <Link
-                to="/visualizations"
+                to="/"
                 className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -167,14 +170,12 @@ export default function Header() {
               </Link>
             </div>
 
-            {/* Search */}
+            {/* Glossary */}
             <div className="border-b border-black">
-              <button
-                onClick={() => {
-                  setIsSearchOpen(true);
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity w-full text-left"
+              <Link
+                to="/topic-glossary"
+                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
+                onClick={() => setIsMenuOpen(false)}
               >
                 <span style={{
                   fontFamily: 'Acumin Pro, Inter, sans-serif',
@@ -191,15 +192,15 @@ export default function Header() {
                   color: 'black',
                   lineHeight: '1'
                 }}>
-                  Search
+                  Glossary
                 </span>
-              </button>
+              </Link>
             </div>
 
-            {/* Glossary */}
+            {/* About */}
             <div className="border-b border-black">
               <Link
-                to="/topic-glossary"
+                to="/about"
                 className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -210,33 +211,6 @@ export default function Header() {
                   color: 'black'
                 }} className="mr-8 sm:mr-12 lg:mr-16">
                   04.
-                </span>
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: 'clamp(32px, 6vw, 64px)',
-                  color: 'black',
-                  lineHeight: '1'
-                }}>
-                  Glossary
-                </span>
-              </Link>
-            </div>
-
-            {/* About */}
-            <div className="border-b border-black">
-              <Link
-                to="/"
-                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 'clamp(16px, 2vw, 24px)',
-                  color: 'black'
-                }} className="mr-8 sm:mr-12 lg:mr-16">
-                  05.
                 </span>
                 <span style={{
                   fontFamily: 'Acumin Pro, Inter, sans-serif',

@@ -10,9 +10,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
 import { db } from '../services/firebase'
-import { ChevronDown, ChevronUp, Clock, Tag } from 'lucide-react'
-import PlayerControls from "../components/PlayerControls"
-import IntegratedTimeline from "../components/IntegratedTimeline"
 
 /**
  * InterviewPlayer - Main component for viewing and navigating interview videos
@@ -40,7 +37,6 @@ export default function InterviewPlayer() {
   const [error, setError] = useState(null)
   const [mainSummary, setMainSummary] = useState(null)
   const [subSummaries, setSubSummaries] = useState([])
-  const [openAccordion, setOpenAccordion] = useState(null)
   const [playerReady, setPlayerReady] = useState(false)
   const [youtubeApiLoaded, setYoutubeApiLoaded] = useState(false)
   
@@ -221,7 +217,7 @@ export default function InterviewPlayer() {
       height: '100%',
       playerVars: {
         autoplay: 0,
-        controls: 0, // Hide default controls since we'll use our custom ones
+        controls: 1, // Show default YouTube controls
         rel: 0,
         modestbranding: 1,
       },
@@ -271,7 +267,7 @@ export default function InterviewPlayer() {
         playerRef.current = null
       }
     }
-  }, [youtubeApiLoaded, mainSummary, containerEl, currentSegmentIndex])
+  }, [youtubeApiLoaded, mainSummary, containerEl])
 
   /**
    * Handle seek requests when seekToTime changes
@@ -293,7 +289,6 @@ export default function InterviewPlayer() {
    * @param {number} seconds - Target time in seconds to seek to
    */
   const handleTimestampClick = (seconds) => {
-    console.log('Seeking to', seconds, 'seconds')
     setSeekToTime(seconds)
     if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
       playerRef.current.seekTo(seconds, true)
@@ -302,178 +297,8 @@ export default function InterviewPlayer() {
     }
   }
 
-  /**
-   * Toggles the open/closed state of an accordion item
-   * 
-   * @param {number} index - Index of the accordion item to toggle
-   */
-  const toggleAccordion = (index) => {
-    setOpenAccordion(openAccordion === index ? null : index)
-  }
 
-  /**
-   * Player control handlers for custom playback controls
-   */
-  const handlePlayVideo = () => {
-    if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
-      playerRef.current.playVideo()
-      setIsPlaying(true)
-    }
-  }
 
-  const handlePauseVideo = () => {
-    if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
-      playerRef.current.pauseVideo()
-      setIsPlaying(false)
-    }
-  }
-
-  /**
-   * Navigates to the next segment in the interview
-   */
-  const handleNext = () => {
-    if (currentSegmentIndex < subSummaries.length - 1) {
-      const nextSegment = subSummaries[currentSegmentIndex + 1]
-      const nextTime = convertTimestampToSeconds(nextSegment.timestamp)
-      handleTimestampClick(nextTime)
-      setCurrentSegmentIndex(currentSegmentIndex + 1)
-    }
-  }
-
-  /**
-   * Navigates to the previous segment in the interview
-   */
-  const handlePrevious = () => {
-    if (currentSegmentIndex > 0) {
-      const prevSegment = subSummaries[currentSegmentIndex - 1]
-      const prevTime = convertTimestampToSeconds(prevSegment.timestamp)
-      handleTimestampClick(prevTime)
-      setCurrentSegmentIndex(currentSegmentIndex - 1)
-    }
-  }
-
-  /**
-   * Sets the seekToTime state to initiate seeking
-   * 
-   * @param {number} timeToSeek - Target time in seconds
-   */
-  const handleSeek = (timeToSeek) => {
-    setSeekToTime(timeToSeek)
-  }
-
-  /**
-   * AccordionItem - Component for displaying individual interview segments in accordion format
-   * 
-   * @param {Object} props - Component props
-   * @param {Object} props.summary - Segment summary data
-   * @param {number} props.index - Index of this segment
-   * @param {boolean} props.isOpen - Whether this accordion item is open
-   * @param {boolean} props.isActive - Whether this segment is currently playing
-   * @returns {React.ReactElement} Accordion item for a segment
-   */
-  const AccordionItem = ({ summary, index, isOpen, isActive }) => {
-    const contentRef = useRef(null)
-    const [contentHeight, setContentHeight] = useState(0)
-  
-    // Measure content height when accordion is opened
-    useEffect(() => {
-      if (isOpen && contentRef.current) {
-        setContentHeight(contentRef.current.scrollHeight)
-      }
-    }, [isOpen])
-  
-    const timestampSeconds = convertTimestampToSeconds(summary.timestamp)
-    const keywordsList = formatKeywords(summary.keywords)
-    const isCurrentSegment = index === currentSegmentIndex
-  
-    return (
-      <div className={`accordion-item border-b border-gray-200 ${isCurrentSegment ? 'border-l-4 border-l-blue-500' : ''}`}>
-        <button
-          onClick={() => toggleAccordion(index)}
-          className={`w-full flex items-center justify-between p-4 text-left transition-colors ${
-            isOpen
-              ? 'bg-blue-50 text-blue-700'
-              : isCurrentSegment
-                ? 'bg-blue-50/50 text-blue-600'
-                : 'text-gray-800 hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-center">
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold mr-3 ${
-              isCurrentSegment ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {index + 1}
-            </span>
-            <span className="font-bold">{summary.topic}</span>
-          </div>
-          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-  
-        <div
-          style={{
-            height: isOpen ? (contentHeight || 'auto') : 0,
-            overflow: 'hidden',
-            transition: isOpen ? 'height 0.3s ease' : 'height 0.3s ease',
-            maxHeight: isOpen ? '1000px' : '0',
-          }}
-        >
-          <div ref={contentRef} className="p-4 bg-gray-50">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleTimestampClick(timestampSeconds)
-              }}
-              className={`flex items-center mb-4 text-blue-600 hover:text-blue-800 transition-colors ${
-                !playerReady ? 'opacity-50 cursor-wait' : 'cursor-pointer'
-              }`}
-              disabled={!playerReady}
-            >
-              <Clock size={16} className="mr-2" />
-              <span className="font-bold">
-                {summary.timestamp
-                  ? summary.timestamp.split(' - ')[0].replace(/[\[\]]/g, '').trim()
-                  : 'Unknown time'}
-              </span>
-            </button>
-  
-            {keywordsList.length > 0 && (
-              <div className="mb-4 text-sm flex flex-wrap">
-                {keywordsList.map((keyword, idx) => (
-                  <span
-                    key={idx}
-                    className="mr-2 mb-2 px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs cursor-pointer hover:bg-blue-200 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)
-                    }}
-                  >
-                    {keyword}
-                  </span>
-                ))}
-              </div>
-            )}
-  
-            <p className="text-gray-700 leading-relaxed">
-              {summary.summary}
-            </p>
-  
-            {/* View Clip Button */}
-            <div className="mt-4">
-              <button
-                className="text-sm text-blue-600 hover:underline hover:text-blue-800 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/clip-player?documentName=${encodeURIComponent(documentName)}&clipId=${encodeURIComponent(summary.id)}`)
-                }}
-              >
-                ▶ View this clip as a standalone page
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
   
   /**
    * Formats seconds into a human-readable time string
@@ -494,24 +319,6 @@ export default function InterviewPlayer() {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  /**
-   * Formats segment data for use in timeline visualization
-   * 
-   * @returns {Array} Array of segment objects with normalized properties for timeline display
-   */
-  const formatSegmentsForTimeline = () => {
-    return subSummaries.map((segment, index) => ({
-      id: segment.id || index,
-      label: segment.topic || `Segment ${index + 1}`,
-      timestamp: segment.timestamp,
-      startSeconds: convertTimestampToSeconds(segment.timestamp),
-      // For the end time, use the next segment's start time or video duration
-      endSeconds: index < subSummaries.length - 1 
-        ? convertTimestampToSeconds(subSummaries[index + 1].timestamp) 
-        : totalDuration,
-      summary: segment.summary
-    }));
-  }
 
   /**
    * --- Rendering ---
@@ -537,170 +344,213 @@ export default function InterviewPlayer() {
     )
   }
 
-  // Prepare data for timeline
-  const timelineSegments = formatSegmentsForTimeline();
   const hasSegments = subSummaries.length > 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-6">
-      {/* Header with interview title */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {mainSummary?.name || documentName}
-        </h1>
-        <p className="text-gray-600">
-          {mainSummary?.role && (
-            <span className="italic">{mainSummary.role}</span>
-          )}
-          {subSummaries.length > 0 && (
-            <span className="mx-2 text-gray-400">•</span>
-          )}
-          {subSummaries.length > 0 && (
-            <span>{subSummaries.length} segments</span>
-          )}
-        </p>
+    <div className="w-full relative bg-gray-200 overflow-hidden">
+      {/* Header Navigation */}
+      <div className="w-full h-12 px-12 pt-9 pb-3">
+        <div className="w-full h-11 relative">
+          <div className="w-[507px] left-0 top-0 absolute inline-flex justify-center items-center gap-2.5">
+            <button 
+              onClick={() => navigate('/')}
+              className="w-[505px] justify-start hover:opacity-70 transition-opacity cursor-pointer"
+            >
+              <span className="text-stone-900 text-4xl font-normal font-body">Civil</span>
+              <span className="text-stone-900 text-4xl font-normal font-body tracking-wide"> Rights </span>
+              <span className="text-stone-900 text-4xl font-bold font-body leading-9">History</span>
+              <span className="text-stone-900 text-4xl font-bold font-body leading-9"> Project</span>
+            </button>
+          </div>
+          <div className="w-12 h-12 absolute right-0 top-0">
+            <div className="w-6 h-6 absolute right-3 top-3 transform rotate-180" />
+          </div>
+        </div>
       </div>
 
-      {/* Video Container with Styling similar to PlaylistBuilder */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        {/* Video player */}
-        <div className="w-full max-w-2xl mx-auto relative rounded-lg overflow-hidden" style={{ height: '360px' }}>
-          <div className="absolute inset-0 bg-black" ref={setContainerEl}></div>
-          {!playerReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-              <div className="w-10 h-10 border-4 border-white/50 border-t-white rounded-full animate-spin"></div>
-            </div>
-          )}
-        </div>
 
-        {/* Timeline - only the progress bar with scrubbing */}
-        {hasSegments && playerReady && (
-          <div className="mt-6 mb-4 w-full max-w-2xl mx-auto">
-            <div 
-              className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden cursor-pointer"
-              onClick={(e) => {
-                // Calculate click position as percentage of width
-                const rect = e.currentTarget.getBoundingClientRect();
-                const position = (e.clientX - rect.left) / rect.width;
-                // Convert to time and seek
-                const seekTime = position * totalDuration;
-                handleTimestampClick(seekTime);
-              }}
-              onMouseMove={(e) => {
-                // Only handle if mouse button is pressed (for dragging)
-                if (e.buttons === 1) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const position = (e.clientX - rect.left) / rect.width;
-                  const seekTime = position * totalDuration;
-                  handleTimestampClick(seekTime);
-                }
-              }}
-            >
-              {/* Progress bar */}
-              <div 
-                className="absolute top-0 left-0 h-full bg-blue-500"
-                style={{ width: `${(currentTime / totalDuration) * 100}%` }}
-              ></div>
-              
-              {/* Segment markers */}
-              {timelineSegments.map((segment, idx) => (
-                <div
-                  key={idx}
-                  className="absolute top-0 w-0.5 h-full bg-gray-400 cursor-pointer"
-                  style={{ left: `${(segment.startSeconds / totalDuration) * 100}%` }}
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the parent's onClick
-                    handleTimestampClick(segment.startSeconds);
-                  }}
-                  title={segment.label}
-                ></div>
-              ))}
-            </div>
-            {/* Time indicator */}
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(totalDuration)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Integrated player controls */}
-        <div className="w-full max-w-2xl mx-auto flex justify-center items-center py-3 mt-5">
-          <PlayerControls
-            onPrevious={handlePrevious}
-            onPlay={handlePlayVideo}
-            onPause={handlePauseVideo}
-            onNext={handleNext}
-            isPlaying={isPlaying}
-            hasPrevious={currentSegmentIndex > 0}
-            hasNext={currentSegmentIndex < subSummaries.length - 1}
-          />
-        </div>
-
-        {/* Currently Playing Section Info */}
-        {hasSegments && subSummaries[currentSegmentIndex] && (
-          <div className="w-full max-w-2xl mx-auto mt-6 pt-4 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {subSummaries[currentSegmentIndex].topic || `Segment ${currentSegmentIndex + 1}`}
-            </h3>
-            
-            {/* Keywords for current segment */}
-            {formatKeywords(subSummaries[currentSegmentIndex].keywords).length > 0 && (
-              <div className="mb-3 flex flex-wrap">
-                {formatKeywords(subSummaries[currentSegmentIndex].keywords).map((keyword, idx) => (
-                  <span 
-                    key={idx} 
-                    className="mr-2 mb-2 px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs cursor-pointer hover:bg-blue-200 transition-colors"
-                    onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
-                  >
-                    {keyword}
-                  </span>
-                ))}
+      {/* Video Container */}
+      <div className="w-full px-12 pt-9 pb-6">
+        <div className="w-full max-w-[1632px] mx-auto relative">
+          <div 
+            className="w-full overflow-hidden bg-black relative"
+            style={{ aspectRatio: '16/9', maxHeight: '922px' }}
+          >
+            <div className="absolute inset-0" ref={setContainerEl}></div>
+            {!playerReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                <div className="w-16 h-16 border-4 border-white/50 border-t-white rounded-full animate-spin"></div>
               </div>
             )}
-            
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <p className="m-0 text-base leading-relaxed text-gray-700">
-                {subSummaries[currentSegmentIndex].summary}
-              </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Interview Info Section */}
+      <div className="w-full px-12">
+        <div className="w-full max-w-[1632px] mx-auto">
+          {/* Keywords Row */}
+          <div className="w-full mb-11 flex flex-wrap gap-4">
+            {mainSummary && formatKeywords(mainSummary.keywords || []).slice(0, 6).map((keyword, idx) => (
+              <div 
+                key={idx}
+                className="px-6 py-3 rounded-[50px] border border-black inline-flex justify-center items-center cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
+              >
+                <div className="text-center text-black text-base font-mono">{keyword}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Interview Title and Info */}
+          <div className="w-full mb-16">
+            <div className="text-stone-900 text-8xl font-medium font-heading mb-4">
+              {mainSummary?.name || documentName}
+            </div>
+            <div className="text-red-500 text-base font-mono">
+              {mainSummary?.role && `${mainSummary.role} | `}
+              {totalDuration > 0 && `${Math.round(totalDuration / 60)} minutes`}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Overview Section */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">
-            Overview
-          </h2>
-          <p className="text-gray-700 leading-relaxed">
-            {mainSummary?.mainSummary || 'No summary available'}
-          </p>
-        </div>
-      </div>
-
-      {/* Interview Segments Accordion */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">
-            Interview Segments
-          </h2>
-        </div>
-        {subSummaries.map((summary, index) => (
-          <AccordionItem
-            key={summary.id || index}
-            summary={summary}
-            index={index}
-            isOpen={openAccordion === index}
-            isActive={currentSegmentIndex === index}
-          />
-        ))}
-        {subSummaries.length === 0 && (
-          <div className="p-6 text-center text-gray-500">
-            No segments available for this interview
+          {/* Overview */}
+          <div className="w-full max-w-[1030px] mb-20">
+            <div className="text-black text-2xl font-normal font-body leading-relaxed">
+              {mainSummary?.mainSummary || 'No summary available'}
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Interview Segments */}
+      <div className="w-full px-12 space-y-8">
+        <div className="w-full max-w-[1632px] mx-auto">
+          {subSummaries.map((summary, index) => (
+            <div key={summary.id || index} className="w-full mb-8">
+              <div className="text-red-500 text-base font-mono mb-2">
+                Chapter {String(index + 1).padStart(2, '0')} | {summary.timestamp ? summary.timestamp.split(' - ')[0].replace(/[\[\]]/g, '').trim() : 'Unknown time'}
+              </div>
+              
+              <div className="flex gap-8 items-start">
+                <div className="w-[503px]">
+                  <div className="text-stone-900 text-4xl font-bold font-body mb-4">
+                    {summary.topic || `Segment ${index + 1}`}
+                  </div>
+                  
+                  {/* Keywords for this segment */}
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    {formatKeywords(summary.keywords).slice(0, 3).map((keyword, idx) => (
+                      <div 
+                        key={idx}
+                        className="px-6 py-3 rounded-[50px] border border-black inline-flex justify-center items-center cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
+                      >
+                        <div className="text-center text-black text-base font-mono">{keyword}</div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Play button */}
+                  <button
+                    onClick={() => {
+                      const seconds = convertTimestampToSeconds(summary.timestamp);
+                      handleTimestampClick(seconds);
+                    }}
+                    className="text-red-500 hover:text-red-700 transition-colors font-mono text-base disabled:opacity-50"
+                    disabled={!playerReady}
+                  >
+                    ▶ Play from this point
+                  </button>
+                </div>
+                
+                <div className="flex-1 max-w-[804px]">
+                  <div className="text-black text-2xl font-normal font-body leading-relaxed">
+                    {summary.summary}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Related Interviews Section */}
+      <div className="w-full px-12 py-16">
+        <div className="w-full max-w-[1632px] mx-auto">
+          <div className="mb-8">
+            <div className="w-full h-px border-t border-black mb-6"></div>
+            <div className="text-stone-900 text-8xl font-medium font-heading">
+              <span className="text-stone-900">Related</span>
+              <span className="text-red-500"> </span>
+              <span className="text-stone-900">Interviews</span>
+            </div>
+          </div>
+          
+          {/* Related interviews grid - placeholder for now */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="w-full">
+                <div className="w-full h-72 bg-zinc-300 mb-3 rounded"></div>
+                <div className="text-stone-900 text-4xl font-bold font-body mb-2">
+                  Related Interview {item}
+                </div>
+                <div className="text-stone-900 text-base font-mono">
+                  Role | Duration
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="w-full h-52 bg-red-500">
+        <div className="w-full h-full relative">
+          <button 
+            onClick={() => navigate('/')}
+            className="w-[1572px] h-20 absolute left-12 top-11 hover:opacity-70 transition-opacity cursor-pointer text-left"
+          >
+            <span className="text-gray-200 text-6xl font-normal font-body">Civil</span>
+            <span className="text-gray-200 text-6xl font-normal font-body tracking-wider"> Rights </span>
+            <span className="text-gray-200 text-6xl font-bold font-body leading-[66.46px]">History</span>
+            <span className="text-gray-200 text-6xl font-bold font-body leading-[66.46px] tracking-[2.56px]"> Project</span>
+          </button>
+          <div className="w-full h-px border-t border-zinc-300 absolute left-12 top-40"></div>
+          
+          {/* Navigation links */}
+          <div className="absolute right-12 top-23 flex space-x-8">
+            <button 
+              onClick={() => navigate('/visualizations')}
+              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
+            >
+              Timeline
+            </button>
+            <button 
+              onClick={() => navigate('/interview-index')}
+              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
+            >
+              Index
+            </button>
+            <button 
+              onClick={() => navigate('/topic-glossary')}
+              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
+            >
+              Glossary
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
+            >
+              About
+            </button>
+            <button 
+              onClick={() => window.open('https://www.loc.gov', '_blank')}
+              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
+            >
+              Library of Congress
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -13,9 +13,9 @@ export default function Layout({ children }) {
   }
   
   return (
-    <div className="h-screen w-full bg-white font-body flex flex-col">
+    <div className="min-h-screen w-full font-body" style={{ backgroundColor: '#EBEAE9' }}>
       <Header />
-      <main className="flex-1 overflow-auto">
+      <main className="w-full">
         {children}
       </main>
     </div>

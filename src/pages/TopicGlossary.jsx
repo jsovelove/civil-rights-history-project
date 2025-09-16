@@ -89,7 +89,7 @@ export default function TopicGlossary() {
       }
     }
 
-    // Apply sorting
+    // Apply sorting - always alphabetical for the new layout
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'alphabetical':
@@ -105,6 +105,21 @@ export default function TopicGlossary() {
 
     setFilteredTopics(sorted);
   }, [searchTerm, topicData, sortBy]);
+
+  /**
+   * Groups topics by their first letter
+   */
+  const groupTopicsByLetter = (topics) => {
+    const grouped = {};
+    topics.forEach(topic => {
+      const firstLetter = topic.keyword.charAt(0).toUpperCase();
+      if (!grouped[firstLetter]) {
+        grouped[firstLetter] = [];
+      }
+      grouped[firstLetter].push(topic);
+    });
+    return grouped;
+  };
 
   /**
    * Fetches pre-aggregated topics from the 'topicGlossary' collection in Firestore.
@@ -216,77 +231,89 @@ export default function TopicGlossary() {
     );
   }
 
+  const groupedTopics = groupTopicsByLetter(filteredTopics);
+  const sortedLetters = Object.keys(groupedTopics).sort();
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#EBEAE9' }}>
       {/* Header Section */}
-      <div className="px-12 pt-9 pb-6">
+      <div className="w-full max-w-[1632px] mx-auto px-12 pt-9 pb-6">
         {/* Topic count */}
         <div className="mb-4">
-          <span className="text-red-500 text-xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+          <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
             {filteredTopics.length} Keywords
           </span>
         </div>
 
         {/* Main heading */}
-        <div className="mb-6">
-          <h1 className="text-stone-900 text-8xl font-medium" style={{ fontFamily: 'Acumin Pro, sans-serif' }}>
+        <div className="mb-8">
+          <h1 className="text-stone-900 text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
             Topic Glossary
           </h1>
         </div>
 
         {/* Divider */}
         <div className="w-full h-px bg-black mb-6"></div>
+      </div>
 
-        {/* Controls Row */}
-        <div className="flex justify-between items-center mb-8">
-          {/* Filter Section */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 flex flex-col justify-center">
-                <div className="w-9 h-0.5 bg-black mb-1.5"></div>
-                <div className="w-9 h-0.5 bg-black mb-1.5"></div>
-                <div className="w-9 h-0.5 bg-black"></div>
+      {/* Controls Section */}
+      <div className="w-full max-w-[1632px] mx-auto px-12 mb-8">
+        <div className="flex justify-between items-center">
+          {/* Search Section */}
+          <div className="flex items-center gap-6">
+            <div className="w-12 h-12 relative">
+              <div className="w-2.5 h-0 absolute left-[38.34px] top-[37.79px] origin-top-left rotate-[-133.05deg] border-2 border-stone-900"></div>
+              <div className="w-6 h-6 absolute left-[10px] top-[13.17px] origin-top-left rotate-[-5.18deg] rounded-full border-2 border-stone-900"></div>
+            </div>
+            <div className="w-40 h-6">
+              <input
+                type="text"
+                placeholder="Search in glossary"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none w-full"
+                style={{ fontFamily: 'Chivo Mono, monospace' }}
+              />
+            </div>
+          </div>
+
+          {/* Filter and Sort Section */}
+          <div className="flex items-center gap-8">
+            {/* Filter */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 relative">
+                <div className="w-9 h-0 absolute left-[42px] top-[12px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
+                <div className="w-9 h-0 absolute left-[42px] top-[24px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
+                <div className="w-9 h-0 absolute left-[42px] top-[36px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
+                <div className="w-2 h-2 absolute left-[11px] top-[9px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
+                <div className="w-2 h-2 absolute left-[29px] top-[21px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
+                <div className="w-2 h-2 absolute left-[17px] top-[33px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
               </div>
               <span className="text-stone-900 text-xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                 Filter
               </span>
             </div>
-            
-            {/* Search Input */}
-            <input
-              type="text"
-              placeholder="Search topics..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-black bg-white text-base font-light"
-              style={{ fontFamily: 'Chivo Mono, monospace' }}
-            />
-          </div>
 
-          {/* Sort and View Map */}
-          <div className="flex items-center gap-4">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-stone-900 text-xl font-light bg-transparent border-none"
-              style={{ fontFamily: 'Chivo Mono, monospace' }}
-            >
-              <option value="alphabetical">Sort by: A-Z</option>
-              <option value="clipCount">Sort by: Most Clips</option>
-              <option value="interviewCount">Sort by: Most Interviews</option>
-            </select>
-            
-            <button className="px-6 py-3 rounded-full border border-black">
-              <span className="text-black text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                View Map
-              </span>
-            </button>
+            {/* Sort */}
+            <div className="flex items-center gap-4">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
+                style={{ fontFamily: 'Chivo Mono, monospace' }}
+              >
+                <option value="alphabetical">Sort by: A-Z</option>
+                <option value="clipCount">Sort by: Most Clips</option>
+                <option value="interviewCount">Sort by: Most Interviews</option>
+              </select>
+              <div className="w-4 h-3 origin-top-left rotate-90 border border-stone-900"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Topics Grid */}
-      <div className="px-12 pb-12">
+      {/* Topics by Letter */}
+      <div className="w-full max-w-[1632px] mx-auto px-12 pb-12">
         {filteredTopics.length === 0 ? (
           <div className="text-center py-16">
             <span className="text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
@@ -294,29 +321,42 @@ export default function TopicGlossary() {
             </span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredTopics.map((topic) => (
-              <div 
-                key={topic.keyword}
-                className="w-full h-72 border border-black bg-white cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => handleTopicClick(topic.keyword)}
-              >
-                {/* Topic Title - Centered */}
-                <div className="h-full flex flex-col justify-center items-center text-center px-6">
-                  <h3 className="text-stone-900 text-6xl font-black mb-8 capitalize" style={{ 
-                    fontFamily: 'Freight Text Pro, serif'
-                  }}>
-                    {topic.keyword}
-                  </h3>
-                  
-                  {/* Statistics */}
-                  <div className="text-center">
-                    <span className="text-stone-900 text-base font-light" style={{ 
-                      fontFamily: 'Chivo Mono, monospace' 
-                    }}>
-                      {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
-                    </span>
+          <div className="space-y-16">
+            {sortedLetters.map((letter) => (
+              <div key={letter} className="space-y-6">
+                {/* Letter Header */}
+                <div className="w-full inline-flex flex-col justify-start items-start gap-[5px]">
+                  <div className="text-red-500 text-4xl font-semibold" style={{ fontFamily: 'Acumin Pro, sans-serif' }}>
+                    {letter}
                   </div>
+                  <div className="w-full h-0 border border-black"></div>
+                </div>
+
+                {/* Topics Grid for this letter */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {groupedTopics[letter].map((topic) => (
+                    <div 
+                      key={topic.keyword}
+                      className="w-64 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleTopicClick(topic.keyword)}
+                    >
+                      <div className="w-60 inline-flex flex-col justify-start items-start gap-4">
+                        <div className="self-stretch flex flex-col justify-start items-start gap-4">
+                          <div className="flex flex-col justify-start items-start gap-0.5">
+                            <div className="text-stone-900 text-4xl font-bold capitalize" style={{ fontFamily: 'Source Serif 4, serif' }}>
+                              {topic.keyword}
+                            </div>
+                            <div className="text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                              {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
+                            </div>
+                          </div>
+                          <div className="self-stretch text-stone-900 text-base font-normal" style={{ fontFamily: 'Source Serif 4, serif' }}>
+                            {topic.description || `${topic.keyword} is discussed across ${topic.interviewCount} interviews, providing insights into this important aspect of the civil rights movement.`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
