@@ -12,7 +12,7 @@ For Adobe Fonts, add to your HTML head:
 
 @layer base {
   html {
-    font-family: 'Freight Text Pro', 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    font-family: 'Freight Text Pro', 'Crimson Text', 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
     font-weight: 400;
   }
   

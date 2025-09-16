@@ -92,158 +92,102 @@ export default function Header() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed top-0 right-0 w-full sm:w-[480px] md:w-[600px] lg:w-[720px] xl:w-[960px] h-full bg-red-500 border-l border-stone-900 shadow-xl z-50 flex flex-col transition-transform duration-300 ease-in-out overflow-y-auto ${
+      <div className={`fixed top-0 right-0 w-[864px] h-full px-9 pb-9 shadow-xl z-50 flex justify-start items-center gap-2.5 transition-transform duration-300 ease-in-out overflow-y-auto ${
         isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 sm:p-6 lg:p-8 pb-8 sm:pb-12 lg:pb-16 flex-shrink-0">
-          <h2 style={{
-            fontFamily: 'Acumin Pro, Inter, sans-serif',
-            fontWeight: 400,
-            fontSize: 'clamp(20px, 3vw, 24px)',
-            color: 'black'
-          }}>
-            Menu
-          </h2>
-          <button
-            onClick={() => setIsMenuOpen(false)}
-            className="text-black hover:text-gray-700 transition-colors"
-          >
-            <X size={24} className="sm:w-8 sm:h-8" strokeWidth={1.5} />
-          </button>
-        </div>
+      }`} style={{ backgroundColor: '#F2483C' }}>
+        <div className="w-[786px] self-stretch py-9 inline-flex flex-col justify-start items-start gap-12">
+          {/* Header */}
+          <div className="self-stretch h-16 relative">
+            <div className="w-[718px] h-0 left-[718px] top-[67px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
+            <div className="w-[783px] h-12 left-[3px] top-0 absolute">
+              <div className="w-72 h-10 left-0 top-[3px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                Menu
+              </div>
+              <div className="w-12 h-12 left-[735px] top-0 absolute">
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-6 h-6 left-[12px] top-[12px] absolute outline outline-2 outline-offset-[-1px] outline-black hover:opacity-70 transition-opacity"
+                >
+                  <X size={24} strokeWidth={1.5} />
+                </button>
+              </div>
+            </div>
+          </div>
 
-        {/* Navigation Menu */}
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 min-h-0">
-          <nav className="space-y-0">
-            {/* Timeline */}
-            <div className="border-b border-black">
+          {/* Timeline */}
+          <div className="w-[718px] h-32 relative">
+            <div className="w-[718px] h-0 left-[718px] top-[134px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
+            <div className="w-[718px] h-28 left-0 top-0 absolute">
               <Link
                 to="/"
-                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
+                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 'clamp(16px, 2vw, 24px)',
-                  color: 'black'
-                }} className="mr-8 sm:mr-12 lg:mr-16">
+                <div className="w-20 h-10 left-0 top-[9px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                   01.
-                </span>
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: 'clamp(32px, 6vw, 64px)',
-                  color: 'black',
-                  lineHeight: '1'
-                }}>
+                </div>
+                <div className="w-[460px] h-28 left-[258px] top-[-10px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
                   Timeline
-                </span>
+                </div>
               </Link>
             </div>
+          </div>
 
-            {/* Interviews */}
-            <div className="border-b border-black">
+          {/* Interviews */}
+          <div className="w-[718px] h-36 relative">
+            <div className="w-[718px] h-0 left-[718px] top-[141px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
+            <div className="w-[718px] h-28 left-0 top-0 absolute">
               <Link
                 to="/interview-index"
-                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
+                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 'clamp(16px, 2vw, 24px)',
-                  color: 'black'
-                }} className="mr-8 sm:mr-12 lg:mr-16">
+                <div className="w-24 h-10 left-0 top-[7px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                   02.
-                </span>
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: 'clamp(32px, 6vw, 64px)',
-                  color: 'black',
-                  lineHeight: '1'
-                }}>
+                </div>
+                <div className="w-[591px] h-28 left-[127px] top-[-13px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
                   Interviews
-                </span>
+                </div>
               </Link>
             </div>
+          </div>
 
-            {/* Glossary */}
-            <div className="border-b border-black">
+          {/* Glossary */}
+          <div className="w-[718px] h-32 relative">
+            <div className="w-[718px] h-0 left-[718px] top-[135px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
+            <div className="w-[715px] h-28 left-[3px] top-0 absolute">
               <Link
                 to="/topic-glossary"
-                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
+                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 'clamp(16px, 2vw, 24px)',
-                  color: 'black'
-                }} className="mr-8 sm:mr-12 lg:mr-16">
+                <div className="w-28 h-10 left-0 top-[2px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                   03.
-                </span>
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: 'clamp(32px, 6vw, 64px)',
-                  color: 'black',
-                  lineHeight: '1'
-                }}>
+                </div>
+                <div className="w-[591px] h-28 left-[124px] top-[-18px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
                   Glossary
-                </span>
+                </div>
               </Link>
             </div>
+          </div>
 
-            {/* About */}
-            <div className="border-b border-black">
+          {/* About */}
+          <div className="w-[718px] h-36 relative">
+            <div className="w-[718px] h-0 left-[718px] top-[142px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
+            <div className="w-[715px] h-28 left-[3px] top-0 absolute">
               <Link
                 to="/about"
-                className="flex items-center py-4 sm:py-6 lg:py-8 group hover:opacity-80 transition-opacity"
+                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 'clamp(16px, 2vw, 24px)',
-                  color: 'black'
-                }} className="mr-8 sm:mr-12 lg:mr-16">
+                <div className="w-24 h-10 left-0 top-0 absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                   04.
-                </span>
-                <span style={{
-                  fontFamily: 'Acumin Pro, Inter, sans-serif',
-                  fontWeight: 700,
-                  fontSize: 'clamp(32px, 6vw, 64px)',
-                  color: 'black',
-                  lineHeight: '1'
-                }}>
+                </div>
+                <div className="w-[591px] h-28 left-[124px] top-[-20px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
                   About
-                </span>
+                </div>
               </Link>
             </div>
-          </nav>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 sm:p-6 lg:p-8 border-t border-black/20 flex-shrink-0">
-          <div className="flex items-center space-x-4">
-            <div className="text-black text-sm sm:text-base">
-              © 2024 Civil Rights History Project
-            </div>
-            {user && (
-              <button
-                onClick={() => {
-                  logout();
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center space-x-2 text-black hover:text-gray-700 transition-colors"
-              >
-                <LogOut size={16} />
-                <span className="text-sm">Logout</span>
-              </button>
-            )}
           </div>
         </div>
       </div>

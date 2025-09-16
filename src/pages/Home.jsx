@@ -7,12 +7,33 @@
 
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import TimelineLandingImage from '/src/assetts/MLKandMalcolmX.png';
+import { useState, useEffect } from 'react';
+import { getStorageImageUrl } from '../services/firebase';
 
 /**
  * TimelineEvent - Reusable component for timeline events
  */
-const TimelineEvent = ({ date, title, description, quote, author, images, watchLink, isLeft = false }) => (
+const TimelineEvent = ({ date, title, description, quote, author, images, firebaseImagePath, watchLink, isLeft = false }) => {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [imageLoading, setImageLoading] = useState(!!firebaseImagePath);
+
+  useEffect(() => {
+    if (firebaseImagePath) {
+      const loadImage = async () => {
+        try {
+          const url = await getStorageImageUrl(firebaseImagePath);
+          setImageUrl(url);
+        } catch (error) {
+          console.error('Failed to load timeline image:', error);
+        } finally {
+          setImageLoading(false);
+        }
+      };
+      loadImage();
+    }
+  }, [firebaseImagePath]);
+
+  return (
   <div className="relative mb-20">
     {/* Timeline dot and line - hidden on mobile, visible on desktop */}
     <div className="hidden lg:block absolute left-1/2 transform -translate-x-1/2 top-0">
@@ -55,19 +76,30 @@ const TimelineEvent = ({ date, title, description, quote, author, images, watchL
         )}
       </div>
 
-      {/* Image placeholder - can be enhanced later */}
+      {/* Image section */}
       <div className={`${isLeft ? 'lg:order-1' : ''} h-48 sm:h-64 lg:h-96`}>
-        {images && images[0] && (
+        {imageLoading ? (
+          <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+            <span className="text-gray-500">Loading image...</span>
+          </div>
+        ) : imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={`Historical image related to ${title}`}
+            className="w-full h-full object-cover"
+          />
+        ) : images && images[0] ? (
           <img 
             src={images[0]} 
             alt={`Historical image related to ${title}`}
             className="w-full h-full object-cover"
           />
-        )}
+        ) : null}
       </div>
     </div>
   </div>
-);
+  );
+};
 
 /**
  * DecadeSection - Component for decade headers
@@ -96,6 +128,23 @@ const DecadeSection = ({ decade, subtitle }) => (
  */
 export default function Home() {
   const { user } = useAuth();
+  const [landingImageUrl, setLandingImageUrl] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLandingImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Landing Photos/Landing Collage 01.png');
+        setLandingImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load landing image:', error);
+      } finally {
+        setImageLoading(false);
+      }
+    };
+
+    loadLandingImage();
+  }, []);
 
   return (
     <div className="w-full" style={{ backgroundColor: '#EBEAE9' }}>
@@ -123,11 +172,21 @@ export default function Home() {
 
             {/* Hero Images */}
             <div className="relative h-[400px] sm:h-[500px] lg:h-[600px] w-full">
-              <img 
-                className="w-full h-full object-cover" 
-                src={TimelineLandingImage}
-                alt="Civil Rights Movement Timeline Collage"
-              />
+              {imageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : landingImageUrl ? (
+                <img 
+                  className="w-full h-full object-cover" 
+                  src={landingImageUrl}
+                  alt="Civil Rights Movement Timeline Collage"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -161,6 +220,7 @@ export default function Home() {
           description="The brutal murder of 14-year-old Emmett Till in Mississippi became a pivotal catalyst in the civil rights movement, highlighting the pervasive racial violence and injustice in the United States."
           quote="I remember being with [Mamie Till] when we stayed up all night waiting on the body to come in from, uh, Mississippi. And when it did come in, she demanded that the body be open, 'so they – the world can see what they did to my boy.'"
           author="Simeon Booker"
+          firebaseImagePath="photos/Photos/Timeline Photos/Mamie Till.png"
           watchLink={true}
           isLeft={true}
         />

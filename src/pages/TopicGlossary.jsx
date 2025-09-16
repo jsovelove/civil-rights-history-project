@@ -223,7 +223,7 @@ export default function TopicGlossary() {
     return (
       <div className="min-h-screen bg-gray-200 flex justify-center items-center">
         <div className="bg-white border border-black text-black px-6 py-4" style={{
-          fontFamily: 'Freight Text Pro, serif'
+          fontFamily: 'Freight Text Pro, Crimson Text, serif'
         }}>
           {error}
         </div>
@@ -326,7 +326,7 @@ export default function TopicGlossary() {
               <div key={letter} className="space-y-6">
                 {/* Letter Header */}
                 <div className="w-full inline-flex flex-col justify-start items-start gap-[5px]">
-                  <div className="text-red-500 text-4xl font-semibold" style={{ fontFamily: 'Acumin Pro, sans-serif' }}>
+                  <div className="text-red-500 text-4xl font-semibold" style={{ fontFamily: 'Acumin Pro, Inter, sans-serif' }}>
                     {letter}
                   </div>
                   <div className="w-full h-0 border border-black"></div>
@@ -343,14 +343,14 @@ export default function TopicGlossary() {
                       <div className="w-60 inline-flex flex-col justify-start items-start gap-4">
                         <div className="self-stretch flex flex-col justify-start items-start gap-4">
                           <div className="flex flex-col justify-start items-start gap-0.5">
-                            <div className="text-stone-900 text-4xl font-bold capitalize" style={{ fontFamily: 'Source Serif 4, serif' }}>
+                            <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] capitalize">
                               {topic.keyword}
                             </div>
                             <div className="text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                               {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
                             </div>
                           </div>
-                          <div className="self-stretch text-stone-900 text-base font-normal" style={{ fontFamily: 'Source Serif 4, serif' }}>
+                          <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4']">
                             {topic.description || `${topic.keyword} is discussed across ${topic.interviewCount} interviews, providing insights into this important aspect of the civil rights movement.`}
                           </div>
                         </div>
