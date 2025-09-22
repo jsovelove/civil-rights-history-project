@@ -227,7 +227,7 @@ export default function ContentDirectory() {
       getSearchFromCache 
     }}>
       <div className="font-body" style={{ backgroundColor: '#EBEAE9', minHeight: '100vh' }}>
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto px-6 pt-4 pb-8">
           {/* Page header */}
           <div className="mb-8">
             <h1 style={{

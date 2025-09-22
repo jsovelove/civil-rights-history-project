@@ -10,6 +10,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
 import { db } from '../services/firebase'
+import Footer from '../components/common/Footer'
 
 /**
  * InterviewPlayer - Main component for viewing and navigating interview videos
@@ -349,7 +350,7 @@ export default function InterviewPlayer() {
   return (
     <div className="w-full relative bg-gray-200 overflow-hidden">
       {/* Header Navigation */}
-      <div className="w-full h-12 px-12 pt-9 pb-3">
+      <div className="w-full h-12 px-12 pt-4 pb-3">
         <div className="w-full h-11 relative">
           <div className="w-[507px] left-0 top-0 absolute inline-flex justify-center items-center gap-2.5">
             <button 
@@ -370,7 +371,7 @@ export default function InterviewPlayer() {
 
 
       {/* Video Container */}
-      <div className="w-full px-12 pt-9 pb-6">
+      <div className="w-full px-12 pt-4 pb-6">
         <div className="w-full max-w-[1632px] mx-auto relative">
           <div 
             className="w-full overflow-hidden bg-black relative"
@@ -504,54 +505,7 @@ export default function InterviewPlayer() {
       </div>
 
       {/* Footer */}
-      <div className="w-full h-52 bg-red-500">
-        <div className="w-full h-full relative">
-          <button 
-            onClick={() => navigate('/')}
-            className="w-[1572px] h-20 absolute left-12 top-11 hover:opacity-70 transition-opacity cursor-pointer text-left"
-          >
-            <span className="text-gray-200 text-6xl font-normal font-body">Civil</span>
-            <span className="text-gray-200 text-6xl font-normal font-body tracking-wider"> Rights </span>
-            <span className="text-gray-200 text-6xl font-bold font-body leading-[66.46px]">History</span>
-            <span className="text-gray-200 text-6xl font-bold font-body leading-[66.46px] tracking-[2.56px]"> Project</span>
-          </button>
-          <div className="w-full h-px border-t border-zinc-300 absolute left-12 top-40"></div>
-          
-          {/* Navigation links */}
-          <div className="absolute right-12 top-23 flex space-x-8">
-            <button 
-              onClick={() => navigate('/visualizations')}
-              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
-            >
-              Timeline
-            </button>
-            <button 
-              onClick={() => navigate('/interview-index')}
-              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
-            >
-              Index
-            </button>
-            <button 
-              onClick={() => navigate('/topic-glossary')}
-              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
-            >
-              Glossary
-            </button>
-            <button 
-              onClick={() => navigate('/')}
-              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
-            >
-              About
-            </button>
-            <button 
-              onClick={() => window.open('https://www.loc.gov', '_blank')}
-              className="text-white text-xl font-bold font-heading cursor-pointer hover:underline"
-            >
-              Library of Congress
-            </button>
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   )
 }

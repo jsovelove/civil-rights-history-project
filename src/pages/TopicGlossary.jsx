@@ -237,7 +237,7 @@ export default function TopicGlossary() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#EBEAE9' }}>
       {/* Header Section */}
-      <div className="w-full max-w-[1632px] mx-auto px-12 pt-9 pb-6">
+      <div className="w-full max-w-[1632px] mx-auto px-12 pt-3 pb-6">
         {/* Topic count */}
         <div className="mb-4">
           <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>

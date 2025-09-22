@@ -3,14 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Search, 
-  Menu,
-  X,
-  Home as HomeIcon,
-  List,
-  FileText,
-  Database,
-  Braces,
-  LogOut
+  X
 } from 'lucide-react';
 import VectorSearchOverlay from '../VectorSearchOverlay';
 
@@ -31,18 +24,6 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const location = useLocation();
 
-  const navLinks = [
-    { path: '/', label: 'Home', icon: <HomeIcon size={20} /> },
-    { path: '/visualizations', label: 'Visualizations', icon: <Database size={20} /> },
-    { path: '/content-directory', label: 'Directory', icon: <List size={20} /> },
-    { path: '/transcript-summary', label: 'Summarizer', icon: <FileText size={20} /> },
-    { path: '/search', label: 'Search', icon: <Search size={20} /> },
-    { path: '/semantic-search', label: 'Semantic Search', icon: <Braces size={20} /> }
-  ];
-
-  const isActiveLink = (path) => {
-    return location.pathname === path;
-  };
 
   return (
     <>
@@ -92,102 +73,85 @@ export default function Header() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed top-0 right-0 w-[864px] h-full px-9 pb-9 shadow-xl z-50 flex justify-start items-center gap-2.5 transition-transform duration-300 ease-in-out overflow-y-auto ${
+      <div className={`fixed top-0 right-0 w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-3xl h-full px-4 sm:px-6 lg:px-9 py-4 sm:py-6 lg:py-9 shadow-xl z-50 flex justify-start items-start transition-transform duration-300 ease-in-out overflow-hidden ${
         isMenuOpen ? 'translate-x-0' : 'translate-x-full'
       }`} style={{ backgroundColor: '#F2483C' }}>
-        <div className="w-[786px] self-stretch py-9 inline-flex flex-col justify-start items-start gap-12">
+        <div className="w-full h-full flex flex-col justify-start items-start gap-2 sm:gap-4 lg:gap-12">
           {/* Header */}
-          <div className="self-stretch h-16 relative">
-            <div className="w-[718px] h-0 left-[718px] top-[67px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
-            <div className="w-[783px] h-12 left-[3px] top-0 absolute">
-              <div className="w-72 h-10 left-0 top-[3px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                Menu
-              </div>
-              <div className="w-12 h-12 left-[735px] top-0 absolute">
-                <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="w-6 h-6 left-[12px] top-[12px] absolute outline outline-2 outline-offset-[-1px] outline-black hover:opacity-70 transition-opacity"
-                >
-                  <X size={24} strokeWidth={1.5} />
-                </button>
-              </div>
+          <div className="w-full flex justify-between items-center pb-2 sm:pb-3 lg:pb-6 border-b border-black">
+            <div className="text-black text-2xl lg:text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+              Menu
             </div>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="p-2 outline outline-2 outline-offset-[-1px] outline-black hover:opacity-70 transition-opacity"
+            >
+              <X size={20} strokeWidth={1.5} />
+            </button>
           </div>
 
           {/* Timeline */}
-          <div className="w-[718px] h-32 relative">
-            <div className="w-[718px] h-0 left-[718px] top-[134px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
-            <div className="w-[718px] h-28 left-0 top-0 absolute">
-              <Link
-                to="/"
-                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <div className="w-20 h-10 left-0 top-[9px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                  01.
-                </div>
-                <div className="w-[460px] h-28 left-[258px] top-[-10px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  Timeline
-                </div>
-              </Link>
-            </div>
+          <div className="w-full border-b border-black pb-2 sm:pb-3 lg:pb-6">
+            <Link
+              to="/"
+              className="flex items-center justify-between w-full hover:opacity-80 transition-opacity"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="text-black text-xl lg:text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                01.
+              </div>
+              <div className="text-right text-black text-2xl sm:text-3xl md:text-4xl lg:text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                Timeline
+              </div>
+            </Link>
           </div>
 
           {/* Interviews */}
-          <div className="w-[718px] h-36 relative">
-            <div className="w-[718px] h-0 left-[718px] top-[141px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
-            <div className="w-[718px] h-28 left-0 top-0 absolute">
-              <Link
-                to="/interview-index"
-                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <div className="w-24 h-10 left-0 top-[7px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                  02.
-                </div>
-                <div className="w-[591px] h-28 left-[127px] top-[-13px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  Interviews
-                </div>
-              </Link>
-            </div>
+          <div className="w-full border-b border-black pb-2 sm:pb-3 lg:pb-6">
+            <Link
+              to="/interview-index"
+              className="flex items-center justify-between w-full hover:opacity-80 transition-opacity"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="text-black text-xl lg:text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                02.
+              </div>
+              <div className="text-right text-black text-2xl sm:text-3xl md:text-4xl lg:text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                Interviews
+              </div>
+            </Link>
           </div>
 
           {/* Glossary */}
-          <div className="w-[718px] h-32 relative">
-            <div className="w-[718px] h-0 left-[718px] top-[135px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
-            <div className="w-[715px] h-28 left-[3px] top-0 absolute">
-              <Link
-                to="/topic-glossary"
-                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <div className="w-28 h-10 left-0 top-[2px] absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                  03.
-                </div>
-                <div className="w-[591px] h-28 left-[124px] top-[-18px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  Glossary
-                </div>
-              </Link>
-            </div>
+          <div className="w-full border-b border-black pb-2 sm:pb-3 lg:pb-6">
+            <Link
+              to="/topic-glossary"
+              className="flex items-center justify-between w-full hover:opacity-80 transition-opacity"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="text-black text-xl lg:text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                03.
+              </div>
+              <div className="text-right text-black text-2xl sm:text-3xl md:text-4xl lg:text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                Glossary
+              </div>
+            </Link>
           </div>
 
           {/* About */}
-          <div className="w-[718px] h-36 relative">
-            <div className="w-[718px] h-0 left-[718px] top-[142px] absolute origin-top-left rotate-180 outline outline-1 outline-offset-[-0.50px] outline-black"></div>
-            <div className="w-[715px] h-28 left-[3px] top-0 absolute">
-              <Link
-                to="/about"
-                className="flex items-start w-full h-full hover:opacity-80 transition-opacity"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <div className="w-24 h-10 left-0 top-0 absolute text-black text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                  04.
-                </div>
-                <div className="w-[591px] h-28 left-[124px] top-[-20px] absolute text-right text-black text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  About
-                </div>
-              </Link>
-            </div>
+          <div className="w-full">
+            <Link
+              to="/about"
+              className="flex items-center justify-between w-full hover:opacity-80 transition-opacity"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="text-black text-xl lg:text-3xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                04.
+              </div>
+              <div className="text-right text-black text-2xl sm:text-3xl md:text-4xl lg:text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                About
+              </div>
+            </Link>
           </div>
         </div>
       </div>

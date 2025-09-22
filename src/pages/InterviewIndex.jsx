@@ -146,7 +146,7 @@ export default function InterviewIndex() {
   return (
     <div className="min-h-screen overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
       {/* Header Section */}
-      <div className="w-full px-[48px] pt-[161px] pb-[48px]">
+      <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-[48px] pt-8 sm:pt-10 md:pt-12 lg:pt-16 xl:pt-20 pb-8 sm:pb-10 md:pb-12 lg:pb-[48px]">
         {/* Interview count and total minutes */}
         <div className="mb-[31px]">
           <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
@@ -155,17 +155,17 @@ export default function InterviewIndex() {
         </div>
 
         {/* Main heading */}
-        <div className="mb-[32px]">
-          <h1 className="text-stone-900 text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="mb-6 sm:mb-7 md:mb-8 lg:mb-[32px]">
+          <h1 className="text-stone-900 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
             Interview Index
           </h1>
         </div>
 
         {/* Divider */}
-        <div className="w-full h-px bg-black mb-[48px]"></div>
+        <div className="w-full h-px bg-black mb-8 sm:mb-10 md:mb-12 lg:mb-[48px]"></div>
 
         {/* Controls Row */}
-        <div className="flex justify-between items-center mb-[48px]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-10 md:mb-12 lg:mb-[48px]">
           {/* Search Section */}
           <div className="flex items-center gap-6">
             {/* Search Icon and Input */}
@@ -179,7 +179,7 @@ export default function InterviewIndex() {
                 placeholder="Search in index"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none w-60"
+                className="text-stone-900 text-base sm:text-lg md:text-xl font-light bg-transparent border-none outline-none w-40 sm:w-48 md:w-60"
                 style={{ fontFamily: 'Chivo Mono, monospace' }}
               />
             </div>
@@ -222,7 +222,7 @@ export default function InterviewIndex() {
       </div>
 
       {/* Interviews Grid */}
-      <div className="px-[49px] pb-[48px]">
+      <div className="px-4 sm:px-8 md:px-12 lg:px-16 xl:px-[49px] pb-8 sm:pb-12 md:pb-16 lg:pb-[48px]">
         {filteredInterviews.length === 0 ? (
           <div className="text-center py-16">
             <span className="text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
@@ -230,36 +230,36 @@ export default function InterviewIndex() {
             </span>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-x-[74px] gap-y-[87px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-8 md:gap-x-12 lg:gap-x-16 xl:gap-x-[74px] gap-y-8 sm:gap-y-12 md:gap-y-16 lg:gap-y-20 xl:gap-y-[87px]">
             {filteredInterviews.map((interview) => (
               <div 
                 key={interview.id}
-                className="w-[526.94px] h-96 cursor-pointer"
+                className="w-full max-w-xs sm:max-w-sm lg:max-w-md xl:max-w-lg mx-auto cursor-pointer"
                 onClick={() => handleInterviewClick(interview.id)}
               >
-                <div className="w-[525.89px] flex flex-col items-center gap-3">
+                <div className="w-full flex flex-col items-center gap-3">
                   {/* Image */}
                   {interview.thumbnailUrl ? (
                     <img 
-                      className="w-[526.94px] h-72 object-cover" 
+                      className="w-full aspect-[4/3] object-cover" 
                       src={interview.thumbnailUrl}
                       alt={interview.name}
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-[526.94px] h-72 bg-zinc-300 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-full aspect-[4/3] bg-zinc-300 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 sm:h-16 sm:w-16 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </div>
                   )}
                   
                   {/* Text content */}
-                  <div className="self-stretch h-20 relative">
-                    <div className="absolute left-[1.04px] top-[55.41px] text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                  <div className="self-stretch min-h-20 relative">
+                    <div className="text-stone-900 text-base font-light mb-2" style={{ fontFamily: 'Chivo Mono, monospace' }}>
                       {formatDuration(interview.duration)}
                     </div>
-                    <div className="w-[525.89px] absolute left-0 top-0 text-stone-900 text-4xl font-bold" style={{ fontFamily: 'Source Serif 4, serif' }}>
+                    <div className="w-full text-stone-900 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight" style={{ fontFamily: 'Source Serif 4, serif' }}>
                       {interview.name}
                     </div>
                   </div>

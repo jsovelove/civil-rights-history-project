@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Footer from '../components/common/Footer';
 
 /**
  * About - About page component based on Figma design
@@ -19,7 +20,7 @@ export default function About() {
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
         
         {/* About the Project Section */}
-        <div className="pt-8 pb-16">
+        <div className="pt-4 pb-16">
           <div className="border-b border-black pb-4 mb-8">
             <h1 className="text-stone-900 text-6xl lg:text-8xl font-medium font-['Inter']">About the Project</h1>
           </div>
@@ -240,25 +241,7 @@ export default function About() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-red-500 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
-          <div className="flex flex-col lg:flex-row justify-between items-center mb-8">
-            <div className="text-center lg:text-left mb-6 lg:mb-0">
-              <h3 className="text-gray-200 text-6xl font-normal font-['Source_Serif_Pro']">
-                Civil Rights <span className="font-bold">History Project</span>
-              </h3>
-            </div>
-            <nav className="flex flex-wrap justify-center lg:justify-end gap-4 sm:gap-6 lg:gap-8">
-              <Link to="/visualizations" className="text-white text-xl font-bold font-['Inter'] hover:underline">Timeline</Link>
-              <Link to="/interview-index" className="text-white text-xl font-bold font-['Inter'] hover:underline">Index</Link>
-              <Link to="/topic-glossary" className="text-white text-xl font-bold font-['Inter'] hover:underline">Glossary</Link>
-              <Link to="/about" className="text-white text-xl font-bold font-['Inter'] hover:underline">About</Link>
-              <a href="https://www.loc.gov" target="_blank" rel="noopener noreferrer" className="text-white text-xl font-bold font-['Inter'] hover:underline">Library of Congress</a>
-            </nav>
-          </div>
-          <div className="w-full h-px bg-zinc-300 opacity-30"></div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
