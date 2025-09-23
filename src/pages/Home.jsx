@@ -10,6 +10,11 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { getStorageImageUrl } from '../services/firebase';
 import Footer from '../components/common/Footer';
+import EmmettToMontgomeryConnector from '../components/connectors/EmmettToMontgomeryConnector';
+import MontgomeryToLittleRockConnector from '../components/connectors/MontgomeryToLittleRockConnector';
+import LittleRockToSNCCConnector from '../components/connectors/LittleRockToSNCCConnector';
+import SNCCToFreedomRidersConnector from '../components/connectors/SNCCToFreedomRidersConnector';
+import FreedomRidersToMedgarEversConnector from '../components/connectors/FreedomRidersToMedgarEversConnector';
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -147,7 +152,7 @@ const SmartRay = ({
  */
 const DecadeSection = ({ decade, subtitle }) => (
   <div className="relative mb-16 lg:mb-24 mt-20 lg:mt-32">
-    <div className="pt-8 lg:pt-20 px-4">
+        <div className="pt-8 lg:pt-20 px-2">
       {/* Grid layout for desktop, stacked for mobile */}
       <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 max-w-7xl mx-auto">
         {/* Central timeline marker - hidden on mobile, centered with decade text */}
@@ -156,8 +161,8 @@ const DecadeSection = ({ decade, subtitle }) => (
         </div>
         
         {/* Decade - Left side on desktop, centered on mobile */}
-        <div className="text-center lg:text-right lg:pr-8">
-          <h2 className="mb-4 lg:mb-6">
+        <div className={`text-center ${decade.includes(' ') ? 'lg:text-left sm:-ml-4 md:-ml-8 lg:-ml-32' : 'lg:text-right lg:pr-8'}`}>
+          <h2 className="mb-4 lg:mb-6 whitespace-nowrap">
             <span className="text-red-500 text-5xl sm:text-6xl lg:text-7xl xl:text-9xl font-extralight font-['Inter']">{decade.split(' ')[0]}</span>
             <span className="text-red-500 text-5xl sm:text-6xl lg:text-7xl xl:text-9xl font-medium font-['Inter']"> {decade.split(' ').slice(1).join(' ')}</span>
           </h2>
@@ -205,7 +210,7 @@ const EmmettTillImage = () => {
     <img
       src={imageUrl}
       alt="Historical image related to The Lynching of Emmett Till"
-      className="w-full h-full object-cover"
+      className="w-full h-full object-contain"
     />
   ) : (
     <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -256,95 +261,9 @@ const EmmettTillGif = () => {
   );
 };
 
-/**
- * EmmettToMontgomeryConnector - Custom connector from red rectangle to Montgomery date badge
- */
-const EmmettToMontgomeryConnector = ({ fromRef, toRef }) => {
-  const [connectorPath, setConnectorPath] = useState({ 
-    segments: [], 
-    show: false 
-  });
 
-  useEffect(() => {
-    const updateConnector = () => {
-      if (fromRef.current && toRef.current) {
-        const fromRect = fromRef.current.getBoundingClientRect();
-        const toRect = toRef.current.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-         // Start from bottom center of red rectangle, but moved up
-         const startX = fromRect.left + fromRect.width / 2;
-         const startY = fromRect.bottom + scrollTop - 150; // Move starting point up by 30px
 
-        // End at center of date badge
-        const endX = toRect.left + toRect.width / 2;
-        const endY = toRect.top + toRect.height / 2 + scrollTop;
-
-        // Calculate elbow points
-        const verticalDropHeight = 100; // Drop down from red rectangle
-        const horizontalY = startY + verticalDropHeight;
-        
-        const segments = [
-          // Vertical segment down from red rectangle
-          {
-            type: 'vertical',
-            x: startX,
-            y: startY,
-            height: verticalDropHeight
-          },
-          // Horizontal segment left to align with date badge
-          {
-            type: 'horizontal', 
-            x: Math.min(startX, endX),
-            y: horizontalY,
-            width: Math.abs(endX - startX)
-          },
-          // Vertical segment down to date badge
-          {
-            type: 'vertical',
-            x: endX,
-            y: horizontalY,
-            height: endY - horizontalY -175
-          }
-        ];
-
-        setConnectorPath({ segments, show: true });
-      }
-    };
-
-    updateConnector();
-    window.addEventListener('resize', updateConnector);
-    window.addEventListener('scroll', updateConnector);
-
-    return () => {
-      window.removeEventListener('resize', updateConnector);
-      window.removeEventListener('scroll', updateConnector);
-    };
-  }, [fromRef, toRef]);
-
-  if (!connectorPath.show) return null;
-
-  return (
-    <>
-      {connectorPath.segments.map((segment, index) => (
-        <div
-          key={index}
-          className={`absolute bg-red-500 opacity-100 pointer-events-none ${
-            segment.type === 'horizontal' ? 'h-px' : 'w-px'
-          }`}
-          style={{
-            left: segment.type === 'horizontal' ? segment.x : segment.x,
-            top: segment.y,
-            width: segment.type === 'horizontal' ? segment.width : undefined,
-            height: segment.type === 'vertical' ? segment.height : undefined,
-            position: 'absolute',
-            zIndex: 0
-          }}
-        />
-      ))}
-    </>
-  );
-};
 
 /**
  * Home - Timeline-based landing page matching Figma design
@@ -356,6 +275,22 @@ export default function Home() {
   const timelineRef = useRef(null);
   const redRectangleRef = useRef(null);
   const montgomeryDateRef = useRef(null);
+  const littleRockDateRef = useRef(null);
+  const snccDateRef = useRef(null);
+  const freedomRidersDateRef = useRef(null);
+  const medgarEversDateRef = useRef(null);
+  const [montgomeryImageUrl, setMontgomeryImageUrl] = useState(null);
+  const [montgomeryImageLoading, setMontgomeryImageLoading] = useState(true);
+  const [littleRockImageUrl, setLittleRockImageUrl] = useState(null);
+  const [littleRockImageLoading, setLittleRockImageLoading] = useState(true);
+  const [hRapBrownImageUrl, setHRapBrownImageUrl] = useState(null);
+  const [hRapBrownImageLoading, setHRapBrownImageLoading] = useState(true);
+  const [littleRockGifUrl, setLittleRockGifUrl] = useState(null);
+  const [littleRockGifLoading, setLittleRockGifLoading] = useState(true);
+  const [freedomRiderImageUrl, setFreedomRiderImageUrl] = useState(null);
+  const [freedomRiderImageLoading, setFreedomRiderImageLoading] = useState(true);
+  const [medgarEversImageUrl, setMedgarEversImageUrl] = useState(null);
+  const [medgarEversImageLoading, setMedgarEversImageLoading] = useState(true);
 
   useEffect(() => {
     const loadLandingImage = async () => {
@@ -372,11 +307,101 @@ export default function Home() {
     loadLandingImage();
   }, []);
 
+  useEffect(() => {
+    const loadMontgomeryImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Rosa Parks.png');
+        setMontgomeryImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Montgomery image:', error);
+      } finally {
+        setMontgomeryImageLoading(false);
+      }
+    };
+
+    loadMontgomeryImage();
+  }, []);
+
+  useEffect(() => {
+    const loadLittleRockImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Elizabeth Eckford.png');
+        setLittleRockImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Little Rock image:', error);
+      } finally {
+        setLittleRockImageLoading(false);
+      }
+    };
+
+    loadLittleRockImage();
+  }, []);
+
+  useEffect(() => {
+    const loadHRapBrownImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/H. Rap Brown.png');
+        setHRapBrownImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load H. Rap Brown image:', error);
+      } finally {
+        setHRapBrownImageLoading(false);
+      }
+    };
+
+    loadHRapBrownImage();
+  }, []);
+
+  useEffect(() => {
+    const loadLittleRockGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/little rock.gif');
+        setLittleRockGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Little Rock GIF:', error);
+      } finally {
+        setLittleRockGifLoading(false);
+      }
+    };
+
+    loadLittleRockGif();
+  }, []);
+
+  useEffect(() => {
+    const loadFreedomRiderImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Freedom Rider.png');
+        setFreedomRiderImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Freedom Rider image:', error);
+      } finally {
+        setFreedomRiderImageLoading(false);
+      }
+    };
+
+    loadFreedomRiderImage();
+  }, []);
+
+  useEffect(() => {
+    const loadMedgarEversImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Medger Evers.png');
+        setMedgarEversImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Medgar Evers image:', error);
+      } finally {
+        setMedgarEversImageLoading(false);
+      }
+    };
+
+    loadMedgarEversImage();
+  }, []);
+
   return (
     <div className="w-full relative overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
 
       {/* Hero Section */}
-      <section className="relative px-4 sm:px-8 lg:px-12 pt-4 pb-8 lg:pt-6 lg:pb-16 min-h-[70vh] lg:min-h-[80vh] flex items-center z-10">
+      <section className="relative px-2 sm:px-4 lg:px-6 pt-4 pb-8 lg:pt-6 lg:pb-16 min-h-[70vh] lg:min-h-[80vh] flex items-center z-10">
         <div className="max-w-7xl mx-auto w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Text Content */}
@@ -402,7 +427,7 @@ export default function Home() {
                 </div>
               ) : landingImageUrl ? (
                 <img
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   src={landingImageUrl}
                   alt="Civil Rights Movement Timeline Collage"
                 />
@@ -433,7 +458,7 @@ export default function Home() {
       
 
       {/* Timeline Content */}
-      <section className="px-4 sm:px-8 lg:px-12 py-8 lg:py-16 max-w-7xl mx-auto">
+      <section className="px-2 sm:px-4 lg:px-6 py-8 lg:py-16 max-w-7xl mx-auto">
         {/* 1950s Section */}
         <DecadeSection decade="1950s" subtitle="Discrimination and Desegregation" />
 
@@ -441,7 +466,7 @@ export default function Home() {
         {/* Brown V. Board - Custom Design */}
         <div className="relative mb-20">
           {/* Custom Event Content for Brown V. Board */}
-          <div className="text-center space-y-6 lg:space-y-8 max-w-4xl mx-auto px-4">
+            <div className="text-center space-y-6 lg:space-y-8 max-w-4xl mx-auto px-2">
             {/* Date Badge - Centered */}
             <div className="flex justify-center">
               <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
@@ -525,23 +550,23 @@ export default function Home() {
           
           {/* Quote Section - Side by Side Layout - MOVED OUTSIDE ALL CONTAINERS */}
           <div className="mt-8 lg:mt-12 w-full">
-            <div className="flex -ml-4 sm:-ml-8 lg:-ml-12">
+            <div className="flex -ml-2 sm:-ml-4 lg:-ml-6">
               {/* GIF Section - Extends to left edge */}
-              <div className="w-[50vw] lg:w-[45vw] h-[450px] lg:h-[550px] xl:h-[650px] flex-shrink-0">
+              <div className="w-1/2 h-[400px] sm:h-[450px] lg:h-[500px] xl:h-[550px] flex-shrink-0">
                 <EmmettTillGif />
               </div>
               
               {/* Red Rectangle with Quote - Extends to right margin */}
               <div 
                 ref={redRectangleRef}
-                className="w-[calc(50vw+1rem)] sm:w-[calc(50vw+2rem)] lg:w-[calc(55vw+3rem)] h-[450px] lg:h-[550px] xl:h-[650px] flex flex-col justify-center p-8 lg:p-10 xl:p-12" 
+                className="w-1/2 h-[400px] sm:h-[450px] lg:h-[500px] xl:h-[550px] flex flex-col justify-center p-4 sm:p-6 lg:p-8 xl:p-10" 
                 style={{ backgroundColor: '#F2483C' }}
               >
-                <div className="space-y-4 lg:space-y-5">
-                  <p className="text-lg lg:text-xl xl:text-2xl font-normal font-['Source_Serif_4'] text-left leading-relaxed" style={{ color: '#1E1E1E' }}>
+                <div className="space-y-3 sm:space-y-4 lg:space-y-5">
+                  <p className="text-sm sm:text-base lg:text-lg xl:text-xl font-normal font-['Source_Serif_4'] text-left leading-relaxed" style={{ color: '#1E1E1E' }}>
                     "I remember being with [Mamie Till] when we stayed up all night waiting on the body to come in from, uh, Mississippi. And when it did come in, she demanded that the body be open, 'so they – the world can see what they did to my boy.'"
                   </p>
-                  <cite className="text-base lg:text-lg xl:text-xl font-normal font-['Source_Serif_4'] not-italic text-left block" style={{ color: '#1E1E1E' }}>
+                  <cite className="text-xs sm:text-sm lg:text-base xl:text-lg font-normal font-['Source_Serif_4'] not-italic text-left block" style={{ color: '#1E1E1E' }}>
                     — Simeon Booker
                   </cite>
                   
@@ -587,41 +612,49 @@ export default function Home() {
 
             {/* Image section */}
             <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+              {montgomeryImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : montgomeryImageUrl ? (
+                <img
+                  src={montgomeryImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Rosa Parks"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Early 1960s Section */}
-        <DecadeSection decade="Early 1960s" subtitle="Demonstrations and Mass Mobilization" />
+        {/* Montgomery to Little Rock connector */}
+        <MontgomeryToLittleRockConnector 
+          fromRef={montgomeryDateRef} 
+          toRef={littleRockDateRef} 
+        />
 
         {/* Integration of Little Rock */}
-        <div className="relative mb-32">
+        <div className="relative mb-32 mt-48">
           {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">September 4th, 1957</span>
-            </div>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="lg:order-2 space-y-4 lg:space-y-6 ml-8 lg:ml-12">
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
-            <div className="lg:order-2 space-y-4 lg:space-y-6">
+              {/* Date Badge above title */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div ref={littleRockDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">September 4th, 1957</span>
+                </div>
+              </div>
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Integration of Little Rock</h3>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Little Rock Nine's integration at Little Rock Central High School marked a significant point in the American civil rights movement, highlighting resistance to desegregation and federal intervention.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "[Elizabeth Eckford] said something that any fifteen year old kid would say... 'I never thought people could be so cruel.'"
-                </blockquote>
-              </div>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Integration of Little Rock")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -632,31 +665,87 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+              {littleRockImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : littleRockImageUrl ? (
+                <img
+                  src={littleRockImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Elizabeth Eckford"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Quote - Positioned above GIF and to the left */}
+          <div className="mt-32 lg:mt-40 -ml-2 sm:-ml-4 lg:-ml-6">
+            <div className="w-[600px] justify-start text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
+              "[Elizabeth Eckford] said something that any fifteen year old kid would say... 'I never thought people could be so cruel.'"
+            </div>
+          </div>
+          
+          {/* Little Rock GIF Section */}
+          <div className="mt-12 lg:mt-16 flex justify-center relative z-10">
+            <div className="w-full max-w-4xl h-64 sm:h-80 lg:h-96">
+              {littleRockGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : littleRockGifUrl ? (
+                <img
+                  src={littleRockGifUrl}
+                  className="w-full h-full object-contain"
+                  alt="Little Rock Integration GIF"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Second Quote - Positioned below GIF and to the right */}
+          <div className="mt-12 lg:mt-16 flex justify-end -mr-2 sm:-mr-4 lg:-mr-6">
+            <div className="w-[600px] justify-start text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
+              "I never thought people could be so cruel." — Moses J. Newson
             </div>
           </div>
         </div>
+
+        {/* Little Rock to SNCC connector */}
+        <LittleRockToSNCCConnector 
+          fromRef={littleRockDateRef} 
+          toRef={snccDateRef} 
+        />
+
+        {/* Early 1960s Section */}
+        <DecadeSection decade="Early 1960s" subtitle="Demonstrations and Mass Mobilization" />
 
         {/* SNCC & Student Organizing */}
         <div className="relative mb-32">
           {/* Event Content */}
           {/* Centered Date Badge */}
           <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+            <div ref={snccDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
               <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1960</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4 lg:space-y-6">
+            <div className="lg:order-2 space-y-4 lg:space-y-6">
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">SNCC & Student Organizing</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Student Nonviolent Coordinating Committee (SNCC) played a critical role in the Civil Rights Movement, known for organizing student activism for racial equality.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Student Nonviolent Coordinating Committee (SNCC) played a critical role in the Civil Rights Movement, known for organizing student activism for racial equality. The organization facilitated voter registration drives, sit-ins, and freedom rides and was a pivotal part of the movement's strategy for nonviolent direct action. The involvement of SNCC and similar groups has had lasting effects on the push for civil rights.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("SNCC & Student Organizing")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -666,40 +755,50 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
+              {hRapBrownImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : hRapBrownImageUrl ? (
+                <img
+                  src={hRapBrownImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="H. Rap Brown"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Freedom Riders */}
-        <div className="relative mb-32">
-          {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">May 4th, 1961</span>
-            </div>
-          </div>
+        {/* SNCC to Freedom Riders connector */}
+        <SNCCToFreedomRidersConnector 
+          fromRef={snccDateRef} 
+          toRef={freedomRidersDateRef} 
+        />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
-            <div className="lg:order-2 space-y-4 lg:space-y-6">
+        {/* Freedom Riders */}
+        <div className="relative mb-32 mt-48">
+          {/* Event Content */}
+          {/* Left-aligned Date Badge */}
+            <div className="flex justify-start mb-6 lg:mb-8">
+              <div ref={freedomRidersDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">May 4th, 1961</span>
+              </div>
+            </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="space-y-4 lg:space-y-6">
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Freedom Riders</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Sponsored by the Congress for Racial Equality (CORE) and the Student Nonviolent Coordinating Committee, Freedom Rides were a series of bus trips through the American South.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "When you stepped off that bus and you looked around and you saw these people crawling around, trying to get the smoke out of their chest, it was one of those sights that make you wonder why Americans are doing that sort of thing to fellow Americans."
-                </blockquote>
-                <cite className="text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] not-italic">— Moses J. Newson</cite>
-              </div>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Sponsored by the Congress for Racial Equality (CORE) and the Student Nonviolent Coordinating Committee, Freedom Rides were a series of bus trips through the American South by civil rights activists who sought to challenge and desegregate interstate transportation facilities following Supreme Court rulings. Despite facing severe violence, the activists drew national attention to the civil rights struggle and forced federal intervention.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Freedom Riders")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -709,32 +808,59 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+            <div className="lg:order-2 h-48 sm:h-64 lg:h-96">
+              {freedomRiderImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : freedomRiderImageUrl ? (
+                <img
+                  src={freedomRiderImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Freedom Rider"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Quote - Positioned below and to the right */}
+          <div className="mt-12 lg:mt-16 flex justify-end -mr-2 sm:-mr-4 lg:-mr-6">
+            <div className="w-[800px]">
+              <p className="text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
+                "When you stepped off that bus and you looked around and you saw these people crawling around, trying to get the smoke out of their chest, and people crawling and coughing and gagging, it was one of those sights that make you wonder why Americans are doing that sort of thing to fellow Americans who were just trying to exercise their rights."
+              </p>
             </div>
           </div>
         </div>
 
-        {/* The Murder of Medgar Evers */}
-        <div className="relative mb-32">
-          {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">June 12th, 1963</span>
-            </div>
-          </div>
+        {/* Freedom Riders to Medgar Evers connector */}
+        <FreedomRidersToMedgarEversConnector 
+          fromRef={freedomRidersDateRef} 
+          toRef={medgarEversDateRef} 
+        />
 
+        {/* The Murder of Medgar Evers */}
+        <div className="relative mb-32 mt-48">
+          {/* Event Content */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4 lg:space-y-6">
+            <div className="lg:order-2 space-y-4 lg:space-y-6">
+
+              {/* Date Badge above title */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div ref={medgarEversDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">June 12th, 1963</span>
+                </div>
+              </div>
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">The Murder of Medgar Evers</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Medgar Evers, a prominent civil rights activist and field secretary for the NAACP, was assassinated outside his home in Jackson, Mississippi.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Medgar Evers, a prominent civil rights activist and field secretary for the NAACP, was assassinated outside his home in Jackson, Mississippi. His murder marked a turning point in the civil rights movement, increasing the urgency and determination of activists who faced growing hostility and violence. Evers' assassination underscored the dangers faced by those fighting for racial equality and galvanized ongoing efforts for civil rights legislation.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("The Murder of Medgar Evers")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -744,10 +870,22 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
+              {medgarEversImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : medgarEversImageUrl ? (
+                <img
+                  src={medgarEversImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Medgar Evers"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1075,7 +1213,7 @@ export default function Home() {
 
       {/* Call to Action */}
       <section className="text-center py-12 lg:py-16" style={{ backgroundColor: '#EBEAE9' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-12">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-6">
           <h2 className="text-red-500 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold font-['Source_Serif_4'] mb-6 lg:mb-8">
             Discover the rest of the archive
           </h2>
