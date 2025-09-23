@@ -15,6 +15,11 @@ import MontgomeryToLittleRockConnector from '../components/connectors/Montgomery
 import LittleRockToSNCCConnector from '../components/connectors/LittleRockToSNCCConnector';
 import SNCCToFreedomRidersConnector from '../components/connectors/SNCCToFreedomRidersConnector';
 import FreedomRidersToMedgarEversConnector from '../components/connectors/FreedomRidersToMedgarEversConnector';
+import MedgarEversToMarchOnWashingtonConnector from '../components/connectors/MedgarEversToMarchOnWashingtonConnector';
+import MarchOnWashingtonGifToDateConnector from '../components/connectors/MarchOnWashingtonGifToDateConnector';
+import MarchOnWashingtonDateToQuoteConnector from '../components/connectors/MarchOnWashingtonDateToQuoteConnector';
+import FreedomSummerToCivilRightsActConnector from '../components/connectors/FreedomSummerToCivilRightsActConnector';
+import CivilRightsActToMalcolmXConnector from '../components/connectors/CivilRightsActToMalcolmXConnector';
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -279,6 +284,13 @@ export default function Home() {
   const snccDateRef = useRef(null);
   const freedomRidersDateRef = useRef(null);
   const medgarEversDateRef = useRef(null);
+  const marchOnWashingtonGifRef = useRef(null);
+  const marchOnWashingtonDateRef = useRef(null);
+  const marchOnWashingtonQuoteRef = useRef(null);
+  const freedomSummerDateRef = useRef(null);
+  const civilRightsActDateRef = useRef(null);
+  const malcolmXDateRef = useRef(null);
+  const malcolmXGifRef = useRef(null);
   const [montgomeryImageUrl, setMontgomeryImageUrl] = useState(null);
   const [montgomeryImageLoading, setMontgomeryImageLoading] = useState(true);
   const [littleRockImageUrl, setLittleRockImageUrl] = useState(null);
@@ -291,6 +303,24 @@ export default function Home() {
   const [freedomRiderImageLoading, setFreedomRiderImageLoading] = useState(true);
   const [medgarEversImageUrl, setMedgarEversImageUrl] = useState(null);
   const [medgarEversImageLoading, setMedgarEversImageLoading] = useState(true);
+  const [marchOnWashingtonGifUrl, setMarchOnWashingtonGifUrl] = useState(null);
+  const [marchOnWashingtonGifLoading, setMarchOnWashingtonGifLoading] = useState(true);
+  const [marchOnWashingtonImageUrl, setMarchOnWashingtonImageUrl] = useState(null);
+  const [marchOnWashingtonImageLoading, setMarchOnWashingtonImageLoading] = useState(true);
+  const [freedomSummerImageUrl, setFreedomSummerImageUrl] = useState(null);
+  const [freedomSummerImageLoading, setFreedomSummerImageLoading] = useState(true);
+  const [civilRightsActGifUrl, setCivilRightsActGifUrl] = useState(null);
+  const [civilRightsActGifLoading, setCivilRightsActGifLoading] = useState(true);
+  const [malcolmXImageUrl, setMalcolmXImageUrl] = useState(null);
+  const [malcolmXImageLoading, setMalcolmXImageLoading] = useState(true);
+  const [malcolmXGifUrl, setMalcolmXGifUrl] = useState(null);
+  const [malcolmXGifLoading, setMalcolmXGifLoading] = useState(true);
+  const [selmaImageUrl, setSelmaImageUrl] = useState(null);
+  const [selmaImageLoading, setSelmaImageLoading] = useState(true);
+  const [selmaGifUrl, setSelmaGifUrl] = useState(null);
+  const [selmaGifLoading, setSelmaGifLoading] = useState(true);
+  const [votingRightsActImageUrl, setVotingRightsActImageUrl] = useState(null);
+  const [votingRightsActImageLoading, setVotingRightsActImageLoading] = useState(true);
 
   useEffect(() => {
     const loadLandingImage = async () => {
@@ -395,6 +425,141 @@ export default function Home() {
     };
 
     loadMedgarEversImage();
+  }, []);
+
+  useEffect(() => {
+    const loadMarchOnWashingtonGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/March-on-Washington.gif');
+        setMarchOnWashingtonGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load March on Washington GIF:', error);
+      } finally {
+        setMarchOnWashingtonGifLoading(false);
+      }
+    };
+
+    loadMarchOnWashingtonGif();
+  }, []);
+
+  useEffect(() => {
+    const loadMarchOnWashingtonImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/March on WA.png');
+        setMarchOnWashingtonImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load March on Washington image:', error);
+      } finally {
+        setMarchOnWashingtonImageLoading(false);
+      }
+    };
+
+    loadMarchOnWashingtonImage();
+  }, []);
+
+  useEffect(() => {
+    const loadFreedomSummerImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Voting.png');
+        setFreedomSummerImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Freedom Summer image:', error);
+      } finally {
+        setFreedomSummerImageLoading(false);
+      }
+    };
+
+    loadFreedomSummerImage();
+  }, []);
+
+  useEffect(() => {
+    const loadCivilRightsActGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/Demonstrations-in-Jackson,-Assassination-of-Medgar-Evers.gif');
+        setCivilRightsActGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Civil Rights Act GIF:', error);
+      } finally {
+        setCivilRightsActGifLoading(false);
+      }
+    };
+
+    loadCivilRightsActGif();
+  }, []);
+
+  useEffect(() => {
+    const loadMalcolmXImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Malcolm X.png');
+        setMalcolmXImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Malcolm X image:', error);
+      } finally {
+        setMalcolmXImageLoading(false);
+      }
+    };
+
+    loadMalcolmXImage();
+  }, []);
+
+  useEffect(() => {
+    const loadMalcolmXGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/MalcolmX.gif');
+        setMalcolmXGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Malcolm X GIF:', error);
+      } finally {
+        setMalcolmXGifLoading(false);
+      }
+    };
+
+    loadMalcolmXGif();
+  }, []);
+
+  useEffect(() => {
+    const loadSelmaImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Selma.png');
+        setSelmaImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Selma image:', error);
+      } finally {
+        setSelmaImageLoading(false);
+      }
+    };
+
+    loadSelmaImage();
+  }, []);
+
+  useEffect(() => {
+    const loadSelmaGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/Selma,-Protester-Confrontation.gif');
+        setSelmaGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Selma GIF:', error);
+      } finally {
+        setSelmaGifLoading(false);
+      }
+    };
+
+    loadSelmaGif();
+  }, []);
+
+  useEffect(() => {
+    const loadVotingRightsActImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Voting Rights Act.png');
+        setVotingRightsActImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Voting Rights Act image:', error);
+      } finally {
+        setVotingRightsActImageLoading(false);
+      }
+    };
+
+    loadVotingRightsActImage();
   }, []);
 
   return (
@@ -888,33 +1053,65 @@ export default function Home() {
               )}
             </div>
           </div>
+          
+          {/* March on Washington GIF Section */}
+          <div className="mt-40 lg:mt-48 flex justify-center relative z-10">
+            <div ref={marchOnWashingtonGifRef} className="w-[1000px] h-[750px]">
+              {marchOnWashingtonGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : marchOnWashingtonGifUrl ? (
+                <img
+                  src={marchOnWashingtonGifUrl}
+                  className="w-full h-full object-cover"
+                  alt="March on Washington GIF"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
+        {/* Medgar Evers to March on Washington connector */}
+        <MedgarEversToMarchOnWashingtonConnector 
+          fromRef={medgarEversDateRef} 
+          toRef={marchOnWashingtonGifRef} 
+        />
+
+        {/* March on Washington GIF to Date connector */}
+        <MarchOnWashingtonGifToDateConnector 
+          fromRef={marchOnWashingtonGifRef} 
+          toRef={marchOnWashingtonDateRef} 
+        />
+
+        {/* March on Washington Date to Quote connector */}
+        <MarchOnWashingtonDateToQuoteConnector 
+          fromRef={marchOnWashingtonDateRef} 
+          toRef={marchOnWashingtonQuoteRef} 
+        />
+
         {/* March on Washington */}
-        <div className="relative mb-32">
+        <div className="relative mb-32 mt-64">
           {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+          {/* Left-aligned Date Badge */}
+          <div className="flex justify-start mb-6 lg:mb-8">
+            <div ref={marchOnWashingtonDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
               <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">August 28th, 1963</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
-            <div className="lg:order-2 space-y-4 lg:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="space-y-4 lg:space-y-6">
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">March on Washington</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">This historic event was a major civil rights demonstration, where Martin Luther King Jr. delivered his iconic 'I Have a Dream' speech.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "And so what I remember first was seeing all those people. It was an incredible sight. A nineteen year-old from Mississippi who had never seen huge numbers."
-                </blockquote>
-              </div>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">This historic event was a major civil rights demonstration, where Martin Luther King Jr. delivered his iconic 'I Have a Dream' speech. It was pivotal in advocating for civil and economic rights for African Americans, showcasing the frustration with the Kennedy administration's inaction against racial violence.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("March on Washington")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -924,35 +1121,76 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+            <div className="h-48 sm:h-64 lg:h-96">
+              {marchOnWashingtonImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : marchOnWashingtonImageUrl ? (
+                <img
+                  src={marchOnWashingtonImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="March on Washington"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Centered Quote */}
+          <div className="flex justify-center mt-48 lg:mt-72">
+            <div ref={marchOnWashingtonQuoteRef} className="w-[905px] text-center justify-start text-stone-900 text-5xl font-normal font-['Source_Serif_4']">
+              "And so what I remember first was seeing all those people. It was an incredible sight. A nineteen year-old from Mississippi who had never seen huge numbers. In fact no one on that platform had seen numbers like that before. But I remember seeing people march, coming and coming and coming and they just kept coming. "
             </div>
           </div>
         </div>
 
-        {/* Late 1960s Section */}
-        <DecadeSection decade="Late 1960s" subtitle="Community Organizing and Rising Tensions" />
-
         {/* Freedom Summer */}
-        <div className="relative mb-32">
+        <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
           {/* Centered Date Badge */}
           <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+            <div ref={freedomSummerDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
               <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1964</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4 lg:space-y-6">
+          {/* Simple ray going up from date to quote */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 -top-32 lg:-top-40">
+            <div className="w-px h-32 lg:h-40 bg-red-500 opacity-100"></div>
+            <div className="absolute -top-2 -left-1 w-2 h-2 bg-red-500 rounded-full"></div>
+          </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Image section - Left */}
+            <div className="h-48 sm:h-64 lg:h-96">
+              {freedomSummerImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : freedomSummerImageUrl ? (
+                <img
+                  src={freedomSummerImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Freedom Summer Voting"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+
+            {/* Text content - Right */}
+            <div className="space-y-4 lg:space-y-6">
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Freedom Summer</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Freedom Summer was a 1964 voter registration drive organized by CORE, the NAACP, and SNCC aimed at increasing the number of registered Black voters in Mississippi.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Freedom Summer was a 1964 voter registration drive organized by CORE, the NAACP, and SNCC aimed at increasing the number of registered Black voters in Mississippi. This grassroots effort was part of the larger civil rights movement striving for racial equality in voting rights and was characterized by significant activism and resistance. It included Freedom Schools, which acted as educational centers for prospective voters.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Freedom Summer")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -960,29 +1198,27 @@ export default function Home() {
                 <div className="w-3 h-2 border border-stone-900"></div>
               </Link>
             </div>
-
-            {/* Image section */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
-            </div>
           </div>
         </div>
 
+        {/* Freedom Summer to Civil Rights Act connector */}
+        <FreedomSummerToCivilRightsActConnector 
+          fromRef={freedomSummerDateRef} 
+          toRef={civilRightsActDateRef} 
+        />
+
         {/* Civil Rights Act of 1964 */}
-        <div className="relative mb-32">
+        <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+          {/* Left-aligned Date Badge */}
+          <div className="flex justify-start mb-6 lg:mb-8">
+            <div ref={civilRightsActDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
               <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">July 2nd, 1964</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
-            <div className="lg:order-2 space-y-4 lg:space-y-6">
-
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="space-y-4 lg:space-y-6">
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Civil Rights Act of 1964</h3>
 
@@ -997,40 +1233,69 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+            <div className="h-48 sm:h-64 lg:h-96">
+              {civilRightsActGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : civilRightsActGifUrl ? (
+                <img
+                  src={civilRightsActGifUrl}
+                  className="w-full h-full object-cover"
+                  alt="Demonstrations in Jackson, Assassination of Medgar Evers"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Assassination of Malcolm X */}
-        <div className="relative mb-32">
-          {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">February 21st, 1965</span>
-            </div>
-          </div>
+        {/* Civil Rights Act to Malcolm X connector */}
+        <CivilRightsActToMalcolmXConnector 
+          fromRef={civilRightsActDateRef} 
+          toRef={malcolmXDateRef} 
+        />
 
+        {/* Assassination of Malcolm X */}
+        <div className="relative mb-32 mt-48 lg:mt-72">
+          {/* Event Content */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4 lg:space-y-6">
+            {/* Image section - Left */}
+            <div className="h-48 sm:h-64 lg:h-96">
+              {malcolmXImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : malcolmXImageUrl ? (
+                <img
+                  src={malcolmXImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Malcolm X"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+
+            {/* Text content - Right */}
+            <div className="lg:order-2 space-y-4 lg:space-y-6">
+              {/* Date Badge above title - Left aligned */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div ref={malcolmXDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">February 21st, 1965</span>
+                </div>
+              </div>
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Assassination of Malcolm X</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">While preparing to speak for the Organization of Afro-American Unity, activist Malcolm X was murdered. Malcolm X's uncompromising message of self-determination for African Americans laid the groundwork for organizations to make moves outside the legal framework.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "In the same way that Marx is the fundamental critic of capitalism, and Fanon is the fundamental critic of colonialism, to my mind, Malcolm is the fundamental critic of American racism."
-                </blockquote>
-                <cite className="text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] not-italic">— William Strickland</cite>
-              </div>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">While preparing to speak for the Organization of Afro-American Unity, activist Malcolm X was murdered. Malcolm X's uncompromising message of self-determination for African Americans laid the groundwork for organizations to make moves outside the legal framework of the American system. His international approach and recognition of the connection between Black American struggles and anti-imperial struggles in the Third World made him revolutionary within the Civil Rights Movement and brought him international acclaim.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Assassination of Malcolm X")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -1038,41 +1303,55 @@ export default function Home() {
                 <div className="w-3 h-2 border border-stone-900"></div>
               </Link>
             </div>
-
-            {/* Image section */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+          </div>
+          
+          {/* Malcolm X GIF Section */}
+          <div className="mt-12 lg:mt-16 flex justify-end -mr-2 sm:-mr-4 lg:-mr-6">
+            <div ref={malcolmXGifRef} className="w-full max-w-lg h-64 sm:h-80 lg:h-96">
+              {malcolmXGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : malcolmXGifUrl ? (
+                <img
+                  src={malcolmXGifUrl}
+                  className="w-full h-full object-contain"
+                  alt="Malcolm X GIF"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Malcolm X Quote */}
+          <div className="mt-12 lg:mt-16 flex justify-start -ml-2 sm:-ml-4 lg:-ml-6">
+            <div className="w-[1608px] justify-start text-stone-900 text-6xl font-normal font-['Source_Serif_4']">
+              "In the same way that Marx is the fundamental critic of capitalism, and Fanon is the fundamental critic of colonialism, to my mind, Malcolm is the fundamental critic of American racism."
             </div>
           </div>
         </div>
 
         {/* Selma to Montgomery */}
-        <div className="relative mb-32">
+        <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">March 7-25th, 1965</span>
-            </div>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="space-y-4 lg:space-y-6">
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
-            <div className="lg:order-2 space-y-4 lg:space-y-6">
+              {/* Date Badge above title - Left aligned */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">March 7-25th, 1965</span>
+                </div>
+              </div>
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Selma to Montgomery</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Despite the legal end of segregation, there was little material change in many Southern States. The murder of activist Jimmie Lee Jackson by state troopers sparked the 54-mile march from Selma to Montgomery.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "I was the only one that crossed the bridge and got to the other side and went into houses to drag people out, you know, who had been gassed. I can still smell the gas."
-                </blockquote>
-              </div>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Despite the legal end of segregation, there was little material change in many Southern States. In Alabama, African Americans were still disenfranchised as White officials employed tactics of intimidation and harassment to prevent them from exercising the right to vote. The murder of activist Jimmie Lee Jackson by state troopers sparked the 54-mile march from Selma to Montgomery. Demonstrators were met with state violence, resulting in media attention from across the country. President Lyndon B. Johnson used the attention to call for the passing of the Voting Rights Act of 1965, which was enacted on August 6th of that year.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Selma to Montgomery")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -1082,27 +1361,85 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
+            <div className="h-48 sm:h-64 lg:h-96">
+              {selmaImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : selmaImageUrl ? (
+                <img
+                  src={selmaImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Selma to Montgomery"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Selma Quote and GIF Section */}
+          <div className="mt-24 lg:mt-32 flex -ml-2 sm:-ml-4 lg:-ml-6">
+            {/* Quote - Left side */}
+            <div className="w-[804px] justify-start text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
+              "I was the only one that crossed the bridge and got to the other side and went into houses to drag people out, you know, who had been, had been gassed. I can still smell the gas. Uh, the shoes and the things laying on the side and the, the goons with their clubs lining the road, along with the, with the National Guard"
+            </div>
+            
+            {/* Selma GIF - Right side */}
+            <div className="flex-1 ml-8 lg:ml-12 h-64 sm:h-80 lg:h-96">
+              {selmaGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : selmaGifUrl ? (
+                <img
+                  src={selmaGifUrl}
+                  className="w-full h-full object-cover"
+                  alt="Selma Protester Confrontation"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Voting Rights Act */}
-        <div className="relative mb-32">
+        <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
           {/* Centered Date Badge */}
           <div className="flex justify-center mb-6 lg:mb-8">
             <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">August 6th 1965</span>
+              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">August 6th, 1965</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4 lg:space-y-6">
+            {/* Image section - Left */}
+            <div className="h-48 sm:h-64 lg:h-96">
+              {votingRightsActImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : votingRightsActImageUrl ? (
+                <img
+                  src={votingRightsActImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Voting Rights Act"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
 
+            {/* Text content - Right */}
+            <div className="space-y-4 lg:space-y-6">
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Voting Rights Act</h3>
 
@@ -1115,15 +1452,16 @@ export default function Home() {
                 <div className="w-3 h-2 border border-stone-900"></div>
               </Link>
             </div>
-
-            {/* Image section */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
-              </div>
-            </div>
           </div>
         </div>
+
+        {/* Late 1960s Section */}
+        <DecadeSection decade="Late 1960s" subtitle="Community Organizing and Rising Tensions" />
+
+
+
+
+        
 
         {/* Black Panther Party */}
         <div className="relative mb-32">
