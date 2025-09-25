@@ -8,8 +8,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
-import { db } from '../services/firebase'
+import { getInterviewData, getInterviewSegments } from '../services/firebase'
 import Footer from '../components/common/Footer'
 
 /**
@@ -87,6 +86,15 @@ export default function InterviewPlayer() {
     return 0
   }
 
+  // Helper function to extract start timestamp from various formats
+  const extractStartTimestamp = (timestamp) => {
+    if (!timestamp) return '00:00'
+    // Handle both formats: "[HH:MM:SS - HH:MM:SS]" and "HH:MM:SS,000 - HH:MM:SS,000"
+    const cleanTimestamp = timestamp.replace(/[\[\]]/g, '').replace(',000', '')
+    const parts = cleanTimestamp.split(' - ')
+    return parts.length >= 1 ? parts[0].trim() : '00:00'
+  }
+
   /**
    * Formats keywords into a consistent array format
    * 
@@ -133,30 +141,27 @@ export default function InterviewPlayer() {
     async function fetchData() {
       try {
         setLoading(true)
-        // Fetch main interview document
-        const docRef = doc(db, 'interviewSummaries', documentName)
-        const docSnap = await getDoc(docRef)
-        if (!docSnap.exists()) {
+        
+        // Use the new enhanced service functions
+        const mainData = await getInterviewData(documentName)
+        if (!mainData) {
           setError('Interview not found')
           setLoading(false)
           return
         }
-        const mainData = docSnap.data()
         setMainSummary(mainData)
 
-        // Fetch all sub-segments from the subcollection
-        const subRef = collection(db, 'interviewSummaries', documentName, 'subSummaries')
-        const subSnap = await getDocs(subRef)
-        const subs = []
-        subSnap.forEach((doc) => {
-          subs.push({ id: doc.id, ...doc.data() })
+        // Fetch segments using new service
+        const subs = await getInterviewSegments(documentName)
+        
+        // Sort segments by timestamp (handling both legacy and new formats)
+        subs.sort((a, b) => {
+          // Use startTime if available (metadataV2), otherwise extract from timestamp
+          const timeA = a.startTime || extractStartTimestamp(a.timestamp)
+          const timeB = b.startTime || extractStartTimestamp(b.timestamp)
+          return convertTimestampToSeconds(timeA) - convertTimestampToSeconds(timeB)
         })
-
-        // Sort segments by timestamp
-        subs.sort(
-          (a, b) =>
-            convertTimestampToSeconds(a.timestamp) - convertTimestampToSeconds(b.timestamp)
-        )
+        
         setSubSummaries(subs)
         setLoading(false)
       } catch (err) {

@@ -12,15 +12,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { parseKeywords, extractVideoId, parseTimestampRange } from "../utils/timeUtils";
-import IntegratedTimeline from "../components/IntegratedTimeline";
-import PlayerControls from "../components/PlayerControls";
-import UpNextBox from "../components/UpNextBox";
-import ShuffleButton from "../components/ShuffleButton";
-import ConfirmationModal from "../components/ConfirmationModel";
-import MetadataPanel from "../components/MetadataPanel";
-import RelatedClips from "../components/RelatedClips";
 import VideoPlayer from "../components/VideoPlayer";
-import { Clock, Tag } from 'lucide-react'
 
 /**
  * PlaylistBuilder - Advanced component for building and playing keyword-based playlists
@@ -58,9 +50,6 @@ const PlaylistBuilder = () => {
   const [seekToTime, setSeekToTime] = useState(null);
   
   // UI state
-  const [showShuffleConfirmation, setShowShuffleConfirmation] = useState(false);
-  const [showAddedNotification, setShowAddedNotification] = useState(false);
-  const [isAddingAllClips, setIsAddingAllClips] = useState(false);
   
   // "Up Next" feature state
   const [availableKeywords, setAvailableKeywords] = useState([]);
@@ -70,7 +59,6 @@ const PlaylistBuilder = () => {
   const [playlistEnded, setPlaylistEnded] = useState(false);
   
   // Refs for managing timeouts
-  const notificationTimeoutRef = useRef(null);
   const autoplayTimeoutRef = useRef(null);
 
   /**
@@ -160,114 +148,6 @@ const PlaylistBuilder = () => {
     }
   };
 
-  /**
-   * Clear notification timeout on component unmount
-   */
-  useEffect(() => {
-    return () => {
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  /**
-   * Add a clip to the current playlist and show notification
-   * 
-   * @param {Object} clip - The clip to add to the playlist
-   */
-  const handleAddToPlaylist = (clip) => {
-    // Check if the clip is already in the queue
-    const isAlreadyInQueue = videoQueue.some(video => video.id === clip.id);
-
-    if (isAlreadyInQueue) {
-      console.log("Clip is already in the playlist:", clip.id);
-      // Show notification
-      setShowAddedNotification({ message: "This clip is already in your playlist", type: "info" });
-
-      // Clear after 3 seconds
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
-      }
-      notificationTimeoutRef.current = setTimeout(() => {
-        setShowAddedNotification(false);
-      }, 3000);
-
-      return;
-    }
-
-    // Add the clip to the queue
-    setVideoQueue(prevQueue => [...prevQueue, clip]);
-
-    // Show success notification
-    setShowAddedNotification({ message: "Clip added to playlist", type: "success" });
-
-    // Clear notification after 3 seconds
-    if (notificationTimeoutRef.current) {
-      clearTimeout(notificationTimeoutRef.current);
-    }
-    notificationTimeoutRef.current = setTimeout(() => {
-      setShowAddedNotification(false);
-    }, 3000);
-
-    console.log("Added clip to playlist:", clip.id);
-  };
-
-  /**
-   * Add all available clips for the current keyword to the playlist
-   */
-  const handleAddAllToPlaylist = async () => {
-    // Prevent multiple clicks
-    if (isAddingAllClips) return;
-
-    try {
-      // Show loading state
-      setIsAddingAllClips(true);
-
-      // Get all clips for the current keyword
-      const keywordsArray = parseKeywords(keyword);
-      const allClips = await fetchRelevantSegments(keywordsArray);
-
-      // Filter out clips that are already in the queue
-      const existingIds = videoQueue.map(clip => clip.id);
-      const newClips = allClips.filter(clip => !existingIds.includes(clip.id));
-
-      if (newClips.length === 0) {
-        // Show notification that all clips are already in playlist
-        setShowAddedNotification({
-          message: "All available clips are already in your playlist",
-          type: "info"
-        });
-      } else {
-        // Add all new clips to the queue
-        setVideoQueue(prevQueue => [...prevQueue, ...newClips]);
-
-        // Show success notification
-        setShowAddedNotification({
-          message: `Added ${newClips.length} clips to playlist`,
-          type: "success"
-        });
-      }
-
-      // Clear notification after 3 seconds
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
-      }
-      notificationTimeoutRef.current = setTimeout(() => {
-        setShowAddedNotification(false);
-      }, 3000);
-
-    } catch (error) {
-      console.error("Error adding all clips:", error);
-      setShowAddedNotification({
-        message: "Error adding clips to playlist",
-        type: "error"
-      });
-    } finally {
-      // Reset loading state regardless of outcome
-      setIsAddingAllClips(false);
-    }
-  };
 
   /**
    * Fetch all available keywords on component mount
@@ -322,42 +202,12 @@ const PlaylistBuilder = () => {
   }, [currentVideoIndex]);
 
   /**
-   * Calculate the elapsed time up to the current video (for timeline positioning)
-   * 
-   * @returns {number} Total seconds elapsed in previous videos
-   */
-  const calculateElapsedTimeBeforeCurrent = () => {
-    if (!videoQueue.length) return 0;
-
-    let elapsed = 0;
-    for (let i = 0; i < currentVideoIndex; i++) {
-      const { startSeconds, endSeconds } = parseTimestampRange(videoQueue[i].timestamp);
-      elapsed += (endSeconds - startSeconds) || 300;
-    }
-
-    return elapsed;
-  };
-
-  /**
    * Handle time updates from the video player
    * 
    * @param {number} time - Current playback time in seconds
    */
   const handleTimeUpdate = (time) => {
     setCurrentTime(time);
-    // Update playlist time based on elapsed time
-    setPlaylistTime(calculateElapsedTimeBeforeCurrent() + time);
-  };
-
-  /**
-   * Handle seeking within current video
-   * 
-   * @param {number} timeToSeek - Target time in seconds to seek to
-   */
-  const handleSeek = (timeToSeek) => {
-    console.log(`Seeking to ${timeToSeek}s within current video`);
-    setSeekToTime(timeToSeek);
-    // No need to update currentTime here, it will be updated via handleTimeUpdate
   };
 
   /**
@@ -463,45 +313,6 @@ const PlaylistBuilder = () => {
     }
   };
 
-  /**
-   * Show confirmation dialog before shuffling playlist
-   */
-  const handleShuffleClick = () => {
-    setShowShuffleConfirmation(true);
-  };
-
-  /**
-   * Handle shuffle confirmation and execute shuffle operation
-   */
-  const handleShuffleConfirm = () => {
-    setShowShuffleConfirmation(false);
-    // Use the existing search function which already includes shuffle logic
-    searchVideos();
-  };
-
-  /**
-   * Handle shuffle cancellation
-   */
-  const handleShuffleCancel = () => {
-    setShowShuffleConfirmation(false);
-  };
-
-  /**
-   * Update metadata for the current video in the queue
-   * 
-   * @param {Object} updatedMetadata - New metadata to apply to current video
-   */
-  const handleMetadataUpdate = (updatedMetadata) => {
-    // Update the video in the queue
-    setVideoQueue(prevQueue => {
-      const newQueue = [...prevQueue];
-      newQueue[currentVideoIndex] = {
-        ...newQueue[currentVideoIndex],
-        ...updatedMetadata
-      };
-      return newQueue;
-    });
-  };
 
   /**
    * Randomly shuffle an array using Fisher-Yates algorithm
@@ -513,118 +324,6 @@ const PlaylistBuilder = () => {
     return array.sort(() => Math.random() - 0.5);
   };
 
-  /**
-   * Get the duration of a YouTube video using the iframe API
-   * 
-   * @param {string} videoId - YouTube video ID
-   * @returns {Promise<number>} Video duration in seconds
-   */
-  const getYouTubeVideoDuration = async (videoId) => {
-    // Use YouTube Data API if available, or fallback to loading video and checking
-    return new Promise((resolve) => {
-      try {
-        // Create a temporary player to check duration
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.top = '-9999px';
-        document.body.appendChild(tempContainer);
-
-        const tempPlayer = new window.YT.Player(tempContainer, {
-          height: '1',
-          width: '1',
-          videoId,
-          events: {
-            onReady: (event) => {
-              try {
-                const duration = event.target.getDuration();
-                console.log(`Got duration for video ${videoId}: ${duration}s`);
-                resolve(duration);
-              } catch (error) {
-                console.error(`Error getting duration for ${videoId}:`, error);
-                resolve(0); // On error, return 0 which will be handled appropriately
-              } finally {
-                // Clean up
-                if (tempPlayer) {
-                  try {
-                    tempPlayer.destroy();
-                  } catch (e) {
-                    console.error("Error destroying temp player:", e);
-                  }
-                }
-                if (tempContainer.parentNode) {
-                  document.body.removeChild(tempContainer);
-                }
-              }
-            },
-            onError: () => {
-              console.error(`Could not load video ${videoId} for duration check`);
-              if (tempContainer.parentNode) {
-                document.body.removeChild(tempContainer);
-              }
-              resolve(0);
-            }
-          }
-        });
-
-        // Set timeout to avoid hanging
-        setTimeout(() => {
-          if (tempPlayer) {
-            try {
-              tempPlayer.destroy();
-            } catch (e) {
-              console.error("Error destroying temp player on timeout:", e);
-            }
-          }
-          if (tempContainer.parentNode) {
-            document.body.removeChild(tempContainer);
-          }
-          resolve(0);
-        }, 10000); // 10-second timeout
-
-      } catch (error) {
-        console.error("Error in duration check:", error);
-        resolve(0);
-      }
-    });
-  };
-
-  /**
-   * Validate a video's timestamp against the actual video duration
-   * 
-   * @param {Object} video - Video object with timestamp and videoEmbedLink
-   * @returns {Promise<boolean>} Whether the timestamp is valid
-   */
-  const validateVideoTimestamp = async (video) => {
-    try {
-      const videoId = extractVideoId(video.videoEmbedLink);
-      if (!videoId) return false;
-
-      const { startSeconds } = parseTimestampRange(video.timestamp);
-      if (isNaN(startSeconds) || startSeconds < 0) return false;
-
-      // Ensure YouTube API is loaded
-      if (!window.YT || !window.YT.Player) {
-        console.warn("YouTube API not loaded yet, can't validate duration");
-        return true; // Skip validation if API not available
-      }
-
-      // Get video duration
-      const duration = await getYouTubeVideoDuration(videoId);
-
-      // Allow some margin (5 seconds) for timing differences
-      const isValid = duration > 0 && startSeconds < (duration - 5);
-
-      if (!isValid) {
-        console.warn(`Invalid timestamp detected: ${video.timestamp} exceeds video duration ${duration}s for video ID ${videoId}`);
-      }
-
-      return isValid;
-    } catch (error) {
-      console.error("Error validating video timestamp:", error);
-      return false;
-    }
-  };
 
   /**
    * Search for videos based on the current keyword
@@ -670,49 +369,12 @@ const PlaylistBuilder = () => {
           }
         });
 
-        // Shuffle and get more candidates than we need, in case some fail validation
-        const candidates = shuffleArray(results).slice(0, Math.min(10, results.length));
+        // Get all relevant clips for the event playlist but start with just the first one
+        const allClips = shuffleArray(results);
 
-        console.log(`Checking durations for ${candidates.length} candidate videos...`);
-
-        // Load YouTube API if needed
-        if (!window.YT || !window.YT.Player) {
-          console.log("Loading YouTube API...");
-          await new Promise((resolve) => {
-            const tag = document.createElement("script");
-            tag.src = "https://www.youtube.com/iframe_api";
-
-            window.onYouTubeIframeAPIReady = () => {
-              console.log("YouTube API ready");
-              resolve();
-            };
-
-            const firstScriptTag = document.getElementsByTagName("script")[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-            // Set timeout to resolve anyway after 5 seconds
-            setTimeout(resolve, 5000);
-          });
-        }
-
-        // Advanced validation: check actual video durations
-        const validatedResults = [];
-
-        for (const video of candidates) {
-          // Check if we already have enough valid videos
-          if (validatedResults.length >= 3) break;
-
-          // Validate this video's timestamp against actual duration
-          const isValid = await validateVideoTimestamp(video);
-
-          if (isValid) {
-            validatedResults.push(video);
-          }
-        }
-
-        if (validatedResults.length > 0) {
-          console.log(`Selected ${validatedResults.length} valid videos from ${candidates.length} candidates`);
-          setVideoQueue(validatedResults);
+        if (allClips.length > 0) {
+          console.log(`Found ${allClips.length} clips for the event playlist`);
+          setVideoQueue(allClips);
           setCurrentVideoIndex(0);
           setIsPlaying(true);
           setCurrentTime(0);
@@ -862,220 +524,177 @@ const PlaylistBuilder = () => {
   }
 
   const currentVideo = getCurrentVideo();
-  const hasVideos = videoQueue.length > 0;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
-
-      {/* Notification */}
-      {showAddedNotification && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-md shadow-md transition-all duration-300 ${showAddedNotification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-          }`}>
-          <div className="flex items-center">
-            {showAddedNotification.type === 'success' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
-              </svg>
-            )}
-            <span>{showAddedNotification.message}</span>
-          </div>
+    <div className="w-full min-h-screen bg-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="w-full h-12 px-12 py-9 relative">
+        <div className="w-12 h-12 absolute right-12 top-9">
+          <div className="w-6 h-6 absolute right-0 top-3 transform rotate-180 border border-stone-900" />
         </div>
-      )}
-
-      {/* Updated Page header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">
-          {keyword}
-        </h1>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center">
-            <span className="text-blue-800 font-medium">
-              {totalClipsForKeyword} total clip{totalClipsForKeyword !== 1 ? 's' : ''} available
-            </span>
-            <span className="mx-2 text-gray-400">•</span>
-            <span className="text-gray-600">
-              {videoQueue.length} clip{videoQueue.length !== 1 ? 's' : ''} in current playlist
-            </span>
+        <div className="w-full h-11 absolute left-12 top-10">
+          <div className="inline-flex justify-center items-center gap-2.5">
+            <div className="justify-start">
+              <span className="text-stone-900 text-4xl font-normal" style={{fontFamily: 'Source Serif Pro, serif'}}>Civil Rights </span>
+              <span className="text-stone-900 text-4xl font-bold leading-9" style={{fontFamily: 'Source Serif Pro, serif'}}>History Project</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main content area */}
-      <div className="relative">
-        {/* UpNext Box positioned to the right */}
-        {nextKeyword && (
-          <div className="absolute top-0 right-0 z-10">
-            <UpNextBox
-              nextKeyword={nextKeyword}
-              thumbnailUrl={nextKeywordThumbnail}
-              onPlay={handlePlayNextKeyword}
-            />
-          </div>
-        )}
+      {/* Header divider */}
+      <div className="w-full h-px bg-black mx-12" style={{width: 'calc(100% - 6rem)'}} />
 
-        {/* Video Player Container */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+      {/* Main content */}
+      <div className="px-12 pt-16">
+        {/* Topic title and metadata */}
+        <div className="mb-8">
+          <div className="text-red-500 text-base font-light font-mono mb-2">
+            {totalClipsForKeyword} Chapters from {videoQueue.length > 0 ? videoQueue.length : '0'} Interviews
+          </div>
+          <h1 className="text-stone-900 text-8xl font-medium mb-4" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
+            {keyword || 'Topic Playlist'}
+          </h1>
+        </div>
+
+        {/* Main video and content area */}
+        <div className="flex gap-6 mb-20">
           {/* Video player */}
-          <div className="w-full max-w-2xl mx-auto relative rounded-lg overflow-hidden">
-            {currentVideo ? (
-              <VideoPlayer
-                video={currentVideo}
-                onVideoEnd={handleVideoEnd}
-                onPlay={handlePlayVideo}
-                onPause={handlePauseVideo}
-                onTimeUpdate={handleTimeUpdate}
-                isPlaying={isPlaying}
-                seekToTime={seekToTime}
-              />
-            ) : (
-              <div className="flex items-center justify-center w-full h-64 bg-gray-200 rounded-lg text-gray-600 font-medium">
-                No videos available
-              </div>
-            )}
+          <div className="flex-shrink-0">
+            <div className="w-[1080px] h-[610px] relative rounded-xl overflow-hidden">
+              {currentVideo ? (
+                <VideoPlayer
+                  video={currentVideo}
+                  onVideoEnd={handleVideoEnd}
+                  onPlay={handlePlayVideo}
+                  onPause={handlePauseVideo}
+                  onTimeUpdate={handleTimeUpdate}
+                  isPlaying={isPlaying}
+                  seekToTime={seekToTime}
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-400 flex items-center justify-center text-white text-xl">
+                  No video available
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Timeline */}
-          {hasVideos && (
-            <div className="mt-6 mb-4 w-full max-w-2xl mx-auto">
-              <IntegratedTimeline
-                videoQueue={videoQueue}
-                currentVideoIndex={currentVideoIndex}
-                setCurrentVideoIndex={setCurrentVideoIndex}
-                currentTime={currentTime}
-                totalDuration={totalDuration}
-                onSeek={handleSeek}
-              />
-            </div>
-          )}
+          {/* Side content */}
+          <div className="flex-1 pt-0">
+            {currentVideo && (
+              <>
+                {/* Interviewee names */}
+                <div className="mb-6">
+                  <h2 className="text-black text-5xl font-semibold" style={{fontFamily: 'Inter, sans-serif'}}>
+                    {currentVideo.name}
+                  </h2>
+                </div>
 
-          {/* Integrated player controls */}
-          <div className="w-full max-w-2xl mx-auto py-3 mt-5">
-            {/* Main playback controls */}
-            <div className="flex justify-center items-center mb-4">
-              <PlayerControls
-                onPrevious={handlePrevious}
-                onPlay={handlePlayVideo}
-                onPause={handlePauseVideo}
-                onNext={handleNext}
-                isPlaying={isPlaying}
-                hasPrevious={currentVideoIndex > 0}
-                hasNext={currentVideoIndex < videoQueue.length - 1}
-              />
-            </div>
+                {/* Watch Full Interview link */}
+                <div className="mb-8 inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80"
+                     onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}>
+                  <div className="text-red-500 text-base font-light font-mono">Watch Full Interview</div>
+                  <div className="w-3.5 h-2.5 border border-red-500" />
+                </div>
 
-            {/* Additional controls below */}
-            <div className="flex justify-center items-center space-x-4">
-              <ShuffleButton onClick={handleShuffleClick} />
-
-              <button
-                onClick={handleAddAllToPlaylist}
-                disabled={isAddingAllClips}
-                className={`flex items-center justify-center ${isAddingAllClips
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                  } text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-44`}
-                title="Add all remaining clips with this keyword to your playlist"
-              >
-                {isAddingAllClips ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Adding...
-                  </>
-                ) : (
-                  "Listen to Full Playlist"
-                )}
-              </button>
-            </div>
+                {/* Description */}
+                <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: 'FreightText Pro, serif'}}>
+                  {currentVideo.summary}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Add the Metadata Panel with edit capability */}
-        {currentVideo && (
-          <MetadataPanel
-            metadata={currentVideo}
-            onMetadataUpdate={handleMetadataUpdate}
-          />
-        )}
+        {/* Navigation controls */}
+        <div className="flex justify-between items-center mb-12">
+          {/* View Topic Tags */}
+          <div className="inline-flex items-center gap-3 cursor-pointer hover:opacity-80">
+            <div className="text-stone-900 text-xl font-light font-mono">View Topic Tags</div>
+            <div className="w-1 h-2.5 transform rotate-90 border border-stone-900" />
+          </div>
 
-        {/* Video info card */}
-        {currentVideo && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              <span
-                onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}
-                className="hover:text-blue-600 hover:underline transition-colors cursor-pointer"
-              >
-                {currentVideo.name}
-              </span>
-            </h2>
-
-            <p className="text-sm italic text-gray-500 mb-4">
-              {currentVideo.role}
-            </p>
-
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
-              <p className="m-0 text-base leading-relaxed text-gray-700">
-                {currentVideo.summary}
-              </p>
+          {/* Navigation buttons */}
+          <div className="flex items-center gap-8">
+            {/* Previous Chapter */}
+            <div className="w-48 h-6 cursor-pointer hover:opacity-80" onClick={handlePrevious}>
+              <div className="inline-flex justify-between items-center w-full">
+                <div className="w-4 h-3 transform rotate-180 border border-stone-900" />
+                <div className="text-stone-900 text-xl font-light font-mono">Prev. Chapter</div>
+              </div>
             </div>
 
-            {/* Keywords */}
-            {currentVideo.keywords && currentVideo.keywords.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {(Array.isArray(currentVideo.keywords)
-                  ? currentVideo.keywords
-                  : currentVideo.keywords.split(',').map(k => k.trim())
-                ).map((keyword, idx) => (
-                  <span
-                    key={idx}
-                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-200 transition-colors"
-                    onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
-                  >
-                    <Tag size={12} /> {keyword}
-                  </span>
-                ))}
+            {/* Next Chapter */}
+            <div className="w-44 h-6 cursor-pointer hover:opacity-80" onClick={handleNext}>
+              <div className="inline-flex justify-between items-center w-full">
+                <div className="text-stone-900 text-xl font-light font-mono">Next Chapter</div>
+                <div className="w-4 h-3 border border-stone-900" />
               </div>
-            )}
-
-            {/* Link to standalone ClipPlayer view */}
-            <div className="mt-4">
-              <button
-                className="text-sm text-blue-600 hover:underline hover:text-blue-800 transition-colors"
-                onClick={() =>
-                  navigate(`/clip-player?documentName=${encodeURIComponent(currentVideo.documentName)}&clipId=${encodeURIComponent(currentVideo.id)}`)
-                }
-              >
-                ▶ View this clip as a standalone page
-              </button>
             </div>
           </div>
-        )}
 
+          {/* Next Timeline Event */}
+          <div className="inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80" onClick={handlePlayNextKeyword}>
+            <div className="text-red-500 text-base font-light font-mono">Next Timeline Event</div>
+            <div className="w-3.5 h-2.5 border border-red-500" />
+          </div>
+
+          {/* Back to Timeline */}
+          <div className="text-stone-900 text-base font-light font-mono cursor-pointer hover:opacity-80"
+               onClick={() => navigate('/')}>
+            Back to Timeline
+          </div>
+        </div>
+
+        {/* Event Playlist */}
+        <div className="w-full">
+          <div className="mb-14">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-black text-5xl font-medium" style={{fontFamily: 'Inter, sans-serif'}}>Event Playlist</h2>
+              {/* Playlist navigation arrows */}
+              <div className="flex items-center gap-4">
+                <div className="w-3 h-6 cursor-pointer hover:opacity-80">
+                  <div className="w-3 h-6 transform rotate-180 border-2 border-stone-900" />
+                </div>
+                <div className="w-3 h-6 cursor-pointer hover:opacity-80">
+                  <div className="w-3 h-6 border-2 border-stone-900" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Playlist items */}
+            <div className="flex gap-6 overflow-x-auto">
+              {videoQueue.map((video, index) => (
+                <div key={video.id} 
+                     className={`flex-shrink-0 w-[504px] cursor-pointer hover:opacity-80 ${index === currentVideoIndex ? 'opacity-100' : 'opacity-60'}`}
+                     onClick={() => setCurrentVideoIndex(index)}>
+                  <div className="flex flex-col items-center gap-3">
+                    {/* Video thumbnail */}
+                    <div className="w-[504px] h-72 bg-zinc-300 rounded overflow-hidden">
+                      {video.thumbnailUrl ? (
+                        <img className="w-full h-full object-cover" src={video.thumbnailUrl} alt={video.name} />
+                      ) : (
+                        <div className="w-full h-full bg-zinc-300" />
+                      )}
+                    </div>
+                    
+                    {/* Video info */}
+                    <div className="w-full h-16 relative">
+                      <div className="absolute left-0 bottom-0 text-stone-900 text-base font-light font-mono">
+                        {video.role} | {video.duration || '-- Minutes'}
+                      </div>
+                      <div className="w-full absolute top-0 left-0 text-stone-900 text-4xl font-bold" style={{fontFamily: 'Source Serif 4, serif'}}>
+                        {video.name}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Related Clips Section */}
-      {keyword && videoQueue.length > 0 && (
-        <RelatedClips
-          currentKeyword={keyword}
-          excludeIds={videoQueue.map(video => video.id)}
-          onAddToPlaylist={handleAddToPlaylist}
-        />
-      )}
-
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showShuffleConfirmation}
-        onConfirm={handleShuffleConfirm}
-        onCancel={handleShuffleCancel}
-        message="Are you sure you want to hear a new set of clips on this topic?"
-      />
     </div>
   );
 };

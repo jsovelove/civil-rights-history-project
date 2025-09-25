@@ -1,28 +1,30 @@
 /**
- * @fileoverview TopicGlossary page for browsing interview topics in a card-based layout.
+ * @fileoverview TopicGlossary page for browsing curated civil rights topics in a card-based layout.
  * 
- * This page provides a glossary view of topics/keywords extracted from interviews,
- * displaying them in a clean card grid with topic titles and statistics.
- * It implements caching for performance and supports filtering and sorting.
+ * This page provides a glossary view of topics from the events_and_topics collection,
+ * which contains AI-curated topics with rich descriptions and categorization.
+ * It displays them in a clean card grid with topic titles, descriptions, and metadata.
+ * It implements caching for performance and supports filtering, sorting, and category-based browsing.
  */
 
 import { useState, useEffect, createContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, collectionGroup } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
 // Create a context for caching (similar to ContentDirectory)
 const TopicGlossaryCacheContext = createContext();
 
 /**
- * TopicGlossary Page - Card-based topic directory with filtering and navigation
+ * TopicGlossary Page - Card-based directory of curated civil rights topics
  * 
  * This page provides:
- * 1. A card grid layout of topics/keywords from interviews
- * 2. Statistics about each topic (interview count, clip count, total duration)
- * 3. Filtering and sorting capabilities
- * 4. Navigation to playlists and content
- * 5. Efficient data loading with caching
+ * 1. A card grid layout of AI-curated topics from the events_and_topics collection
+ * 2. Rich descriptions and categorization (concepts, places, people, events, organizations, legal)
+ * 3. Advanced filtering by category and search functionality
+ * 4. Sorting by importance, alphabetical order, or usage statistics
+ * 5. Click-to-playlist functionality that loads all relevant clips for a topic
+ * 6. Efficient data loading with caching for improved performance
  * 
  * @component
  * @returns {React.ReactElement} Topic glossary page
@@ -33,7 +35,8 @@ export default function TopicGlossary() {
   const [topicData, setTopicData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTopics, setFilteredTopics] = useState([]);
-  const [sortBy, setSortBy] = useState('alphabetical'); // 'alphabetical', 'clipCount', 'interviewCount'
+  const [sortBy, setSortBy] = useState('importance'); // 'alphabetical', 'clipCount', 'interviewCount', 'importance'
+  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'concept', 'place', 'person', 'event', 'org', 'legal'
   const [cache, setCache] = useState({});
   const navigate = useNavigate();
 
@@ -66,14 +69,16 @@ export default function TopicGlossary() {
   }, [cache.keywords]);
 
   /**
-   * Update filtered and sorted topics when search term or sort option changes
+   * Update filtered and sorted topics when search term, sort option, or category filter changes
    */
   useEffect(() => {
     let filtered = topicData;
     
+    // Apply search filter
     if (searchTerm) {
       // Check if this search is cached
-      const cachedResults = getSearchFromCache('keywords', searchTerm);
+      const cacheKey = `${searchTerm}_${categoryFilter}`;
+      const cachedResults = getSearchFromCache('keywords', cacheKey);
       
       if (cachedResults) {
         console.log('Using cached topic search results');
@@ -81,15 +86,21 @@ export default function TopicGlossary() {
       } else {
         // Filter topics based on search term
         filtered = topicData.filter(item => 
-          item.keyword.toLowerCase().includes(searchTerm.toLowerCase())
+          item.keyword.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.shortDescription.toLowerCase().includes(searchTerm.toLowerCase())
         );
         
         // Cache the search results
-        addSearchToCache('keywords', searchTerm, filtered);
+        addSearchToCache('keywords', cacheKey, filtered);
       }
     }
 
-    // Apply sorting - always alphabetical for the new layout
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(item => item.category === categoryFilter);
+    }
+
+    // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'alphabetical':
@@ -98,13 +109,19 @@ export default function TopicGlossary() {
           return b.count - a.count;
         case 'interviewCount':
           return b.interviewCount - a.interviewCount;
+        case 'importance':
+          // Sort by importance score, then alphabetically
+          if (b.importanceScore !== a.importanceScore) {
+            return b.importanceScore - a.importanceScore;
+          }
+          return a.keyword.localeCompare(b.keyword);
         default:
           return a.keyword.localeCompare(b.keyword);
       }
     });
 
     setFilteredTopics(sorted);
-  }, [searchTerm, topicData, sortBy]);
+  }, [searchTerm, topicData, sortBy, categoryFilter]);
 
   /**
    * Groups topics by their first letter
@@ -122,37 +139,144 @@ export default function TopicGlossary() {
   };
 
   /**
-   * Fetches pre-aggregated topics from the 'topicGlossary' collection in Firestore.
+   * Fetches topics from the 'events_and_topics' collection and calculates actual
+   * interview counts by searching through interview data.
    */
   const fetchAndProcessTopics = async () => {
     try {
       setLoading(true);
       
-      const glossaryCollection = collection(db, 'topicGlossary');
-      const glossarySnapshot = await getDocs(glossaryCollection);
+      // Get curated topics
+      const eventsAndTopicsCollection = collection(db, 'events_and_topics');
+      const eventsSnapshot = await getDocs(eventsAndTopicsCollection);
       
-      const processedData = glossarySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Get interview data to calculate actual usage stats
+      console.log('Calculating actual interview counts for topics...');
+      let usageStats = cache.topicUsageStats;
+      
+      if (!usageStats) {
+        console.log('No cached usage stats found, calculating...');
+        usageStats = await calculateTopicUsageStats();
+        updateCache('topicUsageStats', usageStats);
+      } else {
+        console.log('Using cached topic usage stats');
+      }
+      
+      const processedData = eventsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        const topicName = data.eventTopic || doc.id;
+        
+        // Look up actual usage stats for this topic
+        const stats = usageStats[topicName.toLowerCase()] || usageStats[doc.id.toLowerCase()] || {
+          clipCount: 0,
+          interviewCount: 0,
+          totalLengthSeconds: 0
+        };
+        
+        return {
+          id: doc.id,
+          keyword: topicName,
+          description: data.updatedLongDescription || data.description || `Learn about ${topicName} in the context of the civil rights movement.`,
+          shortDescription: data.description || '',
+          category: data.aiCuration?.category || 'other',
+          importanceScore: data.aiCuration?.importanceScore || 5,
+          originalFrequency: data.aiCuration?.originalFrequency || 0,
+          
+          // Use actual calculated stats
+          clipCount: stats.clipCount,
+          interviewCount: stats.interviewCount,
+          totalLengthSeconds: stats.totalLengthSeconds,
+          count: stats.clipCount,
+          
+          // Add original data for reference
+          originalData: data
+        };
+      });
 
-      // The keyword property is already on the document data, but we can ensure it's set
-      processedData.forEach(item => {
-        if (!item.keyword) {
-          item.keyword = item.id;
+      // Sort by importance score and name
+      processedData.sort((a, b) => {
+        // First sort by importance score (higher first)
+        if (b.importanceScore !== a.importanceScore) {
+          return b.importanceScore - a.importanceScore;
         }
+        // Then alphabetically
+        return a.keyword.localeCompare(b.keyword);
       });
 
       setTopicData(processedData);
-      
-      // No need to cache this data as it's already optimized
-      // But if you want to, you can re-enable caching here.
-      
       setLoading(false);
     } catch (error) {
       console.error("Error fetching topics:", error);
       setError("Failed to load topic data");
       setLoading(false);
+    }
+  };
+
+  /**
+   * Calculates actual usage statistics for topics by searching through interview data
+   */
+  const calculateTopicUsageStats = async () => {
+    const usageStats = {};
+    
+    try {
+      // Use collection group query to get all subSummaries efficiently
+      const subSummariesSnapshot = await getDocs(collectionGroup(db, 'subSummaries'));
+      
+      console.log(`Analyzing ${subSummariesSnapshot.size} clips for topic usage...`);
+      
+      subSummariesSnapshot.forEach((doc) => {
+        const subSummary = doc.data();
+        const interviewId = doc.ref.parent.parent.id;
+        
+        // Process keywords (handle both string and array formats)
+        let keywords = [];
+        if (typeof subSummary.keywords === 'string') {
+          keywords = subSummary.keywords.split(",").map(kw => kw.trim().toLowerCase());
+        } else if (Array.isArray(subSummary.keywords)) {
+          keywords = subSummary.keywords.map(kw => kw.toLowerCase());
+        }
+        
+        keywords.forEach(keyword => {
+          if (!keyword) return;
+          
+          if (!usageStats[keyword]) {
+            usageStats[keyword] = {
+              clipCount: 0,
+              interviewIds: new Set(),
+              totalLengthSeconds: 0,
+            };
+          }
+          
+          const stats = usageStats[keyword];
+          stats.clipCount++;
+          stats.interviewIds.add(interviewId);
+          
+          // Calculate duration from timestamp
+          if (subSummary.timestamp && subSummary.timestamp.includes(" - ")) {
+            const start = extractStartTimestamp(subSummary.timestamp);
+            const end = extractStartTimestamp(subSummary.timestamp.split(" - ")[1]);
+            const duration = Math.max(0, convertTimestampToSeconds(end) - convertTimestampToSeconds(start));
+            stats.totalLengthSeconds += duration;
+          }
+        });
+      });
+      
+      // Convert Set to size for interviewCount
+      const finalStats = {};
+      Object.keys(usageStats).forEach(keyword => {
+        finalStats[keyword] = {
+          clipCount: usageStats[keyword].clipCount,
+          interviewCount: usageStats[keyword].interviewIds.size,
+          totalLengthSeconds: Math.round(usageStats[keyword].totalLengthSeconds)
+        };
+      });
+      
+      console.log(`Calculated usage stats for ${Object.keys(finalStats).length} keywords`);
+      return finalStats;
+      
+    } catch (error) {
+      console.error("Error calculating topic usage stats:", error);
+      return {};
     }
   };
 
@@ -186,11 +310,11 @@ export default function TopicGlossary() {
   };
 
   /**
-   * Handles topic card click to view all clips
+   * Handles topic card click to load playlist builder with all relevant clips
    */
   const handleTopicClick = (keyword) => {
-    // Navigate to content directory with keyword filter
-    navigate(`/content-directory?tab=keywords&keyword=${encodeURIComponent(keyword)}`);
+    // Navigate to playlist builder with the selected topic/keyword
+    navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`);
   };
 
   /**
@@ -241,7 +365,7 @@ export default function TopicGlossary() {
         {/* Topic count */}
         <div className="mb-4">
           <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-            {filteredTopics.length} Keywords
+            {filteredTopics.length} Topics {categoryFilter !== 'all' ? `(${categoryFilter})` : ''}
           </span>
         </div>
 
@@ -279,7 +403,7 @@ export default function TopicGlossary() {
 
           {/* Filter and Sort Section */}
           <div className="flex items-center gap-8">
-            {/* Filter */}
+            {/* Category Filter */}
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 relative">
                 <div className="w-9 h-0 absolute left-[42px] top-[12px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
@@ -289,9 +413,20 @@ export default function TopicGlossary() {
                 <div className="w-2 h-2 absolute left-[29px] top-[21px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
                 <div className="w-2 h-2 absolute left-[17px] top-[33px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
               </div>
-              <span className="text-stone-900 text-xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                Filter
-              </span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
+                style={{ fontFamily: 'Chivo Mono, monospace' }}
+              >
+                <option value="all">All Categories</option>
+                <option value="concept">Concepts</option>
+                <option value="place">Places</option>
+                <option value="person">People</option>
+                <option value="event">Events</option>
+                <option value="org">Organizations</option>
+                <option value="legal">Legal</option>
+              </select>
             </div>
 
             {/* Sort */}
@@ -302,6 +437,7 @@ export default function TopicGlossary() {
                 className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
                 style={{ fontFamily: 'Chivo Mono, monospace' }}
               >
+                <option value="importance">Sort by: Importance</option>
                 <option value="alphabetical">Sort by: A-Z</option>
                 <option value="clipCount">Sort by: Most Clips</option>
                 <option value="interviewCount">Sort by: Most Interviews</option>
@@ -337,8 +473,9 @@ export default function TopicGlossary() {
                   {groupedTopics[letter].map((topic) => (
                     <div 
                       key={topic.keyword}
-                      className="w-64 cursor-pointer hover:opacity-80 transition-opacity"
+                      className="w-64 cursor-pointer hover:opacity-80 hover:shadow-lg transition-all duration-200 group"
                       onClick={() => handleTopicClick(topic.keyword)}
+                      title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
                     >
                       <div className="w-60 inline-flex flex-col justify-start items-start gap-4">
                         <div className="self-stretch flex flex-col justify-start items-start gap-4">
@@ -351,7 +488,11 @@ export default function TopicGlossary() {
                             </div>
                           </div>
                           <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4']">
-                            {topic.description || `${topic.keyword} is discussed across ${topic.interviewCount} interviews, providing insights into this important aspect of the civil rights movement.`}
+                            {topic.shortDescription || topic.description?.substring(0, 200) + (topic.description?.length > 200 ? '...' : '') || `${topic.keyword} is an important topic in the context of the civil rights movement.`}
+                          </div>
+                          <div className="flex items-center gap-2 mt-2 text-red-500 text-sm font-light opacity-60 group-hover:opacity-100 transition-opacity" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                            <span>▶</span>
+                            <span>Build playlist</span>
                           </div>
                         </div>
                       </div>

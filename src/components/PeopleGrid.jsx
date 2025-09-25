@@ -7,9 +7,8 @@
  */
 
 import { useState, useEffect, useContext } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../services/firebase';
+import { getAllInterviews } from '../services/firebase';
 import { DirectoryCacheContext } from '../pages/ContentDirectory';
 
 /**
@@ -109,21 +108,26 @@ export default function PeopleGrid() {
   const fetchPeople = async () => {
     try {
       setLoading(true);
-      const peopleSnapshot = await getDocs(collection(db, "interviewSummaries"));
+      
+      // Use enhanced service that handles collection switching
+      const interviews = await getAllInterviews({ limit: 200 });
       const peopleData = [];
 
-      peopleSnapshot.forEach(doc => {
-        const data = doc.data();
-        const videoId = extractVideoId(data.videoEmbedLink);
+      interviews.forEach(interview => {
+        const videoId = extractVideoId(interview.videoEmbedLink);
 
         peopleData.push({
-          id: doc.id,
-          name: data.name || 'Unknown Name',
-          role: data.role || 'Unknown Role',
-          videoEmbedLink: data.videoEmbedLink,
+          id: interview.id,
+          name: interview.name || interview.documentName || 'Unknown Name',
+          role: interview.role || 'Unknown Role',
+          videoEmbedLink: interview.videoEmbedLink,
           thumbnailUrl: videoId ?
             `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` :
-            null
+            null,
+          // Enhanced fields from metadataV2
+          keyThemes: interview.keyThemes || [],
+          historicalSignificance: interview.historicalSignificance || '',
+          processingInfo: interview.processingInfo || {}
         });
       });
 

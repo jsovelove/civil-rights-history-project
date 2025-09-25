@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { vectorSearch } from '../services/embeddings';
-import { collection, getDoc, doc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { enhanceSearchResults } from '../services/firebase';
 
 /**
  * VectorSearchOverlay - Modal overlay for semantic search
@@ -82,46 +81,7 @@ export default function VectorSearchOverlay({ isOpen, onClose }) {
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  /**
-   * Fetches additional metadata for search results
-   * 
-   * @param {Array} searchResults - Results from vector search
-   * @returns {Promise<Array>} Enhanced results with metadata
-   */
-  const fetchResultMetadata = async (searchResults) => {
-    const enhancedResults = [];
-    
-    for (const result of searchResults) {
-      try {
-        const interviewDoc = await getDoc(doc(db, "interviewSummaries", result.documentId));
-        const interviewData = interviewDoc.data();
-        
-        let segmentData = null;
-        if (result.segmentId) {
-          const segmentDoc = await getDoc(doc(db, "interviewSummaries", result.documentId, "subSummaries", result.segmentId));
-          segmentData = segmentDoc.data();
-        }
-        
-        const thumbnailUrl = interviewData.videoEmbedLink ?
-          `https://img.youtube.com/vi/${extractVideoId(interviewData.videoEmbedLink)}/mqdefault.jpg` : null;
-        
-        enhancedResults.push({
-          ...result,
-          personName: interviewData.name || "Unknown",
-          topic: segmentData?.topic || "Untitled Segment",
-          timestamp: segmentData?.timestamp || "",
-          summary: segmentData?.summary || result.textPreview,
-          keywords: segmentData?.keywords || "",
-          thumbnailUrl
-        });
-      } catch (error) {
-        console.error(`Error fetching metadata for result ${result.id}:`, error);
-        enhancedResults.push(result);
-      }
-    }
-    
-    return enhancedResults;
-  };
+  // Note: fetchResultMetadata function is now handled by enhanceSearchResults from firebase service
 
   /**
    * Handles semantic search form submission
@@ -133,7 +93,7 @@ export default function VectorSearchOverlay({ isOpen, onClose }) {
     setIsSearching(true);
     try {
       const searchResults = await vectorSearch(searchQuery, 20);
-      const enhancedResults = await fetchResultMetadata(searchResults);
+      const enhancedResults = await enhanceSearchResults(searchResults);
       setResults(enhancedResults);
     } catch (error) {
       console.error("Error during vector search:", error);

@@ -1,0 +1,100 @@
+{
+  "fieldFrequency": {
+    "role": 130,
+    "documentName": 131,
+    "processingInfo": 131,
+    "mainSummary": 131,
+    "topicsAndThemes": 131,
+    "keyThemes": 131,
+    "sourceFile": 131,
+    "historicalSignificance": 131,
+    "videoEmbedLink": 131,
+    "metadata": 131,
+    "sourceDirectory": 131,
+    "createdAt": 131,
+    "updatedAt": 131
+  },
+  "fieldTypes": {
+    "role": [
+      "string"
+    ],
+    "documentName": [
+      "string"
+    ],
+    "processingInfo": [
+      "object"
+    ],
+    "mainSummary": [
+      "string"
+    ],
+    "topicsAndThemes": [
+      "object"
+    ],
+    "keyThemes": [
+      "array"
+    ],
+    "sourceFile": [
+      "string"
+    ],
+    "historicalSignificance": [
+      "string"
+    ],
+    "videoEmbedLink": [
+      "string"
+    ],
+    "metadata": [
+      "object"
+    ],
+    "sourceDirectory": [
+      "string"
+    ],
+    "createdAt": [
+      "timestamp"
+    ],
+    "updatedAt": [
+      "timestamp"
+    ]
+  },
+  "sampleValues": {
+    "role": "Aaron Dixon was a co-founder of the Black Panther Party in Seattle, Washington. He later worked for many non-profits, founded Central House, and ran for U.S. Senator as a Green Party candidate in Washington State.",
+    "documentName": "Aaron Dixon",
+    "processingInfo": {
+      "processed_at": "2025-08-26T11:21:55.089697",
+      "total_duration": 8869.04,
+      "word_count": 21845,
+      "total_segments": 1944,
+      "used_plaintext": true
+    },
+    "mainSummary": "Aaron Dixon's family history is deeply rooted in the struggles and resilience of African Americans. His mother's lineage traces back to Mississippi, where his great-grandmother Emma, born into slavery, faced immense hardships, including the loss of her children and husband. Emma's daughter, Aaron's grandmother, was raised in Chicago after being sent away from her family. Aaron's father, hailing from Kentucky, experienced the harsh realities of racism during his military service in World War II, including a harrowing encounter with a white sergeant that put his life in danger. After the war, Aaron's parents moved to Seattle, where they became part of the growing Black community during the wartime migration. Aaron recalls the vibrant cultural mix in Seattle's Central District, where Black, Asian, and Native American communities coexisted. His father's experiences in the military and subsequent involvement with political movements, including a flirtation with the Communist Party, shaped Aaron's own understanding of civil rights and activism. Aaron's upbringing in a politically conscious household instilled in him a sense of responsibility to fight for justice, leading him to become a prominent figure in the Black Panther Party in Seattle, advocating for social change and community empowerment.",
+    "topicsAndThemes": {},
+    "keyThemes": [
+      "Family Legacy",
+      "Racism and Military Service",
+      "Migration and Community",
+      "Political Activism",
+      "Cultural Identity"
+    ],
+    "sourceFile": "transcriptions\\Aaron Dixon_interview_20250704_170306\\Aaron Dixon_interview_transcript_20250704_170306.srt",
+    "historicalSignificance": "Aaron Dixon's narrative encapsulates the broader African American experience during the 20th century, highlighting the intersection of personal and collective histories. His family's migration patterns reflect the Great Migration, which significantly altered the demographics of urban America. The challenges faced by his father in the military illustrate the pervasive racism that Black soldiers encountered, even while serving their country. Dixon's involvement with the Black Panther Party signifies the rise of radical activism in response to systemic oppression, marking a critical period in the civil rights movement. His story contributes to the understanding of how personal histories intertwine with larger social movements, emphasizing the importance of community and activism in the fight for equality.",
+    "videoEmbedLink": "https://www.youtube.com/embed/-4uCNsQApcA",
+    "metadata": {
+      "average_words_per_minute": 147.8,
+      "word_count": 21845,
+      "total_duration_seconds": 8869.04,
+      "total_segments": 1944,
+      "estimated_reading_time_minutes": 87.4,
+      "total_duration_formatted": "02:27:49",
+      "interview_name": "Aaron Dixon"
+    },
+    "sourceDirectory": "transcriptions\\Aaron Dixon_interview_20250704_170306",
+    "createdAt": {
+      "_seconds": 1756232514,
+      "_nanoseconds": 967000000
+    },
+    "updatedAt": {
+      "_seconds": 1756232514,
+      "_nanoseconds": 967000000
+    }
+  },
+  "documentCount": 131
+}
