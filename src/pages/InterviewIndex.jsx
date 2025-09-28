@@ -55,9 +55,9 @@ export default function InterviewIndex() {
         case 'Z-A':
           return b.name.localeCompare(a.name);
         case 'Duration (High-Low)':
-          return (b.duration || 0) - (a.duration || 0);
+          return (b.totalMinutes || 0) - (a.totalMinutes || 0);
         case 'Duration (Low-High)':
-          return (a.duration || 0) - (b.duration || 0);
+          return (a.totalMinutes || 0) - (b.totalMinutes || 0);
         default:
           return a.name.localeCompare(b.name);
       }
@@ -90,7 +90,7 @@ export default function InterviewIndex() {
 
       // Calculate total minutes
       const total = interviewsData.reduce((sum, interview) => {
-        return sum + (interview.duration || 0);
+        return sum + (interview.totalMinutes || 0);
       }, 0);
       
       setInterviews(interviewsData);
@@ -230,7 +230,7 @@ export default function InterviewIndex() {
             </span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-8 md:gap-x-12 lg:gap-x-16 xl:gap-x-[74px] gap-y-8 sm:gap-y-12 md:gap-y-16 lg:gap-y-20 xl:gap-y-[87px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 sm:gap-x-4 md:gap-x-5 lg:gap-x-6 xl:gap-x-8 gap-y-4 sm:gap-y-5 md:gap-y-6 lg:gap-y-8 xl:gap-y-10">
             {filteredInterviews.map((interview) => (
               <div 
                 key={interview.id}
@@ -241,13 +241,13 @@ export default function InterviewIndex() {
                   {/* Image */}
                   {interview.thumbnailUrl ? (
                     <img 
-                      className="w-full aspect-[4/3] object-cover" 
+                      className="w-full aspect-[1.83/1] object-cover" 
                       src={interview.thumbnailUrl}
                       alt={interview.name}
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full aspect-[4/3] bg-zinc-300 flex items-center justify-center">
+                    <div className="w-full aspect-[1.83/1] bg-zinc-300 flex items-center justify-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 sm:h-16 sm:w-16 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
@@ -256,11 +256,11 @@ export default function InterviewIndex() {
                   
                   {/* Text content */}
                   <div className="self-stretch min-h-20 relative">
-                    <div className="text-stone-900 text-base font-light mb-2" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                      {formatDuration(interview.duration)}
-                    </div>
-                    <div className="w-full text-stone-900 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight" style={{ fontFamily: 'Source Serif 4, serif' }}>
+                    <div className="w-full text-stone-900 text-4xl font-bold font-['Source_Serif_4']">
                       {interview.name}
+                    </div>
+                    <div className="justify-start text-stone-900 text-base font-light font-['Chivo_Mono']">
+                      {interview.roleSimplified} | {formatDuration(interview.totalMinutes)}
                     </div>
                   </div>
                 </div>

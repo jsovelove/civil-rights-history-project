@@ -414,14 +414,14 @@ export default function InterviewPlayer() {
               {mainSummary?.name || documentName}
             </div>
             <div className="text-red-500 text-base font-mono">
-              {mainSummary?.role && `${mainSummary.role} | `}
+              {mainSummary?.roleSimplified && `${mainSummary.roleSimplified} | `}
               {totalDuration > 0 && `${Math.round(totalDuration / 60)} minutes`}
             </div>
           </div>
 
           {/* Overview */}
           <div className="w-full max-w-[1030px] mb-20">
-            <div className="text-black text-2xl font-normal font-body leading-relaxed">
+            <div className="text-black text-2xl font-normal font-['FreightText_Pro'] leading-relaxed">
               {mainSummary?.mainSummary || 'No summary available'}
             </div>
           </div>
@@ -470,7 +470,7 @@ export default function InterviewPlayer() {
                 </div>
                 
                 <div className="flex-1 max-w-[804px]">
-                  <div className="text-black text-2xl font-normal font-body leading-relaxed">
+                  <div className="text-black text-2xl font-normal font-['FreightText_Pro'] leading-relaxed">
                     {summary.summary}
                   </div>
                 </div>

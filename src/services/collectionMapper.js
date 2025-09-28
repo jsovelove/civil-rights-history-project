@@ -19,6 +19,7 @@ export const mapInterviewData = (data, sourceCollection) => {
       documentName: data.documentName,
       mainSummary: data.mainSummary,
       role: data.role,
+      roleSimplified: data.roleSimplified || data.role,
       videoEmbedLink: data.videoEmbedLink,
       createdAt: data.createdAt,
       
@@ -50,6 +51,7 @@ export const mapInterviewData = (data, sourceCollection) => {
       documentName: data.documentName,
       mainSummary: data.mainSummary,
       role: data.role,
+      roleSimplified: data.roleSimplified || data.role,
       videoEmbedLink: data.videoEmbedLink,
       createdAt: data.createdAt,
       name: data.name || data.documentName,

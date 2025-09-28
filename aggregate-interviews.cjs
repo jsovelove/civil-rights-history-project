@@ -1,7 +1,7 @@
 const admin = require('firebase-admin');
 
 // IMPORTANT: Replace with the actual path to your Firebase Admin SDK service account file
-const serviceAccount = require('./llm-hyper-audio-firebase-adminsdk-fbsvc-20605d195b.json');
+const serviceAccount = require('./llm-hyper-audio-firebase-adminsdk-fbsvc-fb01161b83.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -51,8 +51,8 @@ async function aggregateInterviews() {
 
   const interviewsData = [];
   
-  // Fetch all interviews
-  const interviewsSnapshot = await db.collection('interviewSummaries').get();
+  // Fetch all interviews from metadataV2 collection
+  const interviewsSnapshot = await db.collection('metadataV2').get();
   
   console.log(`Found ${interviewsSnapshot.size} interviews to process.`);
 
@@ -73,7 +73,7 @@ async function aggregateInterviews() {
       subSummariesSnapshot.forEach((doc) => {
         // Check if this document belongs to the current interview
         const docPath = doc.ref.path;
-        const belongsToInterview = docPath.startsWith(`interviewSummaries/${interviewId}/subSummaries/`);
+        const belongsToInterview = docPath.startsWith(`metadataV2/${interviewId}/subSummaries/`);
         
         if (belongsToInterview) {
           const subSummary = doc.data();
@@ -92,7 +92,7 @@ async function aggregateInterviews() {
       
       // Fallback: try the direct subcollection approach
       try {
-        const subSummariesRef = db.collection('interviewSummaries').doc(interviewId).collection('subSummaries');
+        const subSummariesRef = db.collection('metadataV2').doc(interviewId).collection('subSummaries');
         const subSummariesSnapshot = await subSummariesRef.get();
         
         subSummariesSnapshot.forEach((doc) => {
@@ -115,8 +115,9 @@ async function aggregateInterviews() {
     
     const processedInterview = {
       id: interviewId,
-      name: interviewData.name || 'Unknown Name',
+      name: interviewData.documentName || interviewData.name || 'Unknown Name',
       role: interviewData.role || 'Unknown Role',
+      roleSimplified: interviewData.roleSimplified || interviewData.role || 'Unknown Role',
       videoEmbedLink: interviewData.videoEmbedLink,
       thumbnailUrl: videoId ? 
         `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : 

@@ -20,6 +20,8 @@ import MarchOnWashingtonGifToDateConnector from '../components/connectors/MarchO
 import MarchOnWashingtonDateToQuoteConnector from '../components/connectors/MarchOnWashingtonDateToQuoteConnector';
 import FreedomSummerToCivilRightsActConnector from '../components/connectors/FreedomSummerToCivilRightsActConnector';
 import CivilRightsActToMalcolmXConnector from '../components/connectors/CivilRightsActToMalcolmXConnector';
+import SelmaToVotingRightsActConnector from '../components/connectors/SelmaToVotingRightsActConnector';
+import VotingRightsActToBlackPantherConnector from '../components/connectors/VotingRightsActToBlackPantherConnector';
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -291,6 +293,9 @@ export default function Home() {
   const civilRightsActDateRef = useRef(null);
   const malcolmXDateRef = useRef(null);
   const malcolmXGifRef = useRef(null);
+  const selmaDateRef = useRef(null);
+  const votingRightsActDateRef = useRef(null);
+  const blackPantherDateRef = useRef(null);
   const [montgomeryImageUrl, setMontgomeryImageUrl] = useState(null);
   const [montgomeryImageLoading, setMontgomeryImageLoading] = useState(true);
   const [littleRockImageUrl, setLittleRockImageUrl] = useState(null);
@@ -319,8 +324,42 @@ export default function Home() {
   const [selmaImageLoading, setSelmaImageLoading] = useState(true);
   const [selmaGifUrl, setSelmaGifUrl] = useState(null);
   const [selmaGifLoading, setSelmaGifLoading] = useState(true);
-  const [votingRightsActImageUrl, setVotingRightsActImageUrl] = useState(null);
-  const [votingRightsActImageLoading, setVotingRightsActImageLoading] = useState(true);
+  const [votingRightsActGifUrl, setVotingRightsActGifUrl] = useState(null);
+  const [votingRightsActGifLoading, setVotingRightsActGifLoading] = useState(true);
+  const [blackPantherImageUrl, setBlackPantherImageUrl] = useState(null);
+  const [blackPantherImageLoading, setBlackPantherImageLoading] = useState(true);
+  const [bobbySealeGifUrl, setBobbySealeGifUrl] = useState(null);
+  const [bobbySealeGifLoading, setBobbySealeGifLoading] = useState(true);
+  const [brownBeretsImageUrl, setBrownBeretsImageUrl] = useState(null);
+  const [brownBeretsImageLoading, setBrownBeretsImageLoading] = useState(true);
+  const [longHotSummerImageUrl, setLongHotSummerImageUrl] = useState(null);
+  const [longHotSummerImageLoading, setLongHotSummerImageLoading] = useState(true);
+  const [mlkImageUrl, setMlkImageUrl] = useState(null);
+  const [mlkImageLoading, setMlkImageLoading] = useState(true);
+  const [manPosterUrl, setManPosterUrl] = useState(null);
+  const [manPosterLoading, setManPosterLoading] = useState(true);
+  const [honorKingPosterUrl, setHonorKingPosterUrl] = useState(null);
+  const [honorKingPosterLoading, setHonorKingPosterLoading] = useState(true);
+  const [longHotSummerGifUrl, setLongHotSummerGifUrl] = useState(null);
+  const [longHotSummerGifLoading, setLongHotSummerGifLoading] = useState(true);
+  const [signingGifUrl, setSigningGifUrl] = useState(null);
+  const [signingGifLoading, setSigningGifLoading] = useState(true);
+  const [selmaGetRightGifUrl, setSelmaGetRightGifUrl] = useState(null);
+  const [selmaGetRightGifLoading, setSelmaGetRightGifLoading] = useState(true);
+  const [marchForDemocraticSchoolsPinUrl, setMarchForDemocraticSchoolsPinUrl] = useState(null);
+  const [marchForDemocraticSchoolsPinLoading, setMarchForDemocraticSchoolsPinLoading] = useState(true);
+  const [nowPinUrl, setNowPinUrl] = useState(null);
+  const [nowPinLoading, setNowPinLoading] = useState(true);
+  const [snccOvercomePinUrl, setSnccOvercomePinUrl] = useState(null);
+  const [snccOvercomePinLoading, setSnccOvercomePinLoading] = useState(true);
+  const [marchOnWashingtonPinUrl, setMarchOnWashingtonPinUrl] = useState(null);
+  const [marchOnWashingtonPinLoading, setMarchOnWashingtonPinLoading] = useState(true);
+  const [washingtonFreedomMarchPinUrl, setWashingtonFreedomMarchPinUrl] = useState(null);
+  const [washingtonFreedomMarchPinLoading, setWashingtonFreedomMarchPinLoading] = useState(true);
+  const [emancipationMarchPinUrl, setEmancipationMarchPinUrl] = useState(null);
+  const [emancipationMarchPinLoading, setEmancipationMarchPinLoading] = useState(true);
+  const [snccVotePinUrl, setSnccVotePinUrl] = useState(null);
+  const [snccVotePinLoading, setSnccVotePinLoading] = useState(true);
 
   useEffect(() => {
     const loadLandingImage = async () => {
@@ -548,18 +587,273 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const loadVotingRightsActImage = async () => {
+    const loadVotingRightsActGif = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Voting Rights Act.png');
-        setVotingRightsActImageUrl(url);
+        const url = await getStorageImageUrl('photos/GIFs/Voting-Rights-Act-1965.gif');
+        setVotingRightsActGifUrl(url);
       } catch (error) {
-        console.error('Failed to load Voting Rights Act image:', error);
+        console.error('Failed to load Voting Rights Act GIF:', error);
       } finally {
-        setVotingRightsActImageLoading(false);
+        setVotingRightsActGifLoading(false);
       }
     };
 
-    loadVotingRightsActImage();
+    loadVotingRightsActGif();
+  }, []);
+
+  useEffect(() => {
+    const loadBlackPantherImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Black Panthers.png');
+        setBlackPantherImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Black Panthers image:', error);
+      } finally {
+        setBlackPantherImageLoading(false);
+      }
+    };
+
+    loadBlackPantherImage();
+  }, []);
+
+  useEffect(() => {
+    const loadBobbySealeGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/Bobby-Seale.gif');
+        setBobbySealeGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Bobby Seale GIF:', error);
+      } finally {
+        setBobbySealeGifLoading(false);
+      }
+    };
+
+    loadBobbySealeGif();
+  }, []);
+
+  useEffect(() => {
+    const loadBrownBeretsImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Brown Berets.png');
+        setBrownBeretsImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Brown Berets image:', error);
+      } finally {
+        setBrownBeretsImageLoading(false);
+      }
+    };
+
+    loadBrownBeretsImage();
+  }, []);
+
+  useEffect(() => {
+    const loadLongHotSummerImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Long Hot Summer.png');
+        setLongHotSummerImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Long Hot Summer image:', error);
+      } finally {
+        setLongHotSummerImageLoading(false);
+      }
+    };
+
+    loadLongHotSummerImage();
+  }, []);
+
+  useEffect(() => {
+    const loadMlkImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/MLK.png');
+        setMlkImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load MLK image:', error);
+      } finally {
+        setMlkImageLoading(false);
+      }
+    };
+
+    loadMlkImage();
+  }, []);
+
+  useEffect(() => {
+    const loadManPoster = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Posters/Man.png');
+        setManPosterUrl(url);
+      } catch (error) {
+        console.error('Failed to load Man poster:', error);
+      } finally {
+        setManPosterLoading(false);
+      }
+    };
+
+    loadManPoster();
+  }, []);
+
+  useEffect(() => {
+    const loadHonorKingPoster = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Posters/Honor King.png');
+        setHonorKingPosterUrl(url);
+      } catch (error) {
+        console.error('Failed to load Honor King poster:', error);
+      } finally {
+        setHonorKingPosterLoading(false);
+      }
+    };
+
+    loadHonorKingPoster();
+  }, []);
+
+  useEffect(() => {
+    const loadLongHotSummerGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/Long-Hot-Summer.gif');
+        setLongHotSummerGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Long Hot Summer GIF:', error);
+      } finally {
+        setLongHotSummerGifLoading(false);
+      }
+    };
+
+    loadLongHotSummerGif();
+  }, []);
+
+  useEffect(() => {
+    const loadSigningGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/signing.gif');
+        setSigningGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load signing GIF:', error);
+      } finally {
+        setSigningGifLoading(false);
+      }
+    };
+
+    loadSigningGif();
+  }, []);
+
+  useEffect(() => {
+    const loadSelmaGetRightGif = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/GIFs/Selma,-_Get-Right-with-God_02.gif');
+        setSelmaGetRightGifUrl(url);
+      } catch (error) {
+        console.error('Failed to load Selma Get Right GIF:', error);
+      } finally {
+        setSelmaGetRightGifLoading(false);
+      }
+    };
+
+    loadSelmaGetRightGif();
+  }, []);
+
+  useEffect(() => {
+    const loadMarchForDemocraticSchoolsPin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/March for Democratic Schools.png');
+        setMarchForDemocraticSchoolsPinUrl(url);
+      } catch (error) {
+        console.error('Failed to load March for Democratic Schools pin:', error);
+      } finally {
+        setMarchForDemocraticSchoolsPinLoading(false);
+      }
+    };
+
+    loadMarchForDemocraticSchoolsPin();
+  }, []);
+
+  useEffect(() => {
+    const loadNowPin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/NOW.png');
+        setNowPinUrl(url);
+      } catch (error) {
+        console.error('Failed to load NOW pin:', error);
+      } finally {
+        setNowPinLoading(false);
+      }
+    };
+
+    loadNowPin();
+  }, []);
+
+  useEffect(() => {
+    const loadSnccOvercomePin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/SNCC Overcome.png');
+        setSnccOvercomePinUrl(url);
+      } catch (error) {
+        console.error('Failed to load SNCC Overcome pin:', error);
+      } finally {
+        setSnccOvercomePinLoading(false);
+      }
+    };
+
+    loadSnccOvercomePin();
+  }, []);
+
+  useEffect(() => {
+    const loadMarchOnWashingtonPin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/March on Washington.png');
+        setMarchOnWashingtonPinUrl(url);
+      } catch (error) {
+        console.error('Failed to load March on Washington pin:', error);
+      } finally {
+        setMarchOnWashingtonPinLoading(false);
+      }
+    };
+
+    loadMarchOnWashingtonPin();
+  }, []);
+
+  useEffect(() => {
+    const loadWashingtonFreedomMarchPin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/Washington Freedom March.png');
+        setWashingtonFreedomMarchPinUrl(url);
+      } catch (error) {
+        console.error('Failed to load Washington Freedom March pin:', error);
+      } finally {
+        setWashingtonFreedomMarchPinLoading(false);
+      }
+    };
+
+    loadWashingtonFreedomMarchPin();
+  }, []);
+
+  useEffect(() => {
+    const loadEmancipationMarchPin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/Emancipation March.png');
+        setEmancipationMarchPinUrl(url);
+      } catch (error) {
+        console.error('Failed to load Emancipation March pin:', error);
+      } finally {
+        setEmancipationMarchPinLoading(false);
+      }
+    };
+
+    loadEmancipationMarchPin();
+  }, []);
+
+  useEffect(() => {
+    const loadSnccVotePin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/SNCC Vote.png');
+        setSnccVotePinUrl(url);
+      } catch (error) {
+        console.error('Failed to load SNCC Vote pin:', error);
+      } finally {
+        setSnccVotePinLoading(false);
+      }
+    };
+
+    loadSnccVotePin();
   }, []);
 
   return (
@@ -656,18 +950,56 @@ export default function Home() {
             </div>
 
             {/* Description - Slightly larger for emphasis */}
-            <div className="flex justify-center">
+            <div className="flex justify-center relative">
+              {/* Pin Image - Absolutely positioned to the left */}
+              <div className="absolute left-[-500px] top-0">
+                {marchForDemocraticSchoolsPinLoading ? (
+                  <div className="w-96 h-96 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                    <span className="text-gray-500">Loading pin...</span>
+                  </div>
+                ) : marchForDemocraticSchoolsPinUrl ? (
+                  <img 
+                    className="w-96 h-96 origin-top-left rotate-[-9.43deg]" 
+                    src={marchForDemocraticSchoolsPinUrl}
+                    alt="March for Democratic Schools Pin"
+                  />
+                ) : (
+                  <div className="w-96 h-96 bg-gray-200 flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                    <span className="text-gray-500">Pin not available</span>
+                  </div>
+                )}
+              </div>
+              
               <p className="w-96 text-center text-black text-xl font-normal font-['Inter']">
               This landmark ruling by the Supreme Court ruled that State laws establishing racial segregation in public schools were violations of the Fourteenth Amendment's Equal Protection Clause. This struck down the "separate but equal" doctrine from Plessy v. Ferguson that had allowed states to mandate segregation in public spaces. The ruling required schools desegregate, a process that was often radicalizing for Black students, as they were subjected to extreme violence from the local White communities.
               </p>
             </div>
 
             {/* Watch Related Interviews Link */}
-            <div className="flex justify-center">
+            <div className="flex justify-center relative">
               <Link to={`/interviews?topic=${encodeURIComponent("Brown V. Board of Education")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
                 <span>Watch Related Interviews</span>
                 <div className="w-3 h-2 border border-stone-900"></div>
               </Link>
+              
+              {/* NOW Pin - Absolutely positioned to the right, higher up */}
+              <div className="absolute right-[-400px] top-[-280px]">
+                {nowPinLoading ? (
+                  <div className="w-96 h-96 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[15deg]">
+                    <span className="text-gray-500">Loading pin...</span>
+                  </div>
+                ) : nowPinUrl ? (
+                  <img 
+                    className="w-96 h-96 origin-top-left rotate-[15deg]" 
+                    src={nowPinUrl}
+                    alt="NOW Pin"
+                  />
+                ) : (
+                  <div className="w-96 h-96 bg-gray-200 flex items-center justify-center origin-top-left rotate-[15deg]">
+                    <span className="text-gray-500">Pin not available</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -993,7 +1325,26 @@ export default function Home() {
           </div>
           
           {/* Quote - Positioned below and to the right */}
-          <div className="mt-12 lg:mt-16 flex justify-end -mr-2 sm:-mr-4 lg:-mr-6">
+          <div className="mt-12 lg:mt-16 flex justify-end -mr-2 sm:-mr-4 lg:-mr-6 relative">
+            {/* SNCC Overcome Pin - Positioned to the left of the quote */}
+            <div className="absolute left-[-50px] top-[40px] z-50">
+              {snccOvercomePinLoading ? (
+                <div className="w-72 h-72 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Loading pin...</span>
+                </div>
+              ) : snccOvercomePinUrl ? (
+                <img 
+                  className="w-72 h-72 origin-top-left rotate-[-9.43deg]" 
+                  src={snccOvercomePinUrl}
+                  alt="SNCC Overcome Pin"
+                />
+              ) : (
+                <div className="w-72 h-72 bg-gray-200 flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Pin not available</span>
+                </div>
+              )}
+            </div>
+            
             <div className="w-[800px]">
               <p className="text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
                 "When you stepped off that bus and you looked around and you saw these people crawling around, trying to get the smoke out of their chest, and people crawling and coughing and gagging, it was one of those sights that make you wonder why Americans are doing that sort of thing to fellow Americans who were just trying to exercise their rights."
@@ -1141,7 +1492,83 @@ export default function Home() {
           </div>
           
           {/* Centered Quote */}
-          <div className="flex justify-center mt-48 lg:mt-72">
+          <div className="flex justify-center mt-48 lg:mt-72 relative">
+            {/* March on Washington Pin - Left side, higher above */}
+            <div className="absolute left-[-350px] top-[-150px] z-50">
+              {marchOnWashingtonPinLoading ? (
+                <div className="w-64 h-64 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Loading pin...</span>
+                </div>
+              ) : marchOnWashingtonPinUrl ? (
+                <img 
+                  className="w-64 h-64 origin-top-left rotate-[-9.43deg]" 
+                  src={marchOnWashingtonPinUrl}
+                  alt="March on Washington Pin"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-gray-200 flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Pin not available</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Washington Freedom March Pin - Left side, further below */}
+            <div className="absolute left-[-300px] top-[200px] z-50">
+              {washingtonFreedomMarchPinLoading ? (
+                <div className="w-64 h-64 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Loading pin...</span>
+                </div>
+              ) : washingtonFreedomMarchPinUrl ? (
+                <img 
+                  className="w-64 h-64 origin-top-left rotate-[-9.43deg]" 
+                  src={washingtonFreedomMarchPinUrl}
+                  alt="Washington Freedom March Pin"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-gray-200 flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Pin not available</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Emancipation March Pin - Right side, above */}
+            <div className="absolute right-[-350px] top-[-150px] z-50">
+              {emancipationMarchPinLoading ? (
+                <div className="w-64 h-64 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Loading pin...</span>
+                </div>
+              ) : emancipationMarchPinUrl ? (
+                <img 
+                  className="w-64 h-64 origin-top-left rotate-[-9.43deg]" 
+                  src={emancipationMarchPinUrl}
+                  alt="Emancipation March Pin"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-gray-200 flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Pin not available</span>
+                </div>
+              )}
+            </div>
+            
+            {/* SNCC Vote Pin - Right side, below */}
+            <div className="absolute right-[-300px] top-[200px] z-50">
+              {snccVotePinLoading ? (
+                <div className="w-64 h-64 bg-gray-200 animate-pulse flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Loading pin...</span>
+                </div>
+              ) : snccVotePinUrl ? (
+                <img 
+                  className="w-64 h-64 origin-top-left rotate-[-9.43deg]" 
+                  src={snccVotePinUrl}
+                  alt="SNCC Vote Pin"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-gray-200 flex items-center justify-center origin-top-left rotate-[-9.43deg]">
+                  <span className="text-gray-500">Pin not available</span>
+                </div>
+              )}
+            </div>
+            
             <div ref={marchOnWashingtonQuoteRef} className="w-[905px] text-center justify-start text-stone-900 text-5xl font-normal font-['Source_Serif_4']">
               "And so what I remember first was seeing all those people. It was an incredible sight. A nineteen year-old from Mississippi who had never seen huge numbers. In fact no one on that platform had seen numbers like that before. But I remember seeing people march, coming and coming and coming and they just kept coming. "
             </div>
@@ -1328,8 +1755,13 @@ export default function Home() {
           
           {/* Malcolm X Quote */}
           <div className="mt-12 lg:mt-16 flex justify-start -ml-2 sm:-ml-4 lg:-ml-6">
-            <div className="w-[1608px] justify-start text-stone-900 text-6xl font-normal font-['Source_Serif_4']">
-              "In the same way that Marx is the fundamental critic of capitalism, and Fanon is the fundamental critic of colonialism, to my mind, Malcolm is the fundamental critic of American racism."
+            <div className="w-[1608px] justify-start">
+              <p className="text-stone-900 text-6xl font-normal font-['Source_Serif_4']">
+                "In the same way that Marx is the fundamental critic of capitalism, and Fanon is the fundamental critic of colonialism, to my mind, Malcolm is the fundamental critic of American racism."
+              </p>
+              <cite className="text-stone-900 text-2xl font-light font-['Chivo_Mono'] not-italic block mt-4">
+                William Strickland
+              </cite>
             </div>
           </div>
         </div>
@@ -1337,12 +1769,19 @@ export default function Home() {
         {/* Selma to Montgomery */}
         <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
+          
+          {/* Simple ray going up from date */}
+          <div className="absolute left-24 lg:left-28 -top-32 lg:-top-40">
+            <div className="w-px h-32 lg:h-40 bg-red-500 opacity-100"></div>
+            <div className="absolute -top-2 -left-1 w-2 h-2 bg-red-500 rounded-full"></div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             <div className="space-y-4 lg:space-y-6">
 
               {/* Date Badge above title - Left aligned */}
               <div className="flex justify-start mb-4 lg:mb-6">
-                <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                <div ref={selmaDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
                   <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">March 7-25th, 1965</span>
                 </div>
               </div>
@@ -1408,32 +1847,38 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Selma to Voting Rights Act connector */}
+        <SelmaToVotingRightsActConnector 
+          fromRef={selmaDateRef} 
+          toRef={votingRightsActDateRef} 
+        />
+
         {/* Voting Rights Act */}
         <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
           {/* Centered Date Badge */}
           <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+            <div ref={votingRightsActDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
               <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">August 6th, 1965</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Image section - Left */}
+            {/* GIF section - Left */}
             <div className="h-48 sm:h-64 lg:h-96">
-              {votingRightsActImageLoading ? (
+              {votingRightsActGifLoading ? (
                 <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
+                  <span className="text-gray-500">Loading GIF...</span>
                 </div>
-              ) : votingRightsActImageUrl ? (
+              ) : votingRightsActGifUrl ? (
                 <img
-                  src={votingRightsActImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Voting Rights Act"
+                  src={votingRightsActGifUrl}
+                  className="w-full h-full object-cover"
+                  alt="Voting Rights Act 1965"
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
+                  <span className="text-gray-500">GIF not available</span>
                 </div>
               )}
             </div>
@@ -1455,6 +1900,12 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Voting Rights Act to Black Panther Party connector */}
+        <VotingRightsActToBlackPantherConnector 
+          fromRef={votingRightsActDateRef} 
+          toRef={blackPantherDateRef} 
+        />
+
         {/* Late 1960s Section */}
         <DecadeSection decade="Late 1960s" subtitle="Community Organizing and Rising Tensions" />
 
@@ -1468,27 +1919,19 @@ export default function Home() {
           {/* Event Content */}
           {/* Centered Date Badge */}
           <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+            <div ref={blackPantherDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
               <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1966</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             <div className="lg:order-2 space-y-4 lg:space-y-6">
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Black Panther Party</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Black Panther Party was established in 1966 as a revolutionary organization advocating for African American self-defense and community welfare programs.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "Essentially, the Black Panther Party was a twentieth-century version of the hopes and demands and desires of an oppressed black community, rearticulated in a new set of words."
-                </blockquote>
-                <cite className="text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] not-italic">— Kathleen Cleaver</cite>
-              </div>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Black Panther Party was established in 1966 as a revolutionary organization advocating for African American self-defense and community welfare programs. The Panthers' initiatives included the establishment of community social programs such as free breakfast for children and health clinics. The party was also known for its stance against police brutality and for promoting black empowerment. Women's roles in the party were significant, although challenges in gender dynamics existed.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Black Panther Party")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -1499,9 +1942,142 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
+              {blackPantherImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : blackPantherImageUrl ? (
+                <img
+                  src={blackPantherImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Black Panthers"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Quote and Bobby Seale GIF Section */}
+          <div className="mt-24 lg:mt-32 flex -ml-2 sm:-ml-4 lg:-ml-6">
+            {/* Quote - Left side */}
+            <div className="w-[804px] justify-start text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
+              "Essentially, the Black Panther Party was a twentieth-century version of the hopes and demands and desires of an oppressed black community, rearticulated in a new set of words."
+            </div>
+            
+            {/* Bobby Seale GIF - Right side */}
+            <div className="flex-1 ml-8 lg:ml-12 h-64 sm:h-80 lg:h-96">
+              {bobbySealeGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : bobbySealeGifUrl ? (
+                <img
+                  src={bobbySealeGifUrl}
+                  className="w-full h-full object-contain"
+                  alt="Bobby Seale GIF"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Brown Berets */}
+        <div className="relative mb-32">
+          {/* Event Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="space-y-4 lg:space-y-6">
+
+              {/* Date Badge above title - Left aligned */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1967</span>
+                </div>
               </div>
+
+              {/* Title */}
+              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Brown Berets</h3>
+
+              {/* Description */}
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Chicano Movement was a civil rights movement extending from the 1940s into the 1970s with the goal of achieving Mexican American empowerment, combating discrimination, and promoting cultural pride. It correlated with the broader push for civil rights and influenced identity politics and activism among Mexican Americans. The Brown Beret's modeled themselves after the Black Panther Party and played a major role in Chicano activism.</p>
+
+              {/* Watch Related Interviews Link */}
+              <Link to={`/interviews?topic=${encodeURIComponent("Brown Berets")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+                <span>Watch Related Interviews</span>
+                <div className="w-3 h-2 border border-stone-900"></div>
+              </Link>
+            </div>
+
+            {/* Image section */}
+            <div className="h-48 sm:h-64 lg:h-96">
+              {brownBeretsImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : brownBeretsImageUrl ? (
+                <img
+                  src={brownBeretsImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Brown Berets"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* The Long Hot Summer */}
+        <div className="relative mb-32">
+          {/* Event Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="lg:order-2 space-y-4 lg:space-y-6">
+
+              {/* Date Badge above title - Left aligned */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1967</span>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">The Long Hot Summer</h3>
+
+              {/* Description */}
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Long Hot Summer was a series of major civil disturbance occurring over the summer of 1967, spurred by racial tensions, poverty, and allegations of police brutality toward the African-American community. It was part of a wave of urban uprisings across the United States during the 1960s. This event significantly impacted the civil rights movement by highlighting systemic issues in urban areas and prompting calls for reform.</p>
+
+              {/* Watch Related Interviews Link */}
+              <Link to={`/interviews?topic=${encodeURIComponent("The Long Hot Summer")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+                <span>Watch Related Interviews</span>
+                <div className="w-3 h-2 border border-stone-900"></div>
+              </Link>
+            </div>
+
+            {/* Image section */}
+            <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
+              {longHotSummerImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : longHotSummerImageUrl ? (
+                <img
+                  src={longHotSummerImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="The Long Hot Summer"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1523,14 +2099,7 @@ export default function Home() {
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Assassination of MLK</h3>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The most prominent Civil Rights Activist of his era, and the leader of the movement at large, Dr. Martin Luther King Jr. was murdered after giving a speech in Memphis, Tennessee.</p>
-
-              {/* Quote */}
-              <div className="border-l-4 border-red-500 pl-4 lg:pl-6 my-6 lg:my-8">
-                <blockquote className="text-stone-900 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] italic mb-3 lg:mb-4">
-                  "[Martin] was saying that the change that must happen was not legal. The change that must happen was moral and spiritual, right, and that was the basis upon which we would move..."
-                </blockquote>
-              </div>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The most prominent Civil Rights Activist of his era, and the leader of the movement at large, Dr. Martin Luther King Jr. was murdered after giving a speech in Memphis, Tennessee. Riots tore through the streets of major cities across the United States in response to the murder.</p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Assassination of MLK")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
@@ -1541,9 +2110,172 @@ export default function Home() {
 
             {/* Image section */}
             <div className="h-48 sm:h-64 lg:h-96">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500">Image not available</span>
+              {mlkImageLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              ) : mlkImageUrl ? (
+                <img
+                  src={mlkImageUrl}
+                  className="w-full h-full object-contain"
+                  alt="Martin Luther King Jr."
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Image not available</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Posters and Quote Section */}
+          <div className="mt-24 lg:mt-32 -ml-2 sm:-ml-4 lg:-ml-6">
+            <div className="flex">
+              {/* Man Poster - Left side */}
+              <div className="w-[350px] h-[530px]">
+                {manPosterLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading poster...</span>
+                  </div>
+                ) : manPosterUrl ? (
+                  <img
+                    src={manPosterUrl}
+                    className="w-full h-full object-contain"
+                    alt="Man Poster"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Poster not available</span>
+                  </div>
+                )}
               </div>
+              
+              {/* Quote and Honor King Poster Column */}
+              <div className="ml-8 lg:ml-12">
+                {/* Quote */}
+                <div className="w-[350px] justify-start text-stone-900 text-3xl font-normal font-['Source_Serif_4'] mb-8">
+                  "...[Martin] was saying that the change that must happen was not legal. The change that must happen was moral and spiritual, right, and that was the basis upon which we were move..."
+                </div>
+                
+                {/* Honor King Poster and GIF row */}
+                <div className="flex items-start">
+                  {/* Honor King Poster */}
+                  <div className="w-[350px] h-[530px]">
+                    {honorKingPosterLoading ? (
+                      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                        <span className="text-gray-500">Loading poster...</span>
+                      </div>
+                    ) : honorKingPosterUrl ? (
+                      <img
+                        src={honorKingPosterUrl}
+                        className="w-full h-full object-contain"
+                        alt="Honor King Poster"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-500">Poster not available</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Long Hot Summer GIF - Right of poster, aligned with top */}
+                  <div className="ml-8 w-[300px] h-[400px]">
+                    {longHotSummerGifLoading ? (
+                      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                        <span className="text-gray-500">Loading GIF...</span>
+                      </div>
+                    ) : longHotSummerGifUrl ? (
+                      <img
+                        src={longHotSummerGifUrl}
+                        className="w-full h-full object-cover"
+                        alt="Long Hot Summer GIF"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-500">GIF not available</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Civil Rights Act of 1968 */}
+          <div className="relative mb-32 mt-24 lg:mt-32">
+            {/* Event Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+              <div className="lg:order-2 space-y-4 lg:space-y-6">
+
+                {/* Date Badge above title - Left aligned */}
+                <div className="flex justify-start mb-4 lg:mb-6">
+                  <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                    <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">April 11th, 1968</span>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Civil Rights Act of 1968</h3>
+
+                {/* Description */}
+                <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Signed into law during the riots following Dr. King's assassination, this act expands upon the 1964 Civil Rights Act by declaring it illegal to discriminate in the rental and financing of housing, contributing to the development of equal housing opportunities.</p>
+
+                {/* Watch Related Interviews Link */}
+                <Link to={`/interviews?topic=${encodeURIComponent("Civil Rights Act of 1968")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+                  <span>Watch Related Interviews</span>
+                  <div className="w-3 h-2 border border-stone-900"></div>
+                </Link>
+              </div>
+
+              {/* GIF section */}
+              <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
+                {signingGifLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading GIF...</span>
+                  </div>
+                ) : signingGifUrl ? (
+                  <img
+                    src={signingGifUrl}
+                    className="w-full h-full object-cover"
+                    alt="Signing GIF"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">GIF not available</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Carolyn Miller text */}
+          <div className="mt-24 lg:mt-32 flex justify-center">
+            <div className="text-red-500 text-2xl font-light font-['Chivo_Mono']">Carolyn Miller</div>
+          </div>
+          
+          {/* Quote */}
+          <div className="mt-8 flex justify-center">
+            <div className="w-[876px] text-center justify-start text-stone-900 text-5xl font-normal font-['Source_Serif_4']">"The movement was pointing out America's hypocrisy. Them brothers and sisters who went out, and came back, and brought knowledge and stuff, empowered us over a long period of time. It empowered us. And by them empowering us, man, it took our psyche to another level."</div>
+          </div>
+          
+          {/* Selma Get Right GIF - Centered */}
+          <div className="mt-12 lg:mt-16 flex justify-center">
+            <div className="w-full max-w-4xl h-64 sm:h-80 lg:h-96">
+              {selmaGetRightGifLoading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading GIF...</span>
+                </div>
+              ) : selmaGetRightGifUrl ? (
+                <img
+                  src={selmaGetRightGifUrl}
+                  className="w-full h-full object-contain"
+                  alt="Selma Get Right with God GIF"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">GIF not available</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
