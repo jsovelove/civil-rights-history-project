@@ -490,10 +490,6 @@ export default function TopicGlossary() {
                           <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4']">
                             {topic.shortDescription || topic.description?.substring(0, 200) + (topic.description?.length > 200 ? '...' : '') || `${topic.keyword} is an important topic in the context of the civil rights movement.`}
                           </div>
-                          <div className="flex items-center gap-2 mt-2 text-red-500 text-sm font-light opacity-60 group-hover:opacity-100 transition-opacity" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                            <span>▶</span>
-                            <span>Build playlist</span>
-                          </div>
                         </div>
                       </div>
                     </div>
