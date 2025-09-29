@@ -117,8 +117,8 @@ const VideoPlayer = ({
       try {
         // Create a new player
         playerRef.current = new window.YT.Player(containerRef.current, {
-          height: "405",
-          width: "720",
+          height: "100%",
+          width: "100%",
           videoId,
           playerVars: {
             autoplay: 1,
@@ -365,8 +365,8 @@ const VideoPlayer = ({
   }, [isPlaying, isPlayerReady, video]);
 
   return (
-    <div className="video-player-wrapper relative">
-      <div ref={containerRef} className="rounded-lg shadow-lg bg-black w-full aspect-video"></div>
+    <div className="video-player-wrapper relative w-full h-full">
+      <div ref={containerRef} className="rounded-lg shadow-lg bg-black w-full h-full"></div>
       {/* Loading indicator shown until player is ready */}
       {!isPlayerReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">

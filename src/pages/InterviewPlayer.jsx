@@ -71,13 +71,17 @@ export default function InterviewPlayer() {
   /**
    * Converts a timestamp string to seconds
    * 
-   * @param {string} timestamp - Timestamp in format "[MM:SS] - Text" or "[HH:MM:SS] - Text"
+   * @param {string} timestamp - Timestamp in format "[MM:SS] - Text", "[HH:MM:SS] - Text", or "HH:MM:SS,000 - HH:MM:SS,000"
    * @returns {number} Time in seconds
    */
   const convertTimestampToSeconds = (timestamp) => {
     if (!timestamp) return 0
-    const timeStr = timestamp.split(' - ')[0].replace(/[\[\]]/g, '').trim()
+    
+    // Handle metadataV2 format: "01:26:43,000 - 02:38:35,000"
+    // Extract the start time (before the " - ")
+    const timeStr = timestamp.split(' - ')[0].replace(/[\[\]]/g, '').replace(',000', '').trim()
     const parts = timeStr.split(':').map(Number)
+    
     if (parts.length === 3) {
       return parts[0] * 3600 + parts[1] * 60 + parts[2]
     } else if (parts.length === 2) {
@@ -433,8 +437,15 @@ export default function InterviewPlayer() {
         <div className="w-full max-w-[1632px] mx-auto">
           {subSummaries.map((summary, index) => (
             <div key={summary.id || index} className="w-full mb-8">
-              <div className="text-red-500 text-base font-mono mb-2">
-                Chapter {String(index + 1).padStart(2, '0')} | {summary.timestamp ? summary.timestamp.split(' - ')[0].replace(/[\[\]]/g, '').trim() : 'Unknown time'}
+              <div 
+                className="text-red-500 text-base font-mono mb-2 cursor-pointer hover:text-red-700 transition-colors"
+                onClick={() => {
+                  const seconds = convertTimestampToSeconds(summary.timestamp);
+                  handleTimestampClick(seconds);
+                }}
+                disabled={!playerReady}
+              >
+                Chapter {String(index + 1).padStart(2, '0')} | {summary.timestamp ? summary.timestamp.split(' - ')[0].replace(/[\[\]]/g, '').replace(',000', '').trim() : 'Unknown time'}
               </div>
               
               <div className="flex gap-8 items-start">
@@ -455,18 +466,6 @@ export default function InterviewPlayer() {
                       </div>
                     ))}
                   </div>
-                  
-                  {/* Play button */}
-                  <button
-                    onClick={() => {
-                      const seconds = convertTimestampToSeconds(summary.timestamp);
-                      handleTimestampClick(seconds);
-                    }}
-                    className="text-red-500 hover:text-red-700 transition-colors font-mono text-base disabled:opacity-50"
-                    disabled={!playerReady}
-                  >
-                    ▶ Play from this point
-                  </button>
                 </div>
                 
                 <div className="flex-1 max-w-[804px]">

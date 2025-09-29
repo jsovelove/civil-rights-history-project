@@ -25,7 +25,7 @@ export default function CivilRightsActToMalcolmXConnector({ fromRef, toRef }) {
         const endY = toRect.top + toRect.height / 2 + scrollTop - 175;
 
         // Calculate elbow points for left -> down -> right -> down path
-        const horizontalDistance1 = 200; // How far left to go initially
+        const horizontalDistance1 = 100; // How far left to go initially
         const verticalDistance1 = 600; // First vertical drop (elbow down)
         const horizontalDistance2 = Math.abs(endX - (startX - horizontalDistance1)); // Distance to go right to target
         const verticalDistance2 = endY - (startY + verticalDistance1); // Final vertical drop to Malcolm X date

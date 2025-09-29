@@ -42,9 +42,7 @@ export default function App() {
 
       <Route path="/playlist-builder" element={
         <ProtectedRoute>
-          <Layout>
-            <PlaylistBuilder />
-          </Layout>
+          <PlaylistBuilder />
         </ProtectedRoute>
       } />
 

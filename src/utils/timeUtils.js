@@ -90,14 +90,24 @@ export function createTimestampRange(startSeconds, endSeconds) {
 
 /**
  * Parses a timestamp range from a formatted string.
- * @param {string} timestampRange - Formatted timestamp range (e.g. "1:20 - 2:45").
+ * Handles both legacy format "[HH:MM:SS - HH:MM:SS]" and metadataV2 format "HH:MM:SS,000 - HH:MM:SS,000".
+ * @param {string} timestampRange - Formatted timestamp range (e.g. "1:20 - 2:45" or "01:20:30,000 - 02:45:15,000").
  * @returns {Object} Object with startSeconds and endSeconds properties.
  */
 export function parseTimestampRange(timestampRange) {
   if (!timestampRange) return { startSeconds: 0, endSeconds: 0 };
-  const parts = timestampRange.split('-').map(part => part.trim());
+  
+  // Remove brackets if present (legacy format)
+  const cleanTimestamp = timestampRange.replace(/[\[\]]/g, '');
+  
+  const parts = cleanTimestamp.split('-').map(part => part.trim());
   if (parts.length !== 2) return { startSeconds: 0, endSeconds: 0 };
-  const startSeconds = convertTimestampToSeconds(parts[0]);
-  const endSeconds = convertTimestampToSeconds(parts[1]);
+  
+  // Remove milliseconds if present (metadataV2 format: "HH:MM:SS,000")
+  const cleanStart = parts[0].replace(/,\d+$/, '');
+  const cleanEnd = parts[1].replace(/,\d+$/, '');
+  
+  const startSeconds = convertTimestampToSeconds(cleanStart);
+  const endSeconds = convertTimestampToSeconds(cleanEnd);
   return { startSeconds, endSeconds };
 }

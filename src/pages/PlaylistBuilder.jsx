@@ -1,33 +1,33 @@
 /**
- * @fileoverview PlaylistBuilder component for creating and playing keyword-based playlists.
+ * @fileoverview Optimized PlaylistBuilder component with fast loading and caching.
  * 
- * This component provides a robust interface for creating, viewing, and controlling playlists
- * of video clips based on keywords from the Civil Rights History Collection. It includes
- * functionality for playlist navigation, clip management, video playback control, and
- * discovering related content.
+ * This component provides dramatically improved performance through:
+ * - Progressive loading (first video loads immediately)
+ * - Intelligent caching via playlistService
+ * - Reduced Firestore operations
+ * - Background loading of remaining content
  */
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../services/firebase";
-import { parseKeywords, extractVideoId, parseTimestampRange } from "../utils/timeUtils";
+import { parseTimestampRange } from "../utils/timeUtils";
 import VideoPlayer from "../components/VideoPlayer";
+import {
+  getPlaylistProgressive,
+  getKeywordCount,
+  getKeywordsWithMultipleClips,
+  getSampleSegmentsForKeyword,
+  getRelatedKeywords,
+  clearCache
+} from "../services/playlistService";
+import ArrowLeftIcon from "../assetts/vectors/arrow left.svg";
+import ArrowRightIcon from "../assetts/vectors/arrow right.svg";
+import DownArrowIcon from "../assetts/vectors/down arrow.svg";
+import SimpleArrowLeftIcon from "../assetts/vectors/simple arrow left.svg";
+import SimpleArrowRightIcon from "../assetts/vectors/simple arrow right.svg";
 
 /**
- * PlaylistBuilder - Advanced component for building and playing keyword-based playlists
- * 
- * This component:
- * 1. Retrieves and manages video clips based on keyword search
- * 2. Provides a custom video player with playlist navigation
- * 3. Allows users to manage playlist content (add clips, shuffle)
- * 4. Suggests related content for discovery
- * 5. Provides an "Up Next" feature for continuous viewing across keywords
- * 
- * URL Parameters:
- * - keywords: The keyword(s) to search for, separated by commas
- * 
- * @returns {React.ReactElement} The playlist builder interface
+ * PlaylistBuilder - Optimized component for fast playlist loading
  */
 const PlaylistBuilder = () => {
   // Routing and navigation
@@ -39,41 +39,27 @@ const PlaylistBuilder = () => {
   const [videoQueue, setVideoQueue] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalClipsForKeyword, setTotalClipsForKeyword] = useState(0);
   
   // Player control states
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [playlistTime, setPlaylistTime] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(0);
   const [seekToTime, setSeekToTime] = useState(null);
-  
-  // UI state
   
   // "Up Next" feature state
   const [availableKeywords, setAvailableKeywords] = useState([]);
-  const [keywordCounts, setKeywordCounts] = useState({});
   const [nextKeyword, setNextKeyword] = useState("");
   const [nextKeywordThumbnail, setNextKeywordThumbnail] = useState("");
   const [playlistEnded, setPlaylistEnded] = useState(false);
   
+  // Playlist navigation state
+  const [playlistStartIndex, setPlaylistStartIndex] = useState(0);
+  const [itemsPerView, setItemsPerView] = useState(3); // Dynamic based on screen width
+  
   // Refs for managing timeouts
   const autoplayTimeoutRef = useRef(null);
-
-  /**
-   * Calculate total playlist duration when videoQueue changes
-   */
-  useEffect(() => {
-    if (videoQueue.length > 0) {
-      const calculatedDuration = videoQueue.reduce((total, video) => {
-        const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
-        return total + (endSeconds - startSeconds || 300);
-      }, 0);
-      console.log("Calculated total duration:", calculatedDuration);
-      setTotalDuration(calculatedDuration);
-    }
-  }, [videoQueue]);
 
   /**
    * Set keyword from URL parameters when they change
@@ -87,95 +73,68 @@ const PlaylistBuilder = () => {
   }, [searchParams]);
 
   /**
-   * Trigger video search when keyword changes
+   * Load playlist with progressive loading when keyword changes
    */
   useEffect(() => {
     if (keyword) {
-      // Only run searchVideos when the keyword changes, not when keywordCounts changes
-      console.log(`Searching videos for: ${keyword}`);
-      searchVideos();
+      // Clear cache to ensure we get fresh metadataV2 data
+      clearCache();
+      loadPlaylistProgressive();
     }
   }, [keyword]);
 
   /**
-   * Update total clips count for the current keyword
+   * Load available keywords for "up next" feature (low priority)
    */
   useEffect(() => {
-    if (keyword && keywordCounts[keyword]) {
-      setTotalClipsForKeyword(keywordCounts[keyword]);
-    } else if (keyword) {
-      // If we don't have the count yet, we'll get it in fetchAvailableKeywords
-      countTotalClipsForKeyword(keyword);
-    }
-  }, [keyword, keywordCounts]);
-
-  /**
-   * Count total clips available for a specific keyword
-   * 
-   * @param {string} keyword - The keyword to count clips for
-   */
-  const countTotalClipsForKeyword = async (keyword) => {
-    if (!keyword) return;
-
-    try {
-      let count = 0;
-      const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
-
-      for (const interviewDoc of interviewsSnapshot.docs) {
-        const interviewId = interviewDoc.id;
-        const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
-        const querySnapshot = await getDocs(subSummariesRef);
-
-        querySnapshot.forEach((docSnapshot) => {
-          const subSummary = docSnapshot.data();
-          const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
-          if (documentKeywords.includes(keyword.toLowerCase())) {
-            count++;
-          }
-        });
-      }
-
-      console.log(`Total clips for keyword "${keyword}": ${count}`);
-      setTotalClipsForKeyword(count);
-
-      // Also update the keywordCounts state for future reference
-      setKeywordCounts(prev => ({
-        ...prev,
-        [keyword]: count
-      }));
-    } catch (err) {
-      console.error("Error counting clips:", err);
-    }
-  };
-
-
-  /**
-   * Fetch all available keywords on component mount
-   */
-  useEffect(() => {
-    fetchAvailableKeywords();
+    // Load this in the background, doesn't block main loading
+    loadAvailableKeywords();
   }, []);
 
   /**
-   * Select a new "up next" keyword when the available keywords change
+   * Calculate how many playlist items can fit based on screen width
+   */
+  useEffect(() => {
+    const calculateItemsPerView = () => {
+      const screenWidth = window.innerWidth;
+      const sidebarWidth = 96; // 48px padding on each side (px-12)
+      const availableWidth = screenWidth - sidebarWidth;
+      const itemWidth = 504; // Width of each playlist item
+      const gapWidth = 24; // Gap between items (gap-6)
+      
+      // Calculate how many full items can fit, but reserve space for partial clip indicator
+      const fullItems = Math.floor((availableWidth + gapWidth) / (itemWidth + gapWidth)) - 1;
+      
+      // Ensure at least 1 item and max reasonable number
+      const clampedItems = Math.max(1, Math.min(fullItems, 5));
+      setItemsPerView(clampedItems);
+    };
+
+    // Calculate on mount and resize
+    calculateItemsPerView();
+    window.addEventListener('resize', calculateItemsPerView);
+
+    return () => window.removeEventListener('resize', calculateItemsPerView);
+  }, []);
+
+  /**
+   * Select next keyword when available keywords are loaded
    */
   useEffect(() => {
     if (availableKeywords.length > 0 && keyword) {
-      selectRandomNextKeyword();
+      selectNextKeyword();
     }
-  }, [availableKeywords, keyword, keywordCounts]);
+  }, [availableKeywords, keyword]);
 
   /**
    * Auto-navigate to next keyword playlist when current playlist ends
    */
   useEffect(() => {
     if (playlistEnded && nextKeyword) {
-      // Clear any existing timeout
       if (autoplayTimeoutRef.current) {
         clearTimeout(autoplayTimeoutRef.current);
       }
 
-      // Set a timeout to navigate to the next keyword after 3 seconds
       autoplayTimeoutRef.current = setTimeout(() => {
         console.log(`Navigating to next playlist: ${nextKeyword}`);
         navigate(`?keywords=${encodeURIComponent(nextKeyword)}`);
@@ -191,121 +150,166 @@ const PlaylistBuilder = () => {
   }, [playlistEnded, nextKeyword, navigate]);
 
   /**
-   * Reset current time and seek state when changing videos
+   * Reset states when changing videos
    */
   useEffect(() => {
     if (videoQueue.length > 0) {
       setCurrentTime(0);
-      setSeekToTime(null); // Reset seek state when changing videos
-      console.log("Video index changed to:", currentVideoIndex);
+      setSeekToTime(null);
     }
   }, [currentVideoIndex]);
 
   /**
-   * Handle time updates from the video player
-   * 
-   * @param {number} time - Current playback time in seconds
+   * Progressive playlist loading - first video loads immediately
    */
-  const handleTimeUpdate = (time) => {
-    setCurrentTime(time);
-  };
-
-  /**
-   * Fetch all available keywords from Firestore and count their occurrences
-   */
-  const fetchAvailableKeywords = async () => {
+  const loadPlaylistProgressive = async () => {
     try {
-      const keywordCounter = {};
-      const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
+      setLoading(true);
+      setError(null);
+      
+      // Get keyword count immediately from cache
+      const count = await getKeywordCount(keyword);
+      setTotalClipsForKeyword(count);
 
-      for (const interviewDoc of interviewsSnapshot.docs) {
-        const interviewId = interviewDoc.id;
-        const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
-        const querySnapshot = await getDocs(subSummariesRef);
-
-        querySnapshot.forEach((docSnapshot) => {
-          const subSummary = docSnapshot.data();
-          const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
-
-          documentKeywords.forEach(keyword => {
-            if (keyword) {
-              keywordCounter[keyword] = (keywordCounter[keyword] || 0) + 1;
-            }
-          });
-        });
+      if (count === 0) {
+        setError("No videos found for this keyword");
+        setLoading(false);
+        return;
       }
 
-      // Filter to only include keywords with more than 1 occurrence
-      const keywordsWithMultipleClips = Object.keys(keywordCounter).filter(
-        keyword => keywordCounter[keyword] > 1
-      );
-
-      console.log(`Found ${keywordsWithMultipleClips.length} keywords with multiple clips out of ${Object.keys(keywordCounter).length} total keywords`);
-      setAvailableKeywords(keywordsWithMultipleClips);
-      setKeywordCounts(keywordCounter);
-    } catch (err) {
-      console.error("Error fetching available keywords:", err);
-    }
-  };
-
-  /**
-   * Select a random keyword for "up next" that has more than 1 clip
-   */
-  const selectRandomNextKeyword = () => {
-    if (availableKeywords.length === 0) return;
-
-    // Filter out the current keyword
-    const filteredKeywords = availableKeywords.filter(k => k !== keyword);
-
-    if (filteredKeywords.length === 0) return;
-
-    // Select a random keyword
-    const randomIndex = Math.floor(Math.random() * filteredKeywords.length);
-    const selected = filteredKeywords[randomIndex];
-
-    console.log(`Selected next keyword: ${selected} with ${keywordCounts[selected] || '?'} clips`);
-    setNextKeyword(selected);
-
-    // Try to get a thumbnail for this keyword
-    fetchThumbnailForKeyword(selected);
-  };
-
-  /**
-   * Fetch a thumbnail image URL for the next keyword
-   * 
-   * @param {string} keyword - Keyword to fetch thumbnail for
-   */
-  const fetchThumbnailForKeyword = async (keyword) => {
-    try {
-      const keywordsArray = parseKeywords(keyword);
-      if (keywordsArray.length === 0) return;
-
-      const sampleVideos = await fetchRelevantSegments(keywordsArray);
-
-      if (sampleVideos.length > 0) {
-        // Try to extract a thumbnail from the first video
-        const firstVideo = sampleVideos[0];
-        if (firstVideo.videoEmbedLink) {
-          const videoId = extractVideoId(firstVideo.videoEmbedLink);
-          if (videoId) {
-            // Use YouTube thumbnail URL
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-            setNextKeywordThumbnail(thumbnailUrl);
-            return;
+      // Progressive loading: first video loads immediately
+      await getPlaylistProgressive(
+        [keyword],
+        // onFirstVideo - called immediately with first video
+        (firstVideo, totalCount) => {
+          console.log(`First video loaded for "${keyword}":`, firstVideo.name);
+          
+          // Validate first video
+          if (isValidVideo(firstVideo)) {
+            setVideoQueue([firstVideo]);
+            setCurrentVideoIndex(0);
+            setIsPlaying(true);
+            setCurrentTime(0);
+            setPlaylistEnded(false);
+            setLoading(false); // Main loading complete!
+            setBackgroundLoading(true); // Show background loading indicator
+          } else {
+            console.warn('First video invalid, continuing with full load...');
+            // Fall back to full loading if first video is invalid
+          }
+        },
+        // onComplete - called with full playlist
+        (allVideos) => {
+          console.log(`Full playlist loaded: ${allVideos.length} videos`);
+          
+          // Filter valid videos
+          const validVideos = allVideos.filter(isValidVideo);
+          
+          if (validVideos.length > 0) {
+            setVideoQueue(validVideos);
+            // Don't reset currentVideoIndex if user has already started playing
+            if (videoQueue.length <= 1) {
+              setCurrentVideoIndex(0);
+            }
+          } else {
+            setError("No videos with valid timestamps found for this keyword");
+          }
+          
+          setBackgroundLoading(false);
+          if (videoQueue.length === 0) {
+            setLoading(false);
           }
         }
-      }
+      );
 
-      // If no thumbnail found, clear it
-      setNextKeywordThumbnail("");
     } catch (err) {
-      console.error("Error fetching thumbnail:", err);
+      console.error("Error loading playlist:", err);
+      setError("Error loading playlist");
+      setLoading(false);
+      setBackgroundLoading(false);
+    }
+  };
+
+  /**
+   * Validate video has proper timestamp and data
+   */
+  const isValidVideo = (video) => {
+    try {
+      const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
+      
+      if (isNaN(startSeconds) || startSeconds < 0) {
+        return false;
+      }
+      
+      if (endSeconds && endSeconds <= startSeconds) {
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  /**
+   * Load available keywords for "up next" feature
+   */
+  const loadAvailableKeywords = async () => {
+    try {
+      const keywords = await getKeywordsWithMultipleClips();
+      setAvailableKeywords(keywords);
+    } catch (err) {
+      console.error("Error loading available keywords:", err);
+    }
+  };
+
+  /**
+   * Select next keyword using related keywords for better recommendations
+   */
+  const selectNextKeyword = async () => {
+    try {
+      // Try to get related keywords first for better recommendations
+      const relatedKeywords = await getRelatedKeywords(keyword, 3);
+      const candidateKeywords = relatedKeywords.length > 0 ? relatedKeywords : availableKeywords;
+      
+      // Filter out current keyword
+      const filteredKeywords = candidateKeywords.filter(k => k !== keyword.toLowerCase());
+      
+      if (filteredKeywords.length === 0) return;
+
+      // Select random from candidates
+      const randomIndex = Math.floor(Math.random() * filteredKeywords.length);
+      const selected = filteredKeywords[randomIndex];
+      
+      setNextKeyword(selected);
+      
+      // Load thumbnail for next keyword
+      loadNextKeywordThumbnail(selected);
+    } catch (err) {
+      console.error("Error selecting next keyword:", err);
+    }
+  };
+
+  /**
+   * Load thumbnail for next keyword
+   */
+  const loadNextKeywordThumbnail = async (keyword) => {
+    try {
+      const sampleVideos = await getSampleSegmentsForKeyword(keyword, 1);
+      
+      if (sampleVideos.length > 0 && sampleVideos[0].thumbnailUrl) {
+        setNextKeywordThumbnail(sampleVideos[0].thumbnailUrl);
+      } else {
+        setNextKeywordThumbnail("");
+      }
+    } catch (err) {
+      console.error("Error loading thumbnail:", err);
       setNextKeywordThumbnail("");
     }
   };
 
   /**
-   * Navigate to the next keyword playlist immediately
+   * Navigate to next keyword playlist
    */
   const handlePlayNextKeyword = () => {
     if (nextKeyword) {
@@ -313,130 +317,8 @@ const PlaylistBuilder = () => {
     }
   };
 
-
   /**
-   * Randomly shuffle an array using Fisher-Yates algorithm
-   * 
-   * @param {Array} array - Array to shuffle
-   * @returns {Array} Shuffled array
-   */
-  const shuffleArray = (array) => {
-    return array.sort(() => Math.random() - 0.5);
-  };
-
-
-  /**
-   * Search for videos based on the current keyword
-   * Includes validation and filtering of results
-   */
-  const searchVideos = async () => {
-    try {
-      setLoading(true);
-
-      const keywordsArray = parseKeywords(keyword);
-      if (keywordsArray.length === 0) {
-        setError("Please enter at least one keyword");
-        setLoading(false);
-        return;
-      }
-
-      // Initial search with basic filtering
-      let results = await fetchRelevantSegments(keywordsArray);
-
-      if (results.length > 0) {
-        // Basic timestamp validation first (fast)
-        results = results.filter(video => {
-          try {
-            const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
-
-            // Filter out clips with obviously invalid timestamps
-            if (isNaN(startSeconds) || startSeconds < 0) {
-              console.warn(`Filtering out video with invalid start time: ${video.id}, ${video.timestamp}`);
-              return false;
-            }
-
-            // We can't fully validate against video duration yet (need to load video first)
-            // but we can check for basic validity
-            if (endSeconds && endSeconds <= startSeconds) {
-              console.warn(`Filtering out video with invalid time range: ${video.id}, ${video.timestamp}`);
-              return false;
-            }
-
-            return true;
-          } catch (error) {
-            console.warn(`Filtering out video with unparseable timestamp: ${video.id}, ${video.timestamp}`);
-            return false;
-          }
-        });
-
-        // Get all relevant clips for the event playlist but start with just the first one
-        const allClips = shuffleArray(results);
-
-        if (allClips.length > 0) {
-          console.log(`Found ${allClips.length} clips for the event playlist`);
-          setVideoQueue(allClips);
-          setCurrentVideoIndex(0);
-          setIsPlaying(true);
-          setCurrentTime(0);
-          setPlaylistTime(0);
-          setPlaylistEnded(false); // Reset playlist ended state
-        } else {
-          setError("No videos with valid timestamps found for this keyword");
-        }
-      } else {
-        setError("No videos found for this keyword");
-      }
-
-      setLoading(false);
-    } catch (err) {
-      console.error("Error searching videos:", err);
-      setError("Error searching videos");
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Fetch video segments from Firestore that match the given keywords
-   * 
-   * @param {string[]} keywordsArray - Array of keywords to search for
-   * @returns {Promise<Array>} Array of matching video segments
-   */
-  const fetchRelevantSegments = async (keywordsArray) => {
-    const interviewsSnapshot = await getDocs(collection(db, "interviewSummaries"));
-    const results = [];
-
-    for (const interviewDoc of interviewsSnapshot.docs) {
-      const interviewId = interviewDoc.id;
-      const interviewData = interviewDoc.data();
-
-      // Get the parent document's videoEmbedLink for thumbnails
-      const parentVideoEmbedLink = interviewData.videoEmbedLink;
-      const thumbnailUrl = parentVideoEmbedLink ?
-        `https://img.youtube.com/vi/${extractVideoId(parentVideoEmbedLink)}/mqdefault.jpg` : null;
-
-      const subSummariesRef = collection(db, "interviewSummaries", interviewId, "subSummaries");
-      const querySnapshot = await getDocs(subSummariesRef);
-
-      querySnapshot.forEach((docSnapshot) => {
-        const subSummary = docSnapshot.data();
-        const documentKeywords = (subSummary.keywords || "").split(",").map(k => k.trim().toLowerCase());
-        const hasMatch = keywordsArray.some(kw => documentKeywords.includes(kw));
-        if (hasMatch) {
-          results.push({
-            id: docSnapshot.id,
-            documentName: interviewId,
-            ...subSummary,
-            ...interviewData,
-            thumbnailUrl // Use the parent document's videoEmbedLink for thumbnails
-          });
-        }
-      });
-    }
-    return results;
-  };
-
-  /**
-   * Navigate to the next video in the queue
+   * Navigation handlers
    */
   const handleNext = () => {
     if (currentVideoIndex < videoQueue.length - 1) {
@@ -445,9 +327,6 @@ const PlaylistBuilder = () => {
     }
   };
 
-  /**
-   * Navigate to the previous video in the queue
-   */
   const handlePrevious = () => {
     if (currentVideoIndex > 0) {
       setCurrentVideoIndex(currentVideoIndex - 1);
@@ -456,45 +335,39 @@ const PlaylistBuilder = () => {
   };
 
   /**
-   * Handle video end event from the player
-   * Advances to next video or marks playlist as ended
+   * Handle video end event
    */
   const handleVideoEnd = () => {
-    console.log(`Video end triggered for index ${currentVideoIndex}/${videoQueue.length - 1}`);
-
-    // Add a short delay before advancing to prevent rapid transitions
-    // that might cause clips to be skipped
     setTimeout(() => {
       if (currentVideoIndex < videoQueue.length - 1) {
-        // Move to the next video in the queue
-        console.log(`Advancing to next video: ${currentVideoIndex + 1}`);
         setCurrentVideoIndex(currentVideoIndex + 1);
       } else {
-        // This was the last video in the playlist
-        console.log("Playlist ended, preparing to play next keyword");
         setPlaylistEnded(true);
       }
     }, 500);
   };
 
   /**
-   * Play control handler
+   * Player control handlers
    */
-  const handlePlayVideo = () => {
-    setIsPlaying(true);
+  const handlePlayVideo = () => setIsPlaying(true);
+  const handlePauseVideo = () => setIsPlaying(false);
+  const handleTimeUpdate = (time) => setCurrentTime(time);
+
+  /**
+   * Playlist navigation handlers
+   */
+  const handlePlaylistPrevious = () => {
+    setPlaylistStartIndex(Math.max(0, playlistStartIndex - 1));
+  };
+
+  const handlePlaylistNext = () => {
+    const maxStartIndex = Math.max(0, videoQueue.length - itemsPerView);
+    setPlaylistStartIndex(Math.min(maxStartIndex, playlistStartIndex + 1));
   };
 
   /**
-   * Pause control handler
-   */
-  const handlePauseVideo = () => {
-    setIsPlaying(false);
-  };
-
-  /**
-   * Get the current video from the queue based on currentVideoIndex
-   * 
-   * @returns {Object|null} Current video object or null if queue is empty
+   * Get current video
    */
   const getCurrentVideo = () => {
     if (!videoQueue.length || currentVideoIndex >= videoQueue.length) {
@@ -503,11 +376,12 @@ const PlaylistBuilder = () => {
     return videoQueue[currentVideoIndex];
   };
 
-  // Loading state
+  // Loading state - only show for initial load, not background loading
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      <div className="flex flex-col justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4" />
+        <p className="text-gray-600">Loading first video...</p>
       </div>
     );
   }
@@ -526,12 +400,18 @@ const PlaylistBuilder = () => {
   const currentVideo = getCurrentVideo();
 
   return (
-    <div className="w-full min-h-screen bg-gray-200 overflow-hidden">
+    <div className="w-full min-h-screen overflow-hidden" style={{backgroundColor: '#EBEAE9'}}>
       {/* Header */}
       <div className="w-full h-12 px-12 py-9 relative">
-        <div className="w-12 h-12 absolute right-12 top-9">
-          <div className="w-6 h-6 absolute right-0 top-3 transform rotate-180 border border-stone-900" />
+        {/* Back to Timeline button */}
+        <div className="absolute right-12 top-9">
+          <div className="text-stone-900 text-base font-light font-mono cursor-pointer hover:opacity-80"
+               onClick={() => navigate('/')}>
+            Back to Timeline
+          </div>
         </div>
+        
+        {/* Project title */}
         <div className="w-full h-11 absolute left-12 top-10">
           <div className="inline-flex justify-center items-center gap-2.5">
             <div className="justify-start">
@@ -545,23 +425,43 @@ const PlaylistBuilder = () => {
       {/* Header divider */}
       <div className="w-full h-px bg-black mx-12" style={{width: 'calc(100% - 6rem)'}} />
 
-      {/* Main content */}
-      <div className="px-12 pt-16">
-        {/* Topic title and metadata */}
-        <div className="mb-8">
-          <div className="text-red-500 text-base font-light font-mono mb-2">
-            {totalClipsForKeyword} Chapters from {videoQueue.length > 0 ? videoQueue.length : '0'} Interviews
+      {/* Metadata and Next Timeline Event - positioned under header */}
+      <div className="px-12 pt-4 flex justify-between items-center">
+        {/* Chapters/Interviews metadata */}
+        <div className="flex items-center gap-4 text-red-500 text-base font-light font-mono">
+          <span>{totalClipsForKeyword} Chapters from {videoQueue.length > 0 ? videoQueue.length : '0'} Interviews</span>
+          {backgroundLoading && (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
+              <span className="text-sm">Loading remaining clips...</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Next Timeline Event */}
+        <div className="inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80" onClick={handlePlayNextKeyword}>
+          <div className="text-red-500 text-base font-light font-mono">
+            {nextKeyword ? `Next: ${nextKeyword}` : 'Next Timeline Event'}
           </div>
+          <div className="w-3.5 h-2.5 border border-red-500" />
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="px-12 pt-4">
+        {/* Topic title */}
+        <div className="mb-8">
           <h1 className="text-stone-900 text-8xl font-medium mb-4" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
             {keyword || 'Topic Playlist'}
           </h1>
         </div>
 
         {/* Main video and content area */}
-        <div className="flex gap-6 mb-20">
-          {/* Video player */}
+        <div className="flex gap-6 mb-8">
+          {/* Video player section */}
           <div className="flex-shrink-0">
-            <div className="w-[1080px] h-[610px] relative rounded-xl overflow-hidden">
+            {/* Video player */}
+            <div className="w-[960px] h-[540px] relative rounded-xl overflow-hidden mb-4">
               {currentVideo ? (
                 <VideoPlayer
                   video={currentVideo}
@@ -577,6 +477,34 @@ const PlaylistBuilder = () => {
                   No video available
                 </div>
               )}
+            </div>
+            
+            {/* Controls under video player */}
+            <div className="flex justify-between items-center">
+              {/* View Topic Tags - left aligned */}
+              <div className="inline-flex items-center gap-3 cursor-pointer hover:opacity-80">
+                <div className="text-stone-900 text-xl font-light font-mono">View Topic Tags</div>
+                <img src={DownArrowIcon} alt="Expand" className="w-3 h-2" />
+              </div>
+
+              {/* Navigation buttons - right aligned */}
+              <div className="flex items-center gap-8">
+                {/* Previous Chapter */}
+                <div className="w-48 h-6 cursor-pointer hover:opacity-80" onClick={handlePrevious}>
+                  <div className="inline-flex justify-between items-center w-full">
+                    <img src={ArrowLeftIcon} alt="Previous" className="w-5 h-4" />
+                    <div className="text-stone-900 text-xl font-light font-mono">Prev. Chapter</div>
+                  </div>
+                </div>
+
+                {/* Next Chapter */}
+                <div className="w-44 h-6 cursor-pointer hover:opacity-80" onClick={handleNext}>
+                  <div className="inline-flex justify-between items-center w-full">
+                    <div className="text-stone-900 text-xl font-light font-mono">Next Chapter</div>
+                    <img src={ArrowRightIcon} alt="Next" className="w-5 h-4" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -607,45 +535,7 @@ const PlaylistBuilder = () => {
           </div>
         </div>
 
-        {/* Navigation controls */}
-        <div className="flex justify-between items-center mb-12">
-          {/* View Topic Tags */}
-          <div className="inline-flex items-center gap-3 cursor-pointer hover:opacity-80">
-            <div className="text-stone-900 text-xl font-light font-mono">View Topic Tags</div>
-            <div className="w-1 h-2.5 transform rotate-90 border border-stone-900" />
-          </div>
 
-          {/* Navigation buttons */}
-          <div className="flex items-center gap-8">
-            {/* Previous Chapter */}
-            <div className="w-48 h-6 cursor-pointer hover:opacity-80" onClick={handlePrevious}>
-              <div className="inline-flex justify-between items-center w-full">
-                <div className="w-4 h-3 transform rotate-180 border border-stone-900" />
-                <div className="text-stone-900 text-xl font-light font-mono">Prev. Chapter</div>
-              </div>
-            </div>
-
-            {/* Next Chapter */}
-            <div className="w-44 h-6 cursor-pointer hover:opacity-80" onClick={handleNext}>
-              <div className="inline-flex justify-between items-center w-full">
-                <div className="text-stone-900 text-xl font-light font-mono">Next Chapter</div>
-                <div className="w-4 h-3 border border-stone-900" />
-              </div>
-            </div>
-          </div>
-
-          {/* Next Timeline Event */}
-          <div className="inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80" onClick={handlePlayNextKeyword}>
-            <div className="text-red-500 text-base font-light font-mono">Next Timeline Event</div>
-            <div className="w-3.5 h-2.5 border border-red-500" />
-          </div>
-
-          {/* Back to Timeline */}
-          <div className="text-stone-900 text-base font-light font-mono cursor-pointer hover:opacity-80"
-               onClick={() => navigate('/')}>
-            Back to Timeline
-          </div>
-        </div>
 
         {/* Event Playlist */}
         <div className="w-full">
@@ -654,20 +544,30 @@ const PlaylistBuilder = () => {
               <h2 className="text-black text-5xl font-medium" style={{fontFamily: 'Inter, sans-serif'}}>Event Playlist</h2>
               {/* Playlist navigation arrows */}
               <div className="flex items-center gap-4">
-                <div className="w-3 h-6 cursor-pointer hover:opacity-80">
-                  <div className="w-3 h-6 transform rotate-180 border-2 border-stone-900" />
-                </div>
-                <div className="w-3 h-6 cursor-pointer hover:opacity-80">
-                  <div className="w-3 h-6 border-2 border-stone-900" />
-                </div>
+                <button 
+                  className="cursor-pointer hover:opacity-80 disabled:opacity-30" 
+                  onClick={handlePlaylistPrevious}
+                  disabled={playlistStartIndex === 0}
+                >
+                  <img src={SimpleArrowLeftIcon} alt="Previous" className="w-4 h-7" />
+                </button>
+                <button 
+                  className="cursor-pointer hover:opacity-80 disabled:opacity-30" 
+                  onClick={handlePlaylistNext}
+                  disabled={playlistStartIndex >= Math.max(0, videoQueue.length - itemsPerView)}
+                >
+                  <img src={SimpleArrowRightIcon} alt="Next" className="w-4 h-7" />
+                </button>
               </div>
             </div>
             
             {/* Playlist items */}
-            <div className="flex gap-6 overflow-x-auto">
-              {videoQueue.map((video, index) => (
+            <div className="flex gap-6 overflow-hidden">
+              {videoQueue.slice(playlistStartIndex, playlistStartIndex + itemsPerView + (playlistStartIndex + itemsPerView < videoQueue.length ? 1 : 0)).map((video, relativeIndex) => {
+                const index = playlistStartIndex + relativeIndex;
+                return (
                 <div key={video.id} 
-                     className={`flex-shrink-0 w-[504px] cursor-pointer hover:opacity-80 ${index === currentVideoIndex ? 'opacity-100' : 'opacity-60'}`}
+                     className="flex-shrink-0 w-[504px] cursor-pointer hover:opacity-80"
                      onClick={() => setCurrentVideoIndex(index)}>
                   <div className="flex flex-col items-center gap-3">
                     {/* Video thumbnail */}
@@ -682,15 +582,42 @@ const PlaylistBuilder = () => {
                     {/* Video info */}
                     <div className="w-full h-16 relative">
                       <div className="absolute left-0 bottom-0 text-stone-900 text-base font-light font-mono">
-                        {video.role} | {video.duration || '-- Minutes'}
+                        {video.roleSimplified} | {(() => {
+                          // Calculate clip length from timestamp
+                          try {
+                            const { startSeconds, endSeconds } = parseTimestampRange(video.timestamp);
+                            if (startSeconds !== undefined && endSeconds !== undefined) {
+                              const durationSeconds = endSeconds - startSeconds;
+                              const minutes = Math.floor(durationSeconds / 60);
+                              const seconds = Math.floor(durationSeconds % 60);
+                              return `${minutes}:${seconds.toString().padStart(2, '0')} Minutes`;
+                            }
+                          } catch (error) {
+                            console.error('Error parsing timestamp:', error);
+                          }
+                          return video.clipLength || video.duration || '-- Minutes';
+                        })()}
                       </div>
-                      <div className="w-full absolute top-0 left-0 text-stone-900 text-4xl font-bold" style={{fontFamily: 'Source Serif 4, serif'}}>
+                      <div className="w-full absolute top-0 left-0 text-stone-900 text-4xl font-bold font-['Source_Serif_4']">
                         {video.name}
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
+              
+              {/* Background loading indicator for remaining videos */}
+              {backgroundLoading && (
+                <div className="flex-shrink-0 w-[504px] flex flex-col items-center justify-center gap-3">
+                  <div className="w-[504px] h-72 bg-zinc-200 rounded overflow-hidden flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-400" />
+                  </div>
+                  <div className="text-zinc-500 text-base font-light font-mono">
+                    Loading more clips...
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
