@@ -5,7 +5,7 @@ import envCompatible from 'vite-plugin-env-compatible'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), envCompatible()],
-  base: '/civil-rights-history-project/',
+  base: '/', // Use root path for Vercel deployment
   server: {
     port: 3000,
     open: true, // This will open the browser automatically
