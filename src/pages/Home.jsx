@@ -21,10 +21,12 @@ import MarchOnWashingtonGifToDateConnector from '../components/connectors/MarchO
 import MarchOnWashingtonDateToQuoteConnector from '../components/connectors/MarchOnWashingtonDateToQuoteConnector';
 import FreedomSummerToCivilRightsActConnector from '../components/connectors/FreedomSummerToCivilRightsActConnector';
 import CivilRightsActToMalcolmXConnector from '../components/connectors/CivilRightsActToMalcolmXConnector';
+import MalcolmXToSelmaConnector from '../components/connectors/MalcolmXToSelmaConnector';
 import SelmaToVotingRightsActConnector from '../components/connectors/SelmaToVotingRightsActConnector';
 import VotingRightsActToBlackPantherConnector from '../components/connectors/VotingRightsActToBlackPantherConnector';
 import BlackPantherToBrownBeretsConnector from '../components/connectors/BlackPantherToBrownBeretsConnector';
 import BrownBeretsToLongHotSummerConnector from '../components/connectors/BrownBeretsToLongHotSummerConnector';
+import LongHotSummerToMLKConnector from '../components/connectors/LongHotSummerToMLKConnector';
 import TopicBubbles from '../components/TopicBubbles';
 import LazyGif from '../components/LazyGif';
 
@@ -305,6 +307,7 @@ export default function Home() {
   const blackPantherDateRef = useRef(null);
   const brownBeretsDateRef = useRef(null);
   const longHotSummerDateRef = useRef(null);
+  const mlkDateRef = useRef(null);
   const [montgomeryImageUrl, setMontgomeryImageUrl] = useState(null);
   const [montgomeryImageLoading, setMontgomeryImageLoading] = useState(true);
   const [littleRockImageUrl, setLittleRockImageUrl] = useState(null);
@@ -1779,6 +1782,12 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Malcolm X date to GIF connector */}
+        <MalcolmXToSelmaConnector 
+          fromRef={malcolmXDateRef} 
+          toRef={malcolmXGifRef} 
+        />
+
         {/* Selma to Montgomery */}
         <div className="relative mb-32 mt-48 lg:mt-72">
           {/* Event Content */}
@@ -2034,7 +2043,7 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center relative z-10">
               {brownBeretsImageLoading ? (
                 <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
                   <span className="text-gray-500">Loading image...</span>
@@ -2107,18 +2116,24 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Long Hot Summer to MLK connector */}
+        <LongHotSummerToMLKConnector 
+          fromRef={longHotSummerDateRef} 
+          toRef={mlkDateRef} 
+        />
+
         {/* Assassination of MLK */}
         <div className="relative mb-32">
           {/* Event Content */}
-          {/* Centered Date Badge */}
-          <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
-              <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">April 4th, 1968</span>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             <div className="space-y-4 lg:space-y-6">
+
+              {/* Left-aligned Date Badge */}
+              <div className="flex justify-start mb-4 lg:mb-6">
+                <div ref={mlkDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">April 4th, 1968</span>
+                </div>
+              </div>
 
               {/* Title */}
               <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Assassination of MLK</h3>

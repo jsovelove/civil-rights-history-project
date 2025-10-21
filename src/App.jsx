@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/common/Layout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import MobileOverlay from './components/MobileOverlay'
 import Home from './pages/Home'
 import Visualizations from './pages/Visualizations'
 import Login from './pages/Login'
@@ -19,7 +20,9 @@ import About from './pages/About'
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <MobileOverlay />
+      <Routes>
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
 
@@ -118,5 +121,6 @@ export default function App() {
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
