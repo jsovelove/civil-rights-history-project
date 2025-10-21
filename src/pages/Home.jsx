@@ -23,7 +23,10 @@ import FreedomSummerToCivilRightsActConnector from '../components/connectors/Fre
 import CivilRightsActToMalcolmXConnector from '../components/connectors/CivilRightsActToMalcolmXConnector';
 import SelmaToVotingRightsActConnector from '../components/connectors/SelmaToVotingRightsActConnector';
 import VotingRightsActToBlackPantherConnector from '../components/connectors/VotingRightsActToBlackPantherConnector';
+import BlackPantherToBrownBeretsConnector from '../components/connectors/BlackPantherToBrownBeretsConnector';
+import BrownBeretsToLongHotSummerConnector from '../components/connectors/BrownBeretsToLongHotSummerConnector';
 import TopicBubbles from '../components/TopicBubbles';
+import LazyGif from '../components/LazyGif';
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -300,6 +303,8 @@ export default function Home() {
   const selmaDateRef = useRef(null);
   const votingRightsActDateRef = useRef(null);
   const blackPantherDateRef = useRef(null);
+  const brownBeretsDateRef = useRef(null);
+  const longHotSummerDateRef = useRef(null);
   const [montgomeryImageUrl, setMontgomeryImageUrl] = useState(null);
   const [montgomeryImageLoading, setMontgomeryImageLoading] = useState(true);
   const [littleRockImageUrl, setLittleRockImageUrl] = useState(null);
@@ -864,13 +869,13 @@ export default function Home() {
     <div className="w-full relative overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
 
       {/* Hero Section */}
-      <section className="relative px-2 sm:px-4 lg:px-6 pt-4 pb-8 lg:pt-6 lg:pb-16 min-h-[70vh] lg:min-h-[80vh] flex items-center z-10">
-        <div className="max-w-7xl mx-auto w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      <section className="relative px-4 sm:px-8 lg:px-12 pt-2 pb-24 lg:pt-3 lg:pb-32 flex items-start z-10" style={{ minHeight: '100vh' }}>
+        <div className="w-full mt-2 lg:mt-3">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-12">
             {/* Text Content */}
-            <div className="space-y-6 lg:space-y-8">
+            <div className="lg:w-1/2 space-y-6 lg:space-y-8">
               {/* Main Title */}
-              <h1 className="leading-tight">
+              <h1 className="leading-tight max-w-2xl">
                 <span className="text-black text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-light font-['Source_Serif_4']">The </span>
                 <span className="text-red-500 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold font-['Source_Serif_4']">Civil Rights Movement</span>
                 <span className="text-black text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-light font-['Source_Serif_4']"> narrated by the activists, artists, and change-makers who were really there.</span>
@@ -883,7 +888,7 @@ export default function Home() {
             </div>
 
             {/* Hero Images */}
-            <div className="relative h-[400px] sm:h-[500px] lg:h-[600px] w-full">
+            <div className="lg:w-1/2 relative h-[400px] sm:h-[500px] lg:h-[550px] xl:h-[650px] w-full lg:-mt-8 lg:-ml-16 z-50">
               {imageLoading ? (
                 <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
                   <span className="text-gray-500">Loading image...</span>
@@ -900,23 +905,23 @@ export default function Home() {
                 </div>
               )}
             </div>
-
-            {/* View Timeline Link - Positioned lower and always on left */}
-            <div className="mt-16 sm:mt-20 lg:mt-20">
-              <button
-                ref={timelineRef}
-                onClick={() => {
-                  timelineStartRef.current?.scrollIntoView({ 
-                    behavior: 'smooth',
-                    block: 'start'
-                  });
-                }}
-                className="inline-block text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] hover:underline cursor-pointer bg-transparent border-none p-0"
-              >
-                View the Timeline
-              </button>
-            </div>
           </div>
+        </div>
+
+        {/* View Timeline Link - Positioned at viewport bottom, independent of content */}
+        <div className="absolute left-4 sm:left-8 lg:left-12 bottom-32 lg:bottom-40 z-50">
+          <button
+            ref={timelineRef}
+            onClick={() => {
+              timelineStartRef.current?.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+              });
+            }}
+            className="inline-block text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] hover:underline cursor-pointer bg-transparent border-none p-0"
+          >
+            View the Timeline
+          </button>
         </div>
       </section>
 
@@ -1054,33 +1059,37 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Quote Section - Side by Side Layout - MOVED OUTSIDE ALL CONTAINERS */}
-          <div className="mt-8 lg:mt-12 w-full">
-            <div className="flex -ml-2 sm:-ml-4 lg:-ml-6">
-              {/* GIF Section - Extends to left edge */}
-              <div className="w-1/2 h-[400px] sm:h-[450px] lg:h-[500px] xl:h-[550px] flex-shrink-0">
-                <EmmettTillGif />
-              </div>
-              
-              {/* Red Rectangle with Quote - Extends to right margin */}
-              <div 
-                ref={redRectangleRef}
-                className="w-1/2 h-[400px] sm:h-[450px] lg:h-[500px] xl:h-[550px] flex flex-col justify-center p-4 sm:p-6 lg:p-8 xl:p-10" 
-                style={{ backgroundColor: '#F2483C' }}
-              >
-                <div className="space-y-3 sm:space-y-4 lg:space-y-5">
-                  <p className="text-sm sm:text-base lg:text-lg xl:text-xl font-normal font-['Source_Serif_4'] text-left leading-relaxed" style={{ color: '#1E1E1E' }}>
-                    "I remember being with [Mamie Till] when we stayed up all night waiting on the body to come in from, uh, Mississippi. And when it did come in, she demanded that the body be open, 'so they – the world can see what they did to my boy.'"
-                  </p>
-                  <cite className="text-xs sm:text-sm lg:text-base xl:text-lg font-normal font-['Source_Serif_4'] not-italic text-left block" style={{ color: '#1E1E1E' }}>
-                    — Simeon Booker
-                  </cite>
-                  
-                </div>
-              </div>
+        </div>
+      </section>
+
+      {/* Emmett Till GIF and Quote Section - Full Viewport Width */}
+      <div className="w-full relative z-10">
+        <div className="flex">
+          {/* GIF Section - Left portion */}
+          <div className="w-3/5 h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex-shrink-0">
+            <EmmettTillGif />
+          </div>
+          
+          {/* Red Rectangle with Quote - Wider right portion */}
+          <div 
+            ref={redRectangleRef}
+            className="w-2/5 h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex flex-col justify-center p-4 sm:p-6 lg:p-8 xl:p-10" 
+            style={{ backgroundColor: '#F2483C' }}
+          >
+            <div className="space-y-3 sm:space-y-4 lg:space-y-5">
+              <p className="font-normal font-['Source_Serif_4'] text-left leading-relaxed" style={{ color: '#1E1E1E', fontSize: '40px' }}>
+                "I remember being with [Mamie Till] when we stayed up all night waiting on the body to come in from, uh, Mississippi. And when it did come in, she demanded that the body be open, 'so they – the world can see what they did to my boy.'"
+              </p>
+              <cite className="font-normal font-['Source_Serif_4'] not-italic text-left block" style={{ color: '#1E1E1E', fontSize: '40px' }}>
+                — Simeon Booker
+              </cite>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Timeline Content Continued */}
+      <section className="px-2 sm:px-4 lg:px-6 py-8 lg:py-16 max-w-7xl mx-auto">
 
         {/* Custom connector from red rectangle to Montgomery date */}
       <EmmettToMontgomeryConnector 
@@ -1414,27 +1423,22 @@ export default function Home() {
             </div>
           </div>
           
-          {/* March on Washington GIF Section */}
-          <div className="mt-40 lg:mt-48 flex justify-center relative z-10">
-            <div ref={marchOnWashingtonGifRef} className="w-[1000px] h-[750px]">
-              {marchOnWashingtonGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : marchOnWashingtonGifUrl ? (
-                <img
-                  src={marchOnWashingtonGifUrl}
-                  className="w-full h-full object-cover"
-                  alt="March on Washington GIF"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
+      </section>
+
+      {/* March on Washington GIF Section - Full Viewport Width */}
+      <div className="w-full relative z-10">
+        <LazyGif
+          imagePath="photos/GIFs/March-on-Washington.gif"
+          alt="March on Washington GIF"
+          className="w-full h-full object-cover"
+          containerClassName="w-full h-[600px] sm:h-[700px] lg:h-[900px] xl:h-[1000px]"
+          forwardRef={marchOnWashingtonGifRef}
+        />
+      </div>
+
+      {/* Timeline Content Continued */}
+      <section className="px-2 sm:px-4 lg:px-6 py-8 lg:py-16 max-w-7xl mx-auto">
 
         {/* Medgar Evers to March on Washington connector */}
         <MedgarEversToMarchOnWashingtonConnector 
@@ -1977,7 +1981,7 @@ export default function Home() {
             </div>
             
             {/* Bobby Seale GIF - Right side */}
-            <div className="flex-1 ml-8 lg:ml-12 h-64 sm:h-80 lg:h-96">
+            <div className="ml-8 lg:ml-12 w-[400px] lg:w-[550px] h-80 sm:h-96 lg:h-[500px] relative z-10">
               {bobbySealeGifLoading ? (
                 <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
                   <span className="text-gray-500">Loading GIF...</span>
@@ -1985,7 +1989,7 @@ export default function Home() {
               ) : bobbySealeGifUrl ? (
                 <img
                   src={bobbySealeGifUrl}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   alt="Bobby Seale GIF"
                 />
               ) : (
@@ -1997,6 +2001,12 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Black Panther to Brown Berets connector */}
+        <BlackPantherToBrownBeretsConnector 
+          fromRef={blackPantherDateRef} 
+          toRef={brownBeretsDateRef} 
+        />
+
         {/* Brown Berets */}
         <div className="relative mb-32">
           {/* Event Content */}
@@ -2005,7 +2015,7 @@ export default function Home() {
 
               {/* Date Badge above title - Left aligned */}
               <div className="flex justify-start mb-4 lg:mb-6">
-                <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                <div ref={brownBeretsDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
                   <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1967</span>
                 </div>
               </div>
@@ -2044,6 +2054,12 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Brown Berets to Long Hot Summer connector */}
+        <BrownBeretsToLongHotSummerConnector 
+          fromRef={brownBeretsDateRef} 
+          toRef={longHotSummerDateRef} 
+        />
+
         {/* The Long Hot Summer */}
         <div className="relative mb-32">
           {/* Event Content */}
@@ -2052,7 +2068,7 @@ export default function Home() {
 
               {/* Date Badge above title - Left aligned */}
               <div className="flex justify-start mb-4 lg:mb-6">
-                <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                <div ref={longHotSummerDateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
                   <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">1967</span>
                 </div>
               </div>

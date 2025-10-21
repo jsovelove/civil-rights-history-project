@@ -60,7 +60,7 @@ export default function About() {
   return (
     <div className="min-h-screen overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+      <div className="px-4 sm:px-8 lg:px-12">
         
         {/* About the Project Section */}
         <div className="pt-4 pb-16">
@@ -99,80 +99,81 @@ export default function About() {
           </div>
         </div>
 
-        {/* Detailed Content */}
-        <div className="py-16">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-stone-900 text-4xl font-medium font-['Lora'] mb-8 leading-relaxed">
-              The video recordings of their recollections cover a wide range of topics within the freedom struggle, such as the influence of the labor movement, nonviolence and self-defense, religious faith, music, and the experiences of young activists.
-            </p>
-            
-            <div className="space-y-6 text-stone-900 text-2xl font-medium font-['Lora'] leading-relaxed">
-              <p>
-                Many interviewees were active in national organizations such as the Student Nonviolent Coordinating Committee (SNCC), the National Association for the Advancement of Colored People (NAACP), the Congress of Racial Equality (CORE), the Black Panther Party. Other interviewees were key members of specialized and local groups including the Medical Committee for Human Rights, the Deacons for Defense and Justice, the Cambridge (Maryland) Nonviolent Action Committee, and the Newark Community Union Project.
-              </p>
-              
-              <p>
-                A few interviews focus on Chicano activists who were influenced by the African American freedom struggle and their recollections of the occasional coalitions that developed between the black and brown power movements. Several interviews include men and women who were on the front lines of the struggle in places not well-known for their civil rights movement activity such as Oklahoma City, Oklahoma; Saint Augustine, Florida; and Bogalusa, Louisiana. The collection also includes the reflections of the children of grass-roots activists including Clara Luper, Robert Hicks, and Gayle Jenkins.
-              </p>
-              
-              <p>
-                The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States. This database was developed by Washington State University's Center for Digital Scholarship and Curation, and had a role in shaping decisions around Project content and management. The database is no longer maintained as an active resource.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Project Details Grid */}
+        {/* Two Column Layout: Project Info + Detailed Content */}
         <div className="py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-            {/* Left Column */}
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Sources</h3>
-                <div className="space-y-2">
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Library of Congress Civil Rights History Project Collection</p>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">American Folklife Center in Collaboration with the Smithsonian</p>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">National Museum of African American History and Culture</p>
+            {/* Left Column - Project Information (2-column nested layout) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Side of Left Column */}
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Sources</h3>
+                  <div className="space-y-2">
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Library of Congress Civil Rights History Project Collection</p>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">American Folklife Center in Collaboration with the Smithsonian</p>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">National Museum of African American History and Culture</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-red-500 text-2xl font-bold font-['Acumin_Pro'] mb-4">Led By</h3>
+                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Western Washington University</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-red-500 text-2xl font-bold font-['Acumin_Pro'] mb-4">Expert Resources</h3>
+                  <div className="space-y-2">
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Civil Rights History Project Finding Aid</p>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">American Folklife Center</p>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Ask a Folk Librarian</p>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Collections with Film and Video</p>
+                  </div>
                 </div>
               </div>
               
-              <div>
-                <h3 className="text-red-500 text-2xl font-bold font-['Acumin_Pro'] mb-4">Led By</h3>
-                <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Western Washington University</p>
-              </div>
-              
-              <div>
-                <h3 className="text-red-500 text-2xl font-bold font-['Acumin_Pro'] mb-4">Expert Resources</h3>
-                <div className="space-y-2">
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Civil Rights History Project Finding Aid</p>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">American Folklife Center</p>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Ask a Folk Librarian</p>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Collections with Film and Video</p>
+              {/* Right Side of Left Column */}
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Timeframe</h3>
+                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">2024-2025</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Literature</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Name of paper</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Contact</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
+                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
+                  </div>
                 </div>
               </div>
             </div>
             
-            {/* Right Column */}
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Timeframe</h3>
-                <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">2024-2025</p>
-              </div>
+            {/* Right Column - Detailed Text */}
+            <div>
+              <p className="text-stone-900 text-4xl font-medium font-['Lora'] mb-8 leading-relaxed">
+                The video recordings of their recollections cover a wide range of topics within the freedom struggle, such as the influence of the labor movement, nonviolence and self-defense, religious faith, music, and the experiences of young activists.
+              </p>
               
-              <div>
-                <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Literature</h3>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Name of paper</p>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Contact</h3>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
-                </div>
+              <div className="space-y-6 text-stone-900 text-2xl font-medium font-['Lora'] leading-relaxed">
+                <p>
+                  Many interviewees were active in national organizations such as the Student Nonviolent Coordinating Committee (SNCC), the National Association for the Advancement of Colored People (NAACP), the Congress of Racial Equality (CORE), the Black Panther Party. Other interviewees were key members of specialized and local groups including the Medical Committee for Human Rights, the Deacons for Defense and Justice, the Cambridge (Maryland) Nonviolent Action Committee, and the Newark Community Union Project.
+                </p>
+                
+                <p>
+                  A few interviews focus on Chicano activists who were influenced by the African American freedom struggle and their recollections of the occasional coalitions that developed between the black and brown power movements. Several interviews include men and women who were on the front lines of the struggle in places not well-known for their civil rights movement activity such as Oklahoma City, Oklahoma; Saint Augustine, Florida; and Bogalusa, Louisiana. The collection also includes the reflections of the children of grass-roots activists including Clara Luper, Robert Hicks, and Gayle Jenkins.
+                </p>
+                
+                <p>
+                  The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States. This database was developed by Washington State University's Center for Digital Scholarship and Curation, and had a role in shaping decisions around Project content and management. The database is no longer maintained as an active resource.
+                </p>
               </div>
             </div>
           </div>

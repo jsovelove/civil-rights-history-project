@@ -8,10 +8,11 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { getInterviewData, getInterviewSegments } from '../services/firebase'
-import { calculateRelatedTerms } from '../services/relatedTermsService'
-import { RelatedTopicsCompact } from '../components/RelatedTopics'
+import { getInterviewData, getInterviewSegments, getAllInterviews } from '../services/firebase'
+import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
+import ArrowLeftIcon from "../assetts/vectors/arrow left.svg";
+import ArrowRightIcon from "../assetts/vectors/arrow right.svg";
 
 /**
  * InterviewPlayer - Main component for viewing and navigating interview videos
@@ -41,6 +42,7 @@ export default function InterviewPlayer() {
   const [subSummaries, setSubSummaries] = useState([])
   const [playerReady, setPlayerReady] = useState(false)
   const [youtubeApiLoaded, setYoutubeApiLoaded] = useState(false)
+  const [relatedInterviews, setRelatedInterviews] = useState([])
   
   // Player control states
   const [isPlaying, setIsPlaying] = useState(false)
@@ -48,10 +50,8 @@ export default function InterviewPlayer() {
   const [totalDuration, setTotalDuration] = useState(0)
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
   const [seekToTime, setSeekToTime] = useState(null)
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false)
   
-  // Related terms state
-  const [relatedTermsCache, setRelatedTermsCache] = useState({})
-  const [availableTopics, setAvailableTopics] = useState([])
   
   // References
   const [containerEl, setContainerEl] = useState(null) // YouTube container element via callback ref
@@ -115,6 +115,30 @@ export default function InterviewPlayer() {
     if (Array.isArray(keywords)) return keywords
     if (typeof keywords === 'string') return keywords.split(',').map((k) => k.trim())
     return []
+  }
+
+  /**
+   * Extracts YouTube video ID for thumbnail generation
+   * 
+   * @param {string} videoEmbedLink - YouTube URL
+   * @returns {string|null} YouTube video ID or null
+   */
+  const extractYouTubeVideoId = (videoEmbedLink) => {
+    if (!videoEmbedLink) return null
+    const regExp = /^.*(youtu.be\/|v\/|e\/|u\/\w+\/|embed\/|v=)([^#&?]*).*/
+    const match = videoEmbedLink.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
+  /**
+   * Gets thumbnail URL for a YouTube video
+   * 
+   * @param {string} videoEmbedLink - YouTube URL
+   * @returns {string|null} Thumbnail URL or null
+   */
+  const getThumbnailUrl = (videoEmbedLink) => {
+    const videoId = extractYouTubeVideoId(videoEmbedLink)
+    return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null
   }
 
   /**
@@ -204,6 +228,83 @@ export default function InterviewPlayer() {
 
     fetchData()
   }, [documentName])
+
+  /**
+   * --- Fetch Related Interviews ---
+   * Fetches interviews that share keywords/topics with current interview
+   */
+  useEffect(() => {
+    async function fetchRelatedInterviews() {
+      if (!subSummaries || subSummaries.length === 0) return
+      
+      try {
+        // Collect all keywords from current interview segments
+        const currentKeywords = new Set()
+        subSummaries.forEach(segment => {
+          const keywords = formatKeywords(segment.keywords)
+          keywords.forEach(kw => currentKeywords.add(kw.toLowerCase().trim()))
+        })
+
+        if (currentKeywords.size === 0) return
+
+        // Fetch all interviews
+        const allInterviews = await getAllInterviews({ limit: 100 })
+        
+        // Calculate relevance score for each interview
+        const interviewScores = []
+        
+        for (const interview of allInterviews) {
+          // Skip the current interview
+          if (interview.id === documentName) continue
+          
+          try {
+            const segments = await getInterviewSegments(interview.id)
+            let sharedKeywordsCount = 0
+            const matchedKeywords = new Set()
+            
+            segments.forEach(segment => {
+              const segmentKeywords = formatKeywords(segment.keywords)
+              segmentKeywords.forEach(kw => {
+                const normalized = kw.toLowerCase().trim()
+                if (currentKeywords.has(normalized)) {
+                  sharedKeywordsCount++
+                  matchedKeywords.add(normalized)
+                }
+              })
+            })
+            
+            if (sharedKeywordsCount > 0) {
+              interviewScores.push({
+                ...interview,
+                relevanceScore: sharedKeywordsCount,
+                uniqueMatchedKeywords: matchedKeywords.size,
+                totalSegments: segments.length
+              })
+            }
+          } catch (error) {
+            console.warn(`Error processing interview ${interview.id}:`, error)
+          }
+        }
+        
+        // Sort by relevance score and get top 4
+        const topRelated = interviewScores
+          .sort((a, b) => {
+            // First sort by unique matched keywords, then by total score
+            if (b.uniqueMatchedKeywords !== a.uniqueMatchedKeywords) {
+              return b.uniqueMatchedKeywords - a.uniqueMatchedKeywords
+            }
+            return b.relevanceScore - a.relevanceScore
+          })
+          .slice(0, 4)
+        
+        setRelatedInterviews(topRelated)
+      } catch (error) {
+        console.error('Error fetching related interviews:', error)
+      }
+    }
+
+    fetchRelatedInterviews()
+  }, [subSummaries, documentName])
 
   /**
    * --- Load YouTube API ---
@@ -334,6 +435,30 @@ export default function InterviewPlayer() {
     }
   }
 
+  /**
+   * Navigate to previous chapter
+   */
+  const handlePreviousChapter = () => {
+    if (currentSegmentIndex > 0) {
+      const prevSegment = subSummaries[currentSegmentIndex - 1]
+      const seconds = convertTimestampToSeconds(prevSegment.timestamp)
+      handleTimestampClick(seconds)
+      setCurrentSegmentIndex(currentSegmentIndex - 1)
+    }
+  }
+
+  /**
+   * Navigate to next chapter
+   */
+  const handleNextChapter = () => {
+    if (currentSegmentIndex < subSummaries.length - 1) {
+      const nextSegment = subSummaries[currentSegmentIndex + 1]
+      const seconds = convertTimestampToSeconds(nextSegment.timestamp)
+      handleTimestampClick(seconds)
+      setCurrentSegmentIndex(currentSegmentIndex + 1)
+    }
+  }
+
 
 
   
@@ -384,173 +509,142 @@ export default function InterviewPlayer() {
   const hasSegments = subSummaries.length > 0;
 
   return (
-    <div className="w-full relative bg-gray-200 overflow-hidden">
-      {/* Header Navigation */}
-      <div className="w-full h-12 px-12 pt-4 pb-3">
-        <div className="w-full h-11 relative">
-          <div className="w-[507px] left-0 top-0 absolute inline-flex justify-center items-center gap-2.5">
-            <button 
-              onClick={() => navigate('/')}
-              className="w-[505px] justify-start hover:opacity-70 transition-opacity cursor-pointer"
-            >
-              <span className="text-stone-900 text-4xl font-normal font-body">Civil</span>
-              <span className="text-stone-900 text-4xl font-normal font-body tracking-wide"> Rights </span>
-              <span className="text-stone-900 text-4xl font-bold font-body leading-9">History</span>
-              <span className="text-stone-900 text-4xl font-bold font-body leading-9"> Project</span>
-            </button>
-          </div>
-          <div className="w-12 h-12 absolute right-0 top-0">
-            <div className="w-6 h-6 absolute right-3 top-3 transform rotate-180" />
+    <div className="w-full min-h-screen overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
+      {/* Universal Header */}
+      <Header />
+
+      {/* Main content */}
+      <div className="px-12 pt-4">
+        {/* Interview title */}
+        <div className="mb-8">
+          <h1 className="text-stone-900 text-8xl font-medium mb-4" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
+            {mainSummary?.name || documentName}
+          </h1>
+          <div className="text-red-500 text-base font-mono">
+            {mainSummary?.roleSimplified && `${mainSummary.roleSimplified} | `}
+            {totalDuration > 0 && `${Math.round(totalDuration / 60)} minutes`}
           </div>
         </div>
-      </div>
 
+        {/* Main video and content area */}
+        <div className="flex gap-6 mb-8">
+          {/* Video player section */}
+          <div className="flex-shrink-0">
+            {/* Video player */}
+            <div className="w-[960px] h-[540px] relative rounded-xl overflow-hidden mb-4">
+              <div className="absolute inset-0 bg-black" ref={setContainerEl}></div>
+              {!playerReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                  <div className="w-16 h-16 border-4 border-white/50 border-t-white rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+            
+            {/* Chapter Navigation Controls */}
+            <div className="flex justify-between items-center mt-4">
+              {/* Navigation buttons - left aligned */}
+              <div className="flex items-center gap-8">
+                {/* Previous Chapter */}
+                <div 
+                  className={`w-48 h-6 cursor-pointer hover:opacity-80 ${currentSegmentIndex === 0 ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                  onClick={handlePreviousChapter}
+                >
+                  <div className="inline-flex justify-between items-center w-full">
+                    <img src={ArrowLeftIcon} alt="Previous" className="w-5 h-4" />
+                    <div className="text-stone-900 text-xl font-light font-mono">Prev. Chapter</div>
+                  </div>
+                </div>
 
-      {/* Video Container */}
-      <div className="w-full px-12 pt-4 pb-6">
-        <div className="w-full max-w-[1632px] mx-auto relative">
-          <div 
-            className="w-full overflow-hidden bg-black relative"
-            style={{ aspectRatio: '16/9', maxHeight: '922px' }}
-          >
-            <div className="absolute inset-0" ref={setContainerEl}></div>
-            {!playerReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-                <div className="w-16 h-16 border-4 border-white/50 border-t-white rounded-full animate-spin"></div>
+                {/* Next Chapter */}
+                <div 
+                  className={`w-44 h-6 cursor-pointer hover:opacity-80 ${currentSegmentIndex >= subSummaries.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                  onClick={handleNextChapter}
+                >
+                  <div className="inline-flex justify-between items-center w-full">
+                    <div className="text-stone-900 text-xl font-light font-mono">Next Chapter</div>
+                    <img src={ArrowRightIcon} alt="Next" className="w-5 h-4" />
+                  </div>
+                </div>
               </div>
+
+              {/* Current Chapter Info - right aligned */}
+              {subSummaries.length > 0 && (
+                <div className="text-red-500 text-base font-mono">
+                  Chapter {currentSegmentIndex + 1} of {subSummaries.length}
+                </div>
+              )}
+            </div>
+            
+          </div>
+
+          {/* Side content */}
+          <div className="flex-1 pt-0">
+            {mainSummary && (
+              <>
+                {/* Role */}
+                <div className="text-black text-2xl font-normal leading-relaxed mb-6" style={{fontFamily: '"Source Serif 4", serif'}}>
+                  {mainSummary.role || mainSummary.roleSimplified || 'No role information available'}
+                </div>
+                
+                {/* Button to view full description */}
+                <button
+                  onClick={() => setShowDescriptionModal(true)}
+                  className="text-red-500 text-base font-mono hover:text-red-700 transition-colors cursor-pointer"
+                >
+                  View Interview Description
+                </button>
+              </>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Interview Info Section */}
-      <div className="w-full px-12">
-        <div className="w-full max-w-[1632px] mx-auto">
-          {/* Keywords Row */}
-          <div className="w-full mb-11 flex flex-wrap gap-4">
-            {mainSummary && formatKeywords(mainSummary.keywords || []).slice(0, 6).map((keyword, idx) => (
-              <div 
-                key={idx}
-                className="px-6 py-3 rounded-[50px] border border-black inline-flex justify-center items-center cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
-              >
-                <div className="text-center text-black text-base font-mono">{keyword}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Interview Title and Info */}
-          <div className="w-full mb-16">
-            <div className="text-stone-900 text-8xl font-medium font-heading mb-4">
-              {mainSummary?.name || documentName}
-            </div>
-            <div className="text-red-500 text-base font-mono">
-              {mainSummary?.roleSimplified && `${mainSummary.roleSimplified} | `}
-              {totalDuration > 0 && `${Math.round(totalDuration / 60)} minutes`}
-            </div>
-          </div>
-
-          {/* Overview */}
-          <div className="w-full max-w-[1030px] mb-20">
-            <div className="text-black text-2xl font-normal font-['Source_Serif_4'] leading-relaxed">
-              {mainSummary?.mainSummary || 'No summary available'}
-            </div>
           </div>
         </div>
       </div>
 
       {/* Interview Segments */}
       <div className="w-full px-12 space-y-8">
-        <div className="w-full max-w-[1632px] mx-auto">
-          {subSummaries.map((summary, index) => (
-            <div key={summary.id || index} className="w-full mb-8">
-              <div 
-                className="text-red-500 text-base font-mono mb-2 cursor-pointer hover:text-red-700 transition-colors"
-                onClick={() => {
-                  const seconds = convertTimestampToSeconds(summary.timestamp);
-                  handleTimestampClick(seconds);
-                }}
-                disabled={!playerReady}
-              >
-                Chapter {String(index + 1).padStart(2, '0')} | {summary.timestamp ? summary.timestamp.split(' - ')[0].replace(/[\[\]]/g, '').replace(',000', '').trim() : 'Unknown time'}
-              </div>
-              
-              <div className="flex gap-8 items-start">
-                <div className="w-[503px]">
-                  <div className="text-stone-900 text-4xl font-bold font-body mb-4">
-                    {summary.topic || `Segment ${index + 1}`}
-                  </div>
-                  
-                  {/* Keywords for this segment */}
-                  <div className="flex flex-wrap gap-3 mb-6">
-                    {formatKeywords(summary.keywords).slice(0, 3).map((keyword, idx) => (
-                      <div 
-                        key={idx}
-                        className="px-6 py-3 rounded-[50px] border border-black inline-flex justify-center items-center cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
-                      >
-                        <div className="text-center text-black text-base font-mono">{keyword}</div>
-                      </div>
-                    ))}
-                  </div>
+        <div className="w-full">
+          <div className="mb-14">
+            <h2 className="text-black text-5xl font-medium mb-6" style={{fontFamily: 'Inter, sans-serif'}}>Interview Chapters</h2>
+            
+            {subSummaries.map((summary, index) => (
+              <div key={summary.id || index} className="w-full mb-8">
+                <div 
+                  className="text-red-500 text-base font-mono mb-2 cursor-pointer hover:text-red-700 transition-colors"
+                  onClick={() => {
+                    const seconds = convertTimestampToSeconds(summary.timestamp);
+                    handleTimestampClick(seconds);
+                  }}
+                  disabled={!playerReady}
+                >
+                  Chapter {String(index + 1).padStart(2, '0')} | {summary.timestamp ? summary.timestamp.split(' - ')[0].replace(/[\[\]]/g, '').replace(',000', '').trim() : 'Unknown time'}
                 </div>
                 
-                <div className="flex-1 max-w-[804px]">
-                  <div className="text-black text-2xl font-normal font-['Source_Serif_4'] leading-relaxed">
-                    {summary.summary}
+                <div className="flex gap-8 items-start">
+                  <div className="w-[503px]">
+                    <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] mb-4">
+                      {summary.topic || `Segment ${index + 1}`}
+                    </div>
+                    
+                    {/* Keywords for this segment */}
+                    <div className="flex flex-wrap gap-3 mb-6">
+                      {formatKeywords(summary.keywords).slice(0, 3).map((keyword, idx) => (
+                        <div 
+                          key={idx}
+                          className="px-6 py-3 rounded-[50px] outline outline-1 outline-offset-[-1px] outline-black inline-flex justify-center items-center gap-2.5 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                          onClick={() => navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`)}
+                        >
+                          <div className="text-center justify-start text-black text-base font-light font-['Chivo_Mono']">
+                            {keyword}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Related Topics Section */}
-      {mainSummary && Object.keys(relatedTermsCache).length > 0 && (
-        <div className="w-full px-12 py-8">
-          <div className="w-full max-w-[1632px] mx-auto">
-            <div className="mb-6">
-              <div className="w-full h-px border-t border-gray-300 mb-6"></div>
-              <div className="text-stone-900 text-4xl font-medium font-heading mb-6">
-                Related Topics
-              </div>
-            </div>
-            
-            {/* Show related topics for the main interview topic */}
-            <RelatedTopicsCompact
-              currentTopic={mainSummary.documentName}
-              relatedTermsCache={relatedTermsCache}
-              availableTopics={availableTopics}
-              maxDisplay={6}
-              className="mb-4"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Related Interviews Section */}
-      <div className="w-full px-12 py-16">
-        <div className="w-full max-w-[1632px] mx-auto">
-          <div className="mb-8">
-            <div className="w-full h-px border-t border-black mb-6"></div>
-            <div className="text-stone-900 text-8xl font-medium font-heading">
-              <span className="text-stone-900">Related</span>
-              <span className="text-red-500"> </span>
-              <span className="text-stone-900">Interviews</span>
-            </div>
-          </div>
-          
-          {/* Related interviews grid - placeholder for now */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="w-full">
-                <div className="w-full h-72 bg-zinc-300 mb-3 rounded"></div>
-                <div className="text-stone-900 text-4xl font-bold font-body mb-2">
-                  Related Interview {item}
-                </div>
-                <div className="text-stone-900 text-base font-mono">
-                  Role | Duration
+                  
+                  <div className="flex-1 max-w-[804px]">
+                    <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: '"Source Serif 4", serif'}}>
+                      {summary.summary}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -558,8 +652,99 @@ export default function InterviewPlayer() {
         </div>
       </div>
 
+
+      {/* Related Interviews Section */}
+      {relatedInterviews.length > 0 && (
+        <div className="w-full px-12 py-16">
+          <div className="w-full">
+            <div className="mb-8">
+              <div className="w-full h-px border-t border-black mb-6"></div>
+              <div className="text-stone-900 text-8xl font-medium" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
+                <span className="text-stone-900">Related</span>
+                <span className="text-red-500"> </span>
+                <span className="text-stone-900">Interviews</span>
+              </div>
+            </div>
+            
+            {/* Related interviews grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {relatedInterviews.map((interview) => {
+                const thumbnailUrl = getThumbnailUrl(interview.videoEmbedLink)
+                return (
+                  <div 
+                    key={interview.id} 
+                    className="w-full cursor-pointer group"
+                    onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(interview.id)}`)}
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-full h-72 bg-zinc-300 mb-3 rounded overflow-hidden relative group-hover:opacity-90 transition-opacity">
+                      {thumbnailUrl ? (
+                        <img 
+                          src={thumbnailUrl} 
+                          alt={interview.documentName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-zinc-300">
+                          <span className="text-zinc-500 text-sm">No thumbnail</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Interview name */}
+                    <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] mb-2 group-hover:text-red-500 transition-colors">
+                      {interview.documentName || interview.name}
+                    </div>
+                    
+                    {/* Role and metadata */}
+                    <div className="text-stone-900 text-base font-mono">
+                      {interview.roleSimplified || interview.role || 'Unknown Role'}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <Footer />
+
+      {/* Description Modal */}
+      {showDescriptionModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+          onClick={() => setShowDescriptionModal(false)}
+        >
+          <div 
+            className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto p-8 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowDescriptionModal(false)}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Modal content */}
+            <div>
+              <h2 className="text-stone-900 text-5xl font-medium mb-6" style={{fontFamily: 'Inter, sans-serif'}}>
+                Interview Description
+              </h2>
+              
+              <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: '"Source Serif 4", serif'}}>
+                {mainSummary?.mainSummary || 'No description available'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
