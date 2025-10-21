@@ -372,6 +372,8 @@ export default function Home() {
   const [emancipationMarchPinLoading, setEmancipationMarchPinLoading] = useState(true);
   const [snccVotePinUrl, setSnccVotePinUrl] = useState(null);
   const [snccVotePinLoading, setSnccVotePinLoading] = useState(true);
+  const [pantherPinUrl, setPantherPinUrl] = useState(null);
+  const [pantherPinLoading, setPantherPinLoading] = useState(true);
 
   useEffect(() => {
     const loadLandingImage = async () => {
@@ -868,6 +870,21 @@ export default function Home() {
     loadSnccVotePin();
   }, []);
 
+  useEffect(() => {
+    const loadPantherPin = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Ephemera/Pins/Panther.png');
+        setPantherPinUrl(url);
+      } catch (error) {
+        console.error('Failed to load Panther pin:', error);
+      } finally {
+        setPantherPinLoading(false);
+      }
+    };
+
+    loadPantherPin();
+  }, []);
+
   return (
     <div className="w-full relative overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
 
@@ -954,7 +971,7 @@ export default function Home() {
 
             {/* Brown v. Board Quote */}
             <p className="text-black text-5xl font-normal font-['Source_Serif_4']">
-            "We conclude that, in the field of public education, the doctrine of "separate but equal" has no place. Separate educational facilities are inherently unequal. Therefore, we hold that the plaintiffs and others similarly situated for whom the actions have been brought are, by reason of the segregation complained of, deprived of the equal protection of the laws guaranteed by the Fourteenth Amendment. This disposition makes unnecessary any discussion whether such segregation also violates the Due Process Clause of the Fourteenth Amendment."
+            "We conclude that, in the field of public education, the doctrine of "<em>separate but equal</em>" has no place. Separate educational facilities are <em>inherently unequal</em>. Therefore, we hold that the plaintiffs and others similarly situated for whom the actions have been brought are, by reason of the segregation complained of, deprived of the equal protection of the laws guaranteed by the Fourteenth Amendment. This disposition makes unnecessary any discussion whether such segregation also <em>violates the Due Process Clause</em> of the Fourteenth Amendment."
             </p>
 
             {/* Title - Enhanced for first event */}
@@ -1057,8 +1074,13 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              <EmmettTillImage />
+            <div className="lg:order-1 space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                <EmmettTillImage />
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Emmett Till's mother, Mamie Till, at his funeral (Dave Mann)
+              </p>
             </div>
           </div>
           
@@ -1129,22 +1151,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {montgomeryImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : montgomeryImageUrl ? (
-                <img
-                  src={montgomeryImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Rosa Parks"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Rosa Parks gets fingerprinted (Gene Herrick)
+              </p>
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {montgomeryImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : montgomeryImageUrl ? (
+                  <img
+                    src={montgomeryImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Rosa Parks"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1182,22 +1209,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {littleRockImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : littleRockImageUrl ? (
-                <img
-                  src={littleRockImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Elizabeth Eckford"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="lg:order-1 space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {littleRockImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : littleRockImageUrl ? (
+                  <img
+                    src={littleRockImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Elizabeth Eckford"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Elizabeth Eckford approaches Central High (Will Counts)
+              </p>
             </div>
           </div>
           
@@ -1273,22 +1305,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {hRapBrownImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : hRapBrownImageUrl ? (
-                <img
-                  src={hRapBrownImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="H. Rap Brown"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="lg:order-1 space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {hRapBrownImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : hRapBrownImageUrl ? (
+                  <img
+                    src={hRapBrownImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="H. Rap Brown"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
+                H. Rap Brown, SNCC (Marion Trikosko)
+              </p>
             </div>
           </div>
         </div>
@@ -1326,22 +1363,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-2 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {freedomRiderImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : freedomRiderImageUrl ? (
-                <img
-                  src={freedomRiderImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Freedom Rider"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="lg:order-2 space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {freedomRiderImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : freedomRiderImageUrl ? (
+                  <img
+                    src={freedomRiderImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Freedom Rider"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Greyhound bus attack (U.S. National Park Service)
+              </p>
             </div>
           </div>
           
@@ -1407,22 +1449,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {medgarEversImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : medgarEversImageUrl ? (
-                <img
-                  src={medgarEversImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Medgar Evers"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="lg:order-1 space-y-12">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {medgarEversImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : medgarEversImageUrl ? (
+                  <img
+                    src={medgarEversImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Medgar Evers"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
+                Medger Evers (Unknown)
+              </p>
             </div>
           </div>
           
@@ -1488,22 +1535,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {marchOnWashingtonImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : marchOnWashingtonImageUrl ? (
-                <img
-                  src={marchOnWashingtonImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="March on Washington"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {marchOnWashingtonImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : marchOnWashingtonImageUrl ? (
+                  <img
+                    src={marchOnWashingtonImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="March on Washington"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Demonstrators march down the street (Marion Trikosko)
+              </p>
             </div>
           </div>
           
@@ -1609,22 +1661,27 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Image section - Left */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {freedomSummerImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : freedomSummerImageUrl ? (
-                <img
-                  src={freedomSummerImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Freedom Summer Voting"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {freedomSummerImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : freedomSummerImageUrl ? (
+                  <img
+                    src={freedomSummerImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Freedom Summer Voting"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left pl-12" style={{ lineHeight: '100%' }}>
+                A woman voting (Marion Trikosko)
+              </p>
             </div>
 
             {/* Text content - Right */}
@@ -1676,22 +1733,33 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              {civilRightsActGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : civilRightsActGifUrl ? (
-                <img
-                  src={civilRightsActGifUrl}
-                  className="w-full h-full object-cover"
-                  alt="Demonstrations in Jackson, Assassination of Medgar Evers"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-48 sm:h-64 lg:h-96">
+                {civilRightsActGifLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading GIF...</span>
+                  </div>
+                ) : civilRightsActGifUrl ? (
+                  <img
+                    src={civilRightsActGifUrl}
+                    className="w-full h-full object-cover"
+                    alt="Demonstrations in Jackson, Assassination of Medgar Evers"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">GIF not available</span>
+                  </div>
+                )}
+              </div>
+              <a 
+                href="https://archive.org/details/gov.archives.arc.2546045" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-black text-base font-light font-['Chivo_Mono'] text-left underline hover:text-red-500 transition-colors block"
+                style={{ lineHeight: '100%' }}
+              >
+                Law Enforcement confront peaceful demonstrators
+              </a>
             </div>
           </div>
         </div>
@@ -1707,22 +1775,27 @@ export default function Home() {
           {/* Event Content */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Image section - Left */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {malcolmXImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : malcolmXImageUrl ? (
-                <img
-                  src={malcolmXImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Malcolm X"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {malcolmXImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : malcolmXImageUrl ? (
+                  <img
+                    src={malcolmXImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Malcolm X"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
+                Malcolm X waits at Martin Luther King press conference (Marion Trikosko)
+              </p>
             </div>
 
             {/* Text content - Right */}
@@ -1750,22 +1823,33 @@ export default function Home() {
           
           {/* Malcolm X GIF Section */}
           <div className="mt-12 lg:mt-16 flex justify-end -mr-2 sm:-mr-4 lg:-mr-6">
-            <div ref={malcolmXGifRef} className="w-full max-w-lg h-64 sm:h-80 lg:h-96">
-              {malcolmXGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : malcolmXGifUrl ? (
-                <img
-                  src={malcolmXGifUrl}
-                  className="w-full h-full object-contain"
-                  alt="Malcolm X GIF"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+            <div className="relative w-full max-w-lg">
+              <a 
+                href="https://archive.org/details/youtube-VGx81G5taD0" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="absolute top-8 right-0 text-black text-base font-light font-['Chivo_Mono'] underline hover:text-red-500 transition-colors z-10"
+                style={{ lineHeight: '100%' }}
+              >
+                Malcom X
+              </a>
+              <div ref={malcolmXGifRef} className="w-full h-64 sm:h-80 lg:h-96">
+                {malcolmXGifLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading GIF...</span>
+                  </div>
+                ) : malcolmXGifUrl ? (
+                  <img
+                    src={malcolmXGifUrl}
+                    className="w-full h-full object-contain"
+                    alt="Malcolm X GIF"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">GIF not available</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
@@ -1822,22 +1906,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {selmaImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : selmaImageUrl ? (
-                <img
-                  src={selmaImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Selma to Montgomery"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {selmaImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : selmaImageUrl ? (
+                  <img
+                    src={selmaImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Selma to Montgomery"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Protestors in Harlem show solidarity with Selma (Stanley Wolfson)
+              </p>
             </div>
           </div>
           
@@ -1845,26 +1934,51 @@ export default function Home() {
           <div className="mt-24 lg:mt-32 flex -ml-2 sm:-ml-4 lg:-ml-6">
             {/* Quote - Left side */}
             <div className="w-[804px] justify-start text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
-              "I was the only one that crossed the bridge and got to the other side and went into houses to drag people out, you know, who had been, had been gassed. I can still smell the gas. Uh, the shoes and the things laying on the side and the, the goons with their clubs lining the road, along with the, with the National Guard"
+              "I was the only one that crossed the bridge and got to the other side and went into houses to drag people out, you know, who had been, had been gassed. I can still smell the gas. Uh, the shoes and the things laying on the side and the, the goons with their clubs lining the road, along with the, with the National Guard
             </div>
             
             {/* Selma GIF - Right side */}
-            <div className="flex-1 ml-8 lg:ml-12 h-64 sm:h-80 lg:h-96">
-              {selmaGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : selmaGifUrl ? (
-                <img
-                  src={selmaGifUrl}
-                  className="w-full h-full object-cover"
-                  alt="Selma Protester Confrontation"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+            <div className="flex-1 ml-8 lg:ml-12">
+              <div className="h-64 sm:h-80 lg:h-96">
+                {selmaGifLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading GIF...</span>
+                  </div>
+                ) : selmaGifUrl ? (
+                  <img
+                    src={selmaGifUrl}
+                    className="w-full h-full object-cover"
+                    alt="Selma Protester Confrontation"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">GIF not available</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 -ml-16">
+                <p className="text-stone-900 font-normal font-['Source_Serif_4'] whitespace-nowrap" style={{ fontSize: '40px', lineHeight: '100%', letterSpacing: '-1%' }}>
+                  – it was a horrible scene, horrible scene. "
+                </p>
+                <p className="text-stone-900 font-light font-['Chivo_Mono'] text-right mt-12" style={{ fontSize: '24px', lineHeight: '100%' }}>
+                  Dr. Alfred Moldovan
+                </p>
+                <a 
+                  href="https://archive.org/details/gov.archives.arc.53422" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-black font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors block mt-6"
+                  style={{ 
+                    fontSize: '16px', 
+                    lineHeight: '100%', 
+                    textDecoration: 'underline',
+                    textDecorationStyle: 'solid',
+                    textDecorationSkipInk: 'auto'
+                  }}
+                >
+                  The march from Selma to Montgomery
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -1887,22 +2001,33 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* GIF section - Left */}
-            <div className="h-48 sm:h-64 lg:h-96">
-              {votingRightsActGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : votingRightsActGifUrl ? (
-                <img
-                  src={votingRightsActGifUrl}
-                  className="w-full h-full object-cover"
-                  alt="Voting Rights Act 1965"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-48 sm:h-64 lg:h-96">
+                {votingRightsActGifLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading GIF...</span>
+                  </div>
+                ) : votingRightsActGifUrl ? (
+                  <img
+                    src={votingRightsActGifUrl}
+                    className="w-full h-full object-cover"
+                    alt="Voting Rights Act 1965"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">GIF not available</span>
+                  </div>
+                )}
+              </div>
+              <a 
+                href="https://archive.org/details/un-un-v38-r22" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-black text-base font-light font-['Chivo_Mono'] text-left underline hover:text-red-500 transition-colors block"
+                style={{ lineHeight: '100%' }}
+              >
+                Voting Rights Act
+              </a>
             </div>
 
             {/* Text content - Right */}
@@ -1963,30 +2088,40 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {blackPantherImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : blackPantherImageUrl ? (
-                <img
-                  src={blackPantherImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Black Panthers"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="lg:order-1 space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {blackPantherImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : blackPantherImageUrl ? (
+                  <img
+                    src={blackPantherImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Black Panthers"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
+                Black Panther Demonstration (Unknown)
+              </p>
             </div>
           </div>
           
           {/* Quote and Bobby Seale GIF Section */}
           <div className="mt-24 lg:mt-32 flex -ml-2 sm:-ml-4 lg:-ml-6">
             {/* Quote - Left side */}
-            <div className="w-[804px] justify-start text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
-              "Essentially, the Black Panther Party was a twentieth-century version of the hopes and demands and desires of an oppressed black community, rearticulated in a new set of words."
+            <div className="w-[804px] relative">
+              <p className="text-stone-900 text-4xl font-normal font-['Source_Serif_4']">
+                "Essentially, the Black Panther Party was a twentieth-century version of the hopes and demands and desires of an oppressed black community, rearticulated in a new set of words."
+              </p>
+              <p className="absolute bottom-0 left-0 text-stone-900 font-light font-['Chivo_Mono']" style={{ fontSize: '24px', lineHeight: '100%' }}>
+                Kathleen Cleaver
+              </p>
             </div>
             
             {/* Bobby Seale GIF - Right side */}
@@ -2006,6 +2141,25 @@ export default function Home() {
                   <span className="text-gray-500">GIF not available</span>
                 </div>
               )}
+              
+              {/* Black Panther Pin - Top right */}
+              <div className="absolute -top-40 -right-32">
+                {pantherPinLoading ? (
+                  <div className="w-48 h-48 bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500 text-xs">Loading pin...</span>
+                  </div>
+                ) : pantherPinUrl ? (
+                  <img 
+                    className="w-48 h-48" 
+                    src={pantherPinUrl}
+                    alt="Black Panther Pin"
+                  />
+                ) : (
+                  <div className="w-48 h-48 bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500 text-xs">Pin not available</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -2043,22 +2197,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center relative z-10">
-              {brownBeretsImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : brownBeretsImageUrl ? (
-                <img
-                  src={brownBeretsImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Brown Berets"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center relative z-10">
+                {brownBeretsImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : brownBeretsImageUrl ? (
+                  <img
+                    src={brownBeretsImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Brown Berets"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Four brown berets (Unknown)
+              </p>
             </div>
           </div>
         </div>
@@ -2096,22 +2255,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="lg:order-1 h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {longHotSummerImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : longHotSummerImageUrl ? (
-                <img
-                  src={longHotSummerImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="The Long Hot Summer"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="lg:order-1 space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {longHotSummerImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : longHotSummerImageUrl ? (
+                  <img
+                    src={longHotSummerImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="The Long Hot Summer"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
+                Newark Rebellion (Al Lowe)
+              </p>
             </div>
           </div>
         </div>
@@ -2149,22 +2313,27 @@ export default function Home() {
             </div>
 
             {/* Image section */}
-            <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-              {mlkImageLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading image...</span>
-                </div>
-              ) : mlkImageUrl ? (
-                <img
-                  src={mlkImageUrl}
-                  className="w-full h-full object-contain"
-                  alt="Martin Luther King Jr."
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">Image not available</span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                {mlkImageLoading ? (
+                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                    <span className="text-gray-500">Loading image...</span>
+                  </div>
+                ) : mlkImageUrl ? (
+                  <img
+                    src={mlkImageUrl}
+                    className="w-full h-full object-contain"
+                    alt="Martin Luther King Jr."
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500">Image not available</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
+                Martin Luther King press conference (Marion Trikosko)
+              </p>
             </div>
           </div>
           
@@ -2197,6 +2366,11 @@ export default function Home() {
                   "...[Martin] was saying that the change that must happen was not legal. The change that must happen was moral and spiritual, right, and that was the basis upon which we were move..."
                 </div>
                 
+                {/* Citation */}
+                <p className="text-stone-900 font-light font-['Chivo_Mono'] mb-8" style={{ fontSize: '24px', lineHeight: '100%' }}>
+                  C.T. Vivian
+                </p>
+                
                 {/* Honor King Poster and GIF row */}
                 <div className="flex items-start">
                   {/* Honor King Poster */}
@@ -2219,22 +2393,33 @@ export default function Home() {
                   </div>
                   
                   {/* Long Hot Summer GIF - Right of poster, aligned with top */}
-                  <div className="ml-8 w-[300px] h-[400px]">
-                    {longHotSummerGifLoading ? (
-                      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                        <span className="text-gray-500">Loading GIF...</span>
-                      </div>
-                    ) : longHotSummerGifUrl ? (
-                      <img
-                        src={longHotSummerGifUrl}
-                        className="w-full h-full object-cover"
-                        alt="Long Hot Summer GIF"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-500">GIF not available</span>
-                      </div>
-                    )}
+                  <div className="ml-8 space-y-2">
+                    <div className="w-[300px] h-[400px]">
+                      {longHotSummerGifLoading ? (
+                        <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                          <span className="text-gray-500">Loading GIF...</span>
+                        </div>
+                      ) : longHotSummerGifUrl ? (
+                        <img
+                          src={longHotSummerGifUrl}
+                          className="w-full h-full object-cover"
+                          alt="Long Hot Summer GIF"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-500">GIF not available</span>
+                        </div>
+                      )}
+                    </div>
+                    <a 
+                      href="https://archive.org/details/68riotsTBDreel/WJZ-NEWSFILM-001.mov" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-black text-base font-light font-['Chivo_Mono'] text-left underline hover:text-red-500 transition-colors block"
+                      style={{ lineHeight: '100%' }}
+                    >
+                      Baltimore Riots
+                    </a>
                   </div>
                 </div>
               </div>
@@ -2300,7 +2485,7 @@ export default function Home() {
           
           {/* Selma Get Right GIF - Centered */}
           <div className="mt-12 lg:mt-16 flex justify-center">
-            <div className="w-full max-w-4xl h-64 sm:h-80 lg:h-96">
+            <div className="w-full max-w-6xl h-96 sm:h-[500px] lg:h-[700px] xl:h-[800px] relative">
               {selmaGetRightGifLoading ? (
                 <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
                   <span className="text-gray-500">Loading GIF...</span>
@@ -2316,6 +2501,15 @@ export default function Home() {
                   <span className="text-gray-500">GIF not available</span>
                 </div>
               )}
+              <a 
+                href="https://archive.org/details/gov.archives.arc.53422" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-base font-light font-['Chivo_Mono'] underline hover:text-red-500 transition-colors px-4 py-2"
+                style={{ lineHeight: '100%', color: '#EBEAE9' }}
+              >
+                The march from Selma to Montgomery
+              </a>
             </div>
           </div>
         </div>
