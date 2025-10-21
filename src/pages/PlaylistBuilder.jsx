@@ -20,9 +20,9 @@ import {
   getRelatedKeywords,
   clearCache
 } from "../services/playlistService";
+import { calculateRelatedTerms, getRelatedTermsForTopic, filterRelatedTermsByAvailability } from "../services/relatedTermsService";
 import ArrowLeftIcon from "../assetts/vectors/arrow left.svg";
 import ArrowRightIcon from "../assetts/vectors/arrow right.svg";
-import DownArrowIcon from "../assetts/vectors/down arrow.svg";
 import SimpleArrowLeftIcon from "../assetts/vectors/simple arrow left.svg";
 import SimpleArrowRightIcon from "../assetts/vectors/simple arrow right.svg";
 
@@ -48,6 +48,10 @@ const PlaylistBuilder = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [seekToTime, setSeekToTime] = useState(null);
   
+  // Related terms state
+  const [relatedTermsCache, setRelatedTermsCache] = useState({});
+  const [availableTopics, setAvailableTopics] = useState([]);
+  
   // "Up Next" feature state
   const [availableKeywords, setAvailableKeywords] = useState([]);
   const [nextKeyword, setNextKeyword] = useState("");
@@ -57,6 +61,10 @@ const PlaylistBuilder = () => {
   // Playlist navigation state
   const [playlistStartIndex, setPlaylistStartIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(3); // Dynamic based on screen width
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Topic tags state - always visible now
+  const [showTopicTags, setShowTopicTags] = useState(true);
   
   // Refs for managing timeouts
   const autoplayTimeoutRef = useRef(null);
@@ -71,6 +79,28 @@ const PlaylistBuilder = () => {
       setKeyword(keywordParam);
     }
   }, [searchParams]);
+
+  /**
+   * Initialize related terms cache
+   */
+  useEffect(() => {
+    const initializeRelatedTerms = async () => {
+      try {
+        console.log('Initializing related terms for playlist builder...');
+        const relatedTerms = await calculateRelatedTerms();
+        setRelatedTermsCache(relatedTerms);
+        
+        // Get available topics from the related terms cache
+        const topics = Object.keys(relatedTerms).map(topic => ({ keyword: topic }));
+        console.log('Available topics:', topics);
+        setAvailableTopics(topics);
+      } catch (error) {
+        console.error('Error initializing related terms:', error);
+      }
+    };
+
+    initializeRelatedTerms();
+  }, []);
 
   /**
    * Load playlist with progressive loading when keyword changes
@@ -355,15 +385,34 @@ const PlaylistBuilder = () => {
   const handleTimeUpdate = (time) => setCurrentTime(time);
 
   /**
-   * Playlist navigation handlers
+   * Playlist navigation handlers with smooth animation - slides whole sets of clips
    */
   const handlePlaylistPrevious = () => {
-    setPlaylistStartIndex(Math.max(0, playlistStartIndex - 1));
+    if (isAnimating || playlistStartIndex === 0) return;
+    
+    setIsAnimating(true);
+    // Jump back by a full set of items (itemsPerView)
+    setPlaylistStartIndex(Math.max(0, playlistStartIndex - itemsPerView));
+    
+    // Reset animation state after transition completes
+    setTimeout(() => setIsAnimating(false), 300);
   };
 
   const handlePlaylistNext = () => {
-    const maxStartIndex = Math.max(0, videoQueue.length - itemsPerView);
-    setPlaylistStartIndex(Math.min(maxStartIndex, playlistStartIndex + 1));
+    // Calculate total items including related topic squares
+    const relatedTopics = getFilteredRelatedTopics();
+    const totalItems = videoQueue.length + relatedTopics.length;
+    const maxStartIndex = Math.max(0, totalItems - itemsPerView);
+    
+    if (isAnimating || playlistStartIndex >= maxStartIndex) return;
+    
+    setIsAnimating(true);
+    // Jump forward by a full set of items (itemsPerView)
+    const newStartIndex = Math.min(maxStartIndex, playlistStartIndex + itemsPerView);
+    setPlaylistStartIndex(newStartIndex);
+    
+    // Reset animation state after transition completes
+    setTimeout(() => setIsAnimating(false), 300);
   };
 
   /**
@@ -374,6 +423,67 @@ const PlaylistBuilder = () => {
       return null;
     }
     return videoQueue[currentVideoIndex];
+  };
+
+  /**
+   * Toggle topic tags visibility - no longer needed since always visible
+   */
+  const handleToggleTopicTags = () => {
+    // Topic tags are now always visible
+  };
+
+  /**
+   * Get filtered related topics for the current keyword
+   */
+  const getFilteredRelatedTopics = () => {
+    if (!keyword || Object.keys(relatedTermsCache).length === 0) {
+      return [];
+    }
+    
+    // Get related terms for the current topic
+    const rawRelatedTerms = getRelatedTermsForTopic(keyword, relatedTermsCache);
+    console.log('Raw related terms for', keyword, ':', rawRelatedTerms);
+    
+    // Filter to only include available topics
+    const filteredRelatedTerms = filterRelatedTermsByAvailability(rawRelatedTerms, availableTopics);
+    console.log('Filtered related terms:', filteredRelatedTerms);
+    
+    // Limit to 5 related topics
+    return filteredRelatedTerms.slice(0, 5);
+  };
+
+  /**
+   * Get topic tags for current video
+   */
+  const getCurrentVideoTags = () => {
+    const currentVideo = getCurrentVideo();
+    if (!currentVideo) return [];
+    
+    // Extract tags from various possible fields
+    const tags = [];
+    
+    // Add keywords if available
+    if (currentVideo.keywords && Array.isArray(currentVideo.keywords)) {
+      tags.push(...currentVideo.keywords);
+    }
+    
+    // Add topics if available
+    if (currentVideo.topics && Array.isArray(currentVideo.topics)) {
+      tags.push(...currentVideo.topics);
+    }
+    
+    // Add tags if available
+    if (currentVideo.tags && Array.isArray(currentVideo.tags)) {
+      tags.push(...currentVideo.tags);
+    }
+    
+    // Add metadataV2 keywords if available
+    if (currentVideo.metadataV2?.keywords && Array.isArray(currentVideo.metadataV2.keywords)) {
+      tags.push(...currentVideo.metadataV2.keywords);
+    }
+    
+    // Remove duplicates and filter out empty values
+    return [...new Set(tags.filter(tag => tag && tag.trim()))];
   };
 
   // Loading state - only show for initial load, not background loading
@@ -400,52 +510,16 @@ const PlaylistBuilder = () => {
   const currentVideo = getCurrentVideo();
 
   return (
-    <div className="w-full min-h-screen overflow-hidden" style={{backgroundColor: '#EBEAE9'}}>
-      {/* Header */}
-      <div className="w-full h-12 px-12 py-9 relative">
-        {/* Back to Timeline button */}
-        <div className="absolute right-12 top-9">
-          <div className="text-stone-900 text-base font-light font-mono cursor-pointer hover:opacity-80"
-               onClick={() => navigate('/')}>
-            Back to Timeline
+    <div className="w-full min-h-screen overflow-hidden">
+      {/* Background loading indicator - only show when loading */}
+      {backgroundLoading && (
+        <div className="px-12 pt-4">
+          <div className="flex items-center gap-2 text-red-500 text-base font-light font-mono">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
+            <span className="text-sm">Loading remaining clips...</span>
           </div>
         </div>
-        
-        {/* Project title */}
-        <div className="w-full h-11 absolute left-12 top-10">
-          <div className="inline-flex justify-center items-center gap-2.5">
-            <div className="justify-start">
-              <span className="text-stone-900 text-4xl font-normal" style={{fontFamily: 'Source Serif Pro, serif'}}>Civil Rights </span>
-              <span className="text-stone-900 text-4xl font-bold leading-9" style={{fontFamily: 'Source Serif Pro, serif'}}>History Project</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Header divider */}
-      <div className="w-full h-px bg-black mx-12" style={{width: 'calc(100% - 6rem)'}} />
-
-      {/* Metadata and Next Timeline Event - positioned under header */}
-      <div className="px-12 pt-4 flex justify-between items-center">
-        {/* Chapters/Interviews metadata */}
-        <div className="flex items-center gap-4 text-red-500 text-base font-light font-mono">
-          <span>{totalClipsForKeyword} Chapters from {videoQueue.length > 0 ? videoQueue.length : '0'} Interviews</span>
-          {backgroundLoading && (
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
-              <span className="text-sm">Loading remaining clips...</span>
-            </div>
-          )}
-        </div>
-        
-        {/* Next Timeline Event */}
-        <div className="inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80" onClick={handlePlayNextKeyword}>
-          <div className="text-red-500 text-base font-light font-mono">
-            {nextKeyword ? `Next: ${nextKeyword}` : 'Next Timeline Event'}
-          </div>
-          <div className="w-3.5 h-2.5 border border-red-500" />
-        </div>
-      </div>
+      )}
 
       {/* Main content */}
       <div className="px-12 pt-4">
@@ -481,13 +555,7 @@ const PlaylistBuilder = () => {
             
             {/* Controls under video player */}
             <div className="flex justify-between items-center">
-              {/* View Topic Tags - left aligned */}
-              <div className="inline-flex items-center gap-3 cursor-pointer hover:opacity-80">
-                <div className="text-stone-900 text-xl font-light font-mono">View Topic Tags</div>
-                <img src={DownArrowIcon} alt="Expand" className="w-3 h-2" />
-              </div>
-
-              {/* Navigation buttons - right aligned */}
+              {/* Navigation buttons - left aligned */}
               <div className="flex items-center gap-8">
                 {/* Previous Chapter */}
                 <div className="w-48 h-6 cursor-pointer hover:opacity-80" onClick={handlePrevious}>
@@ -505,7 +573,42 @@ const PlaylistBuilder = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Watch Full Interview - right aligned */}
+              {currentVideo && (
+                <div className="inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80"
+                     onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}>
+                  <div className="text-red-500 text-base font-light font-mono">Watch Full Interview</div>
+                  <img src={ArrowRightIcon} alt="Right Arrow" className="w-5 h-4" style={{filter: 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                </div>
+              )}
             </div>
+            
+             {/* Topic Tags Section - always visible */}
+             <div className="mt-6">
+               <h3 className="text-black text-5xl font-medium font-['Inter'] mb-3">Topic Tags</h3>
+               <div className="flex flex-wrap gap-x-6 gap-y-2">
+                 {getCurrentVideoTags().length > 0 ? (
+                   getCurrentVideoTags().map((tag, index) => (
+                     <div
+                       key={index}
+                       data-property-1="Default"
+                       className="px-6 py-3 rounded-[50px] outline outline-1 outline-offset-[-1px] outline-black inline-flex justify-center items-center gap-2.5 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                       onClick={() => navigate(`?keywords=${encodeURIComponent(tag)}`)}
+                     >
+                       <div className="text-center justify-start text-black text-base font-light font-['Chivo_Mono']">
+                         {tag}
+                       </div>
+                     </div>
+                   ))
+                 ) : (
+                   <span className="text-gray-500 text-base font-light font-mono italic">
+                     No topic tags available for this video
+                   </span>
+                 )}
+               </div>
+             </div>
+
           </div>
 
           {/* Side content */}
@@ -519,12 +622,6 @@ const PlaylistBuilder = () => {
                   </h2>
                 </div>
 
-                {/* Watch Full Interview link */}
-                <div className="mb-8 inline-flex items-center gap-2.5 cursor-pointer hover:opacity-80"
-                     onClick={() => navigate(`/interview-player?documentName=${encodeURIComponent(currentVideo.documentName)}`)}>
-                  <div className="text-red-500 text-base font-light font-mono">Watch Full Interview</div>
-                  <div className="w-3.5 h-2.5 border border-red-500" />
-                </div>
 
                 {/* Description */}
                 <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: 'FreightText Pro, serif'}}>
@@ -547,14 +644,20 @@ const PlaylistBuilder = () => {
                 <button 
                   className="cursor-pointer hover:opacity-80 disabled:opacity-30" 
                   onClick={handlePlaylistPrevious}
-                  disabled={playlistStartIndex === 0}
+                  disabled={playlistStartIndex === 0 || isAnimating}
                 >
                   <img src={SimpleArrowLeftIcon} alt="Previous" className="w-4 h-7" />
                 </button>
                 <button 
                   className="cursor-pointer hover:opacity-80 disabled:opacity-30" 
                   onClick={handlePlaylistNext}
-                  disabled={playlistStartIndex >= Math.max(0, videoQueue.length - itemsPerView)}
+                  disabled={(() => {
+                    // Calculate total items including related topic squares
+                    const relatedTopics = getFilteredRelatedTopics();
+                    const totalItems = videoQueue.length + relatedTopics.length;
+                    const maxStartIndex = Math.max(0, totalItems - itemsPerView);
+                    return playlistStartIndex >= maxStartIndex || isAnimating;
+                  })()}
                 >
                   <img src={SimpleArrowRightIcon} alt="Next" className="w-4 h-7" />
                 </button>
@@ -563,9 +666,19 @@ const PlaylistBuilder = () => {
             
             {/* Playlist items */}
             <div className="flex gap-6 overflow-hidden">
-              {videoQueue.slice(playlistStartIndex, playlistStartIndex + itemsPerView + (playlistStartIndex + itemsPerView < videoQueue.length ? 1 : 0)).map((video, relativeIndex) => {
-                const index = playlistStartIndex + relativeIndex;
-                return (
+              <div 
+                className="flex gap-6 transition-transform duration-300 ease-in-out"
+                style={{
+                  transform: `translateX(-${playlistStartIndex * (504 + 24)}px)`, // 504px width + 24px gap
+                  width: `${(() => {
+                    // Calculate total items including related topic squares
+                    const relatedTopics = getFilteredRelatedTopics();
+                    const totalItems = videoQueue.length + relatedTopics.length;
+                    return totalItems * (504 + 24);
+                  })()}px`
+                }}
+              >
+              {videoQueue.map((video, index) => (
                 <div key={video.id} 
                      className="flex-shrink-0 w-[504px] cursor-pointer hover:opacity-80"
                      onClick={() => setCurrentVideoIndex(index)}>
@@ -604,8 +717,34 @@ const PlaylistBuilder = () => {
                     </div>
                   </div>
                 </div>
-                );
-              })}
+              ))}
+              
+              {/* Related Topic Squares */}
+              {(() => {
+                const relatedTopics = getFilteredRelatedTopics();
+                console.log('Rendering related topics:', relatedTopics);
+                
+                return relatedTopics.map((relatedTerm, index) => (
+                  <div key={`related-${index}`} 
+                       className="flex-shrink-0 w-[504px] cursor-pointer hover:opacity-80"
+                       onClick={() => navigate(`?keywords=${encodeURIComponent(relatedTerm.topic)}`)}>
+                    <div className="flex flex-col items-center gap-3">
+                      {/* Topic square - same size as video thumbnails */}
+                      <div className="w-[504px] h-72 border-2 border-black rounded overflow-hidden flex items-center justify-center">
+                        <div className="text-center p-8">
+                          <div className="text-black text-4xl font-bold" style={{fontFamily: 'Source Serif Pro, serif'}}>
+                            {relatedTerm.topic}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Topic info - empty to maintain spacing */}
+                      <div className="w-full h-16 relative">
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
               
               {/* Background loading indicator for remaining videos */}
               {backgroundLoading && (
@@ -618,6 +757,7 @@ const PlaylistBuilder = () => {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>

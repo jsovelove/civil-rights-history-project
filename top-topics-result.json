@@ -1,0 +1,182 @@
+{
+  "topics": [
+    {
+      "topic": "sncc",
+      "count": 162,
+      "interviewCount": 84
+    },
+    {
+      "topic": "segregation",
+      "count": 148,
+      "interviewCount": 109
+    },
+    {
+      "topic": "civil rights act",
+      "count": 134,
+      "interviewCount": 78
+    },
+    {
+      "topic": "voter registration",
+      "count": 132,
+      "interviewCount": 87
+    },
+    {
+      "topic": "education",
+      "count": 118,
+      "interviewCount": 87
+    },
+    {
+      "topic": "activism",
+      "count": 114,
+      "interviewCount": 76
+    },
+    {
+      "topic": "naacp",
+      "count": 100,
+      "interviewCount": 70
+    },
+    {
+      "topic": "community organizing",
+      "count": 94,
+      "interviewCount": 71
+    },
+    {
+      "topic": "civil rights",
+      "count": 86,
+      "interviewCount": 70
+    },
+    {
+      "topic": "family",
+      "count": 70,
+      "interviewCount": 69
+    },
+    {
+      "topic": "mississippi",
+      "count": 65,
+      "interviewCount": 55
+    },
+    {
+      "topic": "community",
+      "count": 51,
+      "interviewCount": 32
+    },
+    {
+      "topic": "black panther party",
+      "count": 50,
+      "interviewCount": 23
+    },
+    {
+      "topic": "legacy",
+      "count": 47,
+      "interviewCount": 45
+    },
+    {
+      "topic": "martin luther king",
+      "count": 46,
+      "interviewCount": 34
+    },
+    {
+      "topic": "civil rights movement",
+      "count": 45,
+      "interviewCount": 42
+    },
+    {
+      "topic": "nonviolence",
+      "count": 43,
+      "interviewCount": 35
+    },
+    {
+      "topic": "howard university",
+      "count": 41,
+      "interviewCount": 31
+    },
+    {
+      "topic": "childhood",
+      "count": 38,
+      "interviewCount": 38
+    },
+    {
+      "topic": "emmett till",
+      "count": 38,
+      "interviewCount": 27
+    },
+    {
+      "topic": "freedom rides",
+      "count": 37,
+      "interviewCount": 27
+    },
+    {
+      "topic": "community respect",
+      "count": 37,
+      "interviewCount": 28
+    },
+    {
+      "topic": "integration",
+      "count": 36,
+      "interviewCount": 33
+    },
+    {
+      "topic": "voting rights act",
+      "count": 36,
+      "interviewCount": 28
+    },
+    {
+      "topic": "discrimination",
+      "count": 36,
+      "interviewCount": 32
+    },
+    {
+      "topic": "school integration",
+      "count": 35,
+      "interviewCount": 30
+    },
+    {
+      "topic": "freedom summer",
+      "count": 34,
+      "interviewCount": 28
+    },
+    {
+      "topic": "baker county",
+      "count": 32,
+      "interviewCount": 15
+    },
+    {
+      "topic": "sit-ins",
+      "count": 30,
+      "interviewCount": 28
+    },
+    {
+      "topic": "desegregation",
+      "count": 30,
+      "interviewCount": 29
+    },
+    {
+      "topic": "family history",
+      "count": 28,
+      "interviewCount": 27
+    },
+    {
+      "topic": "march on washington",
+      "count": 27,
+      "interviewCount": 22
+    },
+    {
+      "topic": "albany movement",
+      "count": 27,
+      "interviewCount": 19
+    },
+    {
+      "topic": "medgar evers",
+      "count": 25,
+      "interviewCount": 16
+    },
+    {
+      "topic": "sclc",
+      "count": 24,
+      "interviewCount": 21
+    }
+  ],
+  "calculatedAt": {},
+  "totalTopics": 2507,
+  "totalClips": 1896
+}

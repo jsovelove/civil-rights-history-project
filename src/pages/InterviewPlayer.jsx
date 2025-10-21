@@ -9,6 +9,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getInterviewData, getInterviewSegments } from '../services/firebase'
+import { calculateRelatedTerms } from '../services/relatedTermsService'
+import { RelatedTopicsCompact } from '../components/RelatedTopics'
 import Footer from '../components/common/Footer'
 
 /**
@@ -46,6 +48,10 @@ export default function InterviewPlayer() {
   const [totalDuration, setTotalDuration] = useState(0)
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0)
   const [seekToTime, setSeekToTime] = useState(null)
+  
+  // Related terms state
+  const [relatedTermsCache, setRelatedTermsCache] = useState({})
+  const [availableTopics, setAvailableTopics] = useState([])
   
   // References
   const [containerEl, setContainerEl] = useState(null) // YouTube container element via callback ref
@@ -130,6 +136,27 @@ export default function InterviewPlayer() {
     
     return 0 // Default to first segment if none found
   }
+
+  /**
+   * Initialize related terms cache
+   */
+  useEffect(() => {
+    const initializeRelatedTerms = async () => {
+      try {
+        console.log('Initializing related terms for interview player...');
+        const relatedTerms = await calculateRelatedTerms();
+        setRelatedTermsCache(relatedTerms);
+        
+        // Get available topics from the related terms cache
+        const topics = Object.keys(relatedTerms).map(topic => ({ keyword: topic }));
+        setAvailableTopics(topics);
+      } catch (error) {
+        console.error('Error initializing related terms:', error);
+      }
+    };
+
+    initializeRelatedTerms();
+  }, []);
 
   /**
    * --- Data Fetching ---
@@ -425,7 +452,7 @@ export default function InterviewPlayer() {
 
           {/* Overview */}
           <div className="w-full max-w-[1030px] mb-20">
-            <div className="text-black text-2xl font-normal font-['FreightText_Pro'] leading-relaxed">
+            <div className="text-black text-2xl font-normal font-['Source_Serif_4'] leading-relaxed">
               {mainSummary?.mainSummary || 'No summary available'}
             </div>
           </div>
@@ -469,7 +496,7 @@ export default function InterviewPlayer() {
                 </div>
                 
                 <div className="flex-1 max-w-[804px]">
-                  <div className="text-black text-2xl font-normal font-['FreightText_Pro'] leading-relaxed">
+                  <div className="text-black text-2xl font-normal font-['Source_Serif_4'] leading-relaxed">
                     {summary.summary}
                   </div>
                 </div>
@@ -478,6 +505,29 @@ export default function InterviewPlayer() {
           ))}
         </div>
       </div>
+
+      {/* Related Topics Section */}
+      {mainSummary && Object.keys(relatedTermsCache).length > 0 && (
+        <div className="w-full px-12 py-8">
+          <div className="w-full max-w-[1632px] mx-auto">
+            <div className="mb-6">
+              <div className="w-full h-px border-t border-gray-300 mb-6"></div>
+              <div className="text-stone-900 text-4xl font-medium font-heading mb-6">
+                Related Topics
+              </div>
+            </div>
+            
+            {/* Show related topics for the main interview topic */}
+            <RelatedTopicsCompact
+              currentTopic={mainSummary.documentName}
+              relatedTermsCache={relatedTermsCache}
+              availableTopics={availableTopics}
+              maxDisplay={6}
+              className="mb-4"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Related Interviews Section */}
       <div className="w-full px-12 py-16">

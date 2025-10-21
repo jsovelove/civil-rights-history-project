@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "docs": "jsdoc -c jsdoc.json"
+    "docs": "jsdoc -c jsdoc.json",
+    "calculate-topics": "node calculate-top-topics.cjs"
   },
   "homepage": "https://jsovelove.github.io/civil-rights-history-project/",
   "dependencies": {

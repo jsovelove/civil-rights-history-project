@@ -23,6 +23,7 @@ import FreedomSummerToCivilRightsActConnector from '../components/connectors/Fre
 import CivilRightsActToMalcolmXConnector from '../components/connectors/CivilRightsActToMalcolmXConnector';
 import SelmaToVotingRightsActConnector from '../components/connectors/SelmaToVotingRightsActConnector';
 import VotingRightsActToBlackPantherConnector from '../components/connectors/VotingRightsActToBlackPantherConnector';
+import TopicBubbles from '../components/TopicBubbles';
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -90,6 +91,7 @@ const SmartRay = ({
   vertical = 80,
   gap = 10,
   verticalOffset = 0.1, // Multiplier for text height positioning (0.0 = top, 0.5 = middle, 1.0 = bottom)
+  horizontalOffset = 0, // Pixels to shift the vertical part left (positive) or right (negative)
   opacity = "opacity-30",
   color = "bg-red-500"
 }) => {
@@ -103,7 +105,7 @@ const SmartRay = ({
         const screenCenter = window.innerWidth / 2;
 
         const startX = rect.right + gap;
-        const rayWidth = Math.max(0, screenCenter - startX);
+        const rayWidth = Math.max(0, screenCenter - startX - horizontalOffset);
         
         // Calculate absolute position relative to document
         const absoluteY = rect.top + scrollTop + rect.height * verticalOffset;
@@ -123,7 +125,7 @@ const SmartRay = ({
     return () => {
       window.removeEventListener('resize', updateRay);
     };
-  }, [targetRef, gap, verticalOffset]);
+  }, [targetRef, gap, verticalOffset, horizontalOffset]);
 
   if (rayConfig.width <= 0) return null;
 
@@ -143,7 +145,7 @@ const SmartRay = ({
       <div
         className={`absolute w-px ${color}`}
         style={{
-          left: rayConfig.width,
+          left: rayConfig.width - horizontalOffset,
           top: 0,
           height: `${vertical}px`,
           minWidth: '1px', // Ensure it's at least 1px wide
@@ -281,6 +283,7 @@ export default function Home() {
   const [landingImageUrl, setLandingImageUrl] = useState(null);
   const [imageLoading, setImageLoading] = useState(true);
   const timelineRef = useRef(null);
+  const timelineStartRef = useRef(null);
   const redRectangleRef = useRef(null);
   const montgomeryDateRef = useRef(null);
   const littleRockDateRef = useRef(null);
@@ -650,7 +653,7 @@ export default function Home() {
   useEffect(() => {
     const loadLongHotSummerImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Long Hot Summer.png');
+        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/long hot summer.png');
         setLongHotSummerImageUrl(url);
       } catch (error) {
         console.error('Failed to load Long Hot Summer image:', error);
@@ -874,7 +877,7 @@ export default function Home() {
               </h1>
 
               {/* Statistics */}
-              <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono']">145 Interviews, 8700 Minutes</p>
+              <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono']">131 Interviews, 13340 Minutes</p>
 
 
             </div>
@@ -900,25 +903,30 @@ export default function Home() {
 
             {/* View Timeline Link - Positioned lower and always on left */}
             <div className="mt-16 sm:mt-20 lg:mt-20">
-              <Link
+              <button
                 ref={timelineRef}
-                to="/timeline"
-                className="inline-block text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] hover:underline"
+                onClick={() => {
+                  timelineStartRef.current?.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                }}
+                className="inline-block text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] hover:underline cursor-pointer bg-transparent border-none p-0"
               >
                 View the Timeline
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       </section>
 
       {/* Flowing Ray Elements - absolute positioning relative to page */}
-      <SmartRay targetRef={timelineRef} vertical={600} gap={15} verticalOffset={-4.1} opacity="opacity-100" />
+      <SmartRay targetRef={timelineRef} vertical={600} gap={15} verticalOffset={-4.1} horizontalOffset={3.4} opacity="opacity-100" />
       
       
 
       {/* Timeline Content */}
-      <section className="px-2 sm:px-4 lg:px-6 py-8 lg:py-16 max-w-7xl mx-auto">
+      <section ref={timelineStartRef} className="px-2 sm:px-4 lg:px-6 py-8 lg:py-16 max-w-7xl mx-auto">
         {/* 1950s Section */}
         <DecadeSection decade="1950s" subtitle="Discrimination and Desegregation" />
 
@@ -2288,7 +2296,13 @@ export default function Home() {
           <h2 className="text-red-500 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold font-['Source_Serif_4'] mb-6 lg:mb-8">
             Discover the rest of the archive
           </h2>
-          <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] mb-6 lg:mb-8">145 Interviews, 8700 Minutes</p>
+          <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] mb-6 lg:mb-8">131 Interviews, 13340 Minutes</p>
+          
+          {/* Top Topics Bubble Cluster */}
+          <div className="mb-8 lg:mb-12">
+            <TopicBubbles maxTopics={30} />
+          </div>
+          
           <Link
             to="/topic-glossary"
             className="px-6 lg:px-8 py-3 lg:py-4 rounded-full border border-red-500 text-red-500 text-base lg:text-lg font-light font-['Chivo_Mono'] hover:bg-red-500 hover:text-white transition-colors inline-block"

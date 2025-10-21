@@ -12,7 +12,7 @@ const logger = require("firebase-functions/logger");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore} = require("firebase-admin/firestore");
 const OpenAI = require("openai");
-const functions = require("firebase-functions");
+// const functions = require("firebase-functions"); // Unused import
 
 // Initialize Firebase Admin
 initializeApp();
@@ -93,32 +93,124 @@ function cosineSimilarity(vecA, vecB) {
 }
 
 /**
- * Perform vector search in Firestore
+ * Perform vector search in Firestore with enhanced filtering for clips
  * @param {Array<number>} queryEmbedding The query embedding vector
  * @param {number} limit Maximum number of results to return
- * @return {Promise<Array>} Sorted search results
+ * @param {Object} filters Optional filters for search results
+ * @param {string} collectionName Collection to search in
+ * @return {Promise<Array>} Sorted search results with enhanced metadata
  */
-async function performVectorSearch(queryEmbedding, limit = 10) {
-  // Get all documents with embeddings
-  const embeddingsSnapshot = await db.collection("embeddings").get();
+async function performVectorSearch(queryEmbedding, limit = 10, filters = {}, collectionName = "embeddings") {
+  logger.info(`Starting vector search in collection: ${collectionName} with limit: ${limit}`);
 
+  // Use pagination to process embeddings in batches to avoid memory issues
+  const BATCH_SIZE = 100;
   const results = [];
+  let lastDoc = null;
+  let processedCount = 0;
+  let hasMoreDocuments = true;
 
-  // Calculate similarity for each document
-  embeddingsSnapshot.forEach((doc) => {
-    const data = doc.data();
-
-    if (data.embedding) {
-      const similarity = cosineSimilarity(queryEmbedding, data.embedding);
-      results.push({
-        id: doc.id,
-        documentId: data.documentId,
-        segmentId: data.segmentId,
-        textPreview: data.textPreview,
-        similarity,
-      });
+  while (hasMoreDocuments) {
+    // Get next batch of documents
+    let query = db.collection(collectionName).limit(BATCH_SIZE);
+    if (lastDoc) {
+      query = query.startAfter(lastDoc);
     }
-  });
+
+    const batchSnapshot = await query.get();
+
+    if (batchSnapshot.empty) {
+      hasMoreDocuments = false;
+      break;
+    }
+
+    // Process current batch
+    batchSnapshot.forEach((doc) => {
+      const data = doc.data();
+      processedCount++;
+
+      if (data.embedding) {
+        // Apply filters if provided
+        let passesFilters = true;
+
+        if (filters.type && data.type !== filters.type) {
+          passesFilters = false;
+        }
+
+        if (filters.mainTopicCategory && data.mainTopicCategory !== filters.mainTopicCategory) {
+          passesFilters = false;
+        }
+
+        if (filters.interviewRole && data.interviewRole !== filters.interviewRole) {
+          passesFilters = false;
+        }
+
+        if (filters.hasNotableQuotes && !data.hasNotableQuotes) {
+          passesFilters = false;
+        }
+
+        if (filters.collection && data.collection !== filters.collection) {
+          passesFilters = false;
+        }
+
+        if (passesFilters) {
+          const similarity = cosineSimilarity(queryEmbedding, data.embedding);
+          // Check for duplicates before adding
+          const isDuplicate = results.some((existing) =>
+            existing.documentId === data.documentId &&
+            existing.segmentId === data.segmentId,
+          );
+
+          if (!isDuplicate) {
+            results.push({
+              id: doc.id,
+              documentId: data.documentId,
+              segmentId: data.segmentId,
+              textPreview: data.textPreview,
+              similarity,
+
+              // Enhanced metadata for clips
+              type: data.type || "unknown",
+              topic: data.topic || "Untitled",
+              timestamp: data.timestamp || "",
+              interviewName: data.interviewName || "Unknown Interview",
+              interviewRole: data.interviewRole || "Unknown Role",
+              mainTopicCategory: data.mainTopicCategory || "General",
+              videoEmbedLink: data.videoEmbedLink || null, // Include video link for thumbnails
+
+              // Rich content indicators
+              hasNotableQuotes: data.hasNotableQuotes || false,
+              hasRelatedEvents: data.hasRelatedEvents || false,
+              notableQuotes: data.notableQuotes || [],
+              relatedEvents: data.relatedEvents || [],
+
+              // Additional metadata
+              chapterNumber: data.chapterNumber || 0,
+              keywordsArray: data.keywordsArray || [],
+              keyThemes: data.keyThemes || [],
+              collection: data.collection || "unknown",
+            });
+          }
+        }
+      }
+    });
+
+    // Keep only top results to manage memory
+    if (results.length > limit * 3) {
+      results.sort((a, b) => b.similarity - a.similarity);
+      results.splice(limit * 2); // Keep top 2x limit for better accuracy
+    }
+
+    // Set up for next batch
+    lastDoc = batchSnapshot.docs[batchSnapshot.docs.length - 1];
+
+    // Break if we have enough high-quality results
+    if (results.length >= limit * 2 && results[0].similarity > 0.7) {
+      hasMoreDocuments = false;
+    }
+  }
+
+  logger.info(`Processed ${processedCount} documents, found ${results.length} matching results`);
 
   // Sort by similarity score (highest first) and limit results
   return results
@@ -179,16 +271,18 @@ exports.generateEmbedding = onCall({
  */
 exports.vectorSearch = onCall({
   maxInstances: 10,
+  memory: "512MiB", // Increase memory limit to handle large embedding collections
+  timeoutSeconds: 60,
 }, async (request) => {
   initializeOpenAIClient(); // Ensure client is up-to-date
   try {
-    const {query, limit} = request.data;
+    const {query, limit, filters, collection} = request.data;
     if (!query) {
       logger.warn("Vector search called without a query");
       throw new Error("Missing required 'query' field");
     }
     const previewLength = query.length > 50 ? 50 : query.length;
-    logger.info(`Searching: "${query.substring(0, previewLength)}..."`);
+    logger.info(`Searching: "${query.substring(0, previewLength)}..." with filters:`, filters || "none");
     if (currentApiKey === "dummy_key_for_initialization") {
       logger.error("vectorSearch: OpenAI API key is not properly configured.");
       throw new Error("OpenAI API key not configured");
@@ -201,7 +295,9 @@ exports.vectorSearch = onCall({
     const queryEmbedding = queryEmbeddingResponse.data[0].embedding;
 
     logger.info(`Generated query embedding with ${queryEmbedding.length} dimensions`);
-    const results = await performVectorSearch(queryEmbedding, limit || 10);
+    const searchCollection = collection || "embeddings";
+    logger.info(`Searching in collection: ${searchCollection}`);
+    const results = await performVectorSearch(queryEmbedding, limit || 10, filters || {}, searchCollection);
     logger.info(`Found ${results.length} results`);
     return {
       success: true,

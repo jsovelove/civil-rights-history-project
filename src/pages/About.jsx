@@ -1,6 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/common/Footer';
+import { getStorageImageUrl } from '../services/firebase';
+
+/**
+ * LandingCollageImage - Component for loading Landing Collage image from Firebase
+ */
+const LandingCollageImage = () => {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        const url = await getStorageImageUrl('photos/Photos/Landing Collage.png');
+        setImageUrl(url);
+      } catch (error) {
+        console.error('Failed to load Landing Collage image:', error);
+      } finally {
+        setImageLoading(false);
+      }
+    };
+    loadImage();
+  }, []);
+
+  if (imageLoading) {
+    return (
+      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+        <span className="text-gray-500">Loading image...</span>
+      </div>
+    );
+  }
+
+  return imageUrl ? (
+    <img
+      src={imageUrl}
+      alt="Civil Rights Movement Landing Collage"
+      className="absolute inset-0 w-full h-full object-cover"
+    />
+  ) : (
+    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+      <span className="text-gray-500">Image not available</span>
+    </div>
+  );
+};
 
 /**
  * About - About page component based on Figma design
@@ -29,7 +72,7 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
             {/* Left Column - Text */}
             <div className="space-y-6">
-              <div className="text-justify">
+              <div className="text-left">
                 <span className="text-black text-4xl font-normal font-['Source_Serif_Pro']">The </span>
                 <span className="text-red-500 text-4xl font-black font-['Source_Serif_Pro']">Civil Rights Movement</span>
                 <span className="text-black text-4xl font-normal font-['Source_Serif_Pro']"> narrated by the activists, artists, and change-makers who were really there.</span>
@@ -50,13 +93,7 @@ export default function About() {
             {/* Right Column - Image */}
             <div className="relative">
               <div className="w-full aspect-[4/3] relative">
-                <div className="absolute inset-0 bg-red-500 transform rotate-1"></div>
-                <div className="absolute inset-4 bg-zinc-300"></div>
-                <img 
-                  className="absolute inset-0 w-full h-full object-cover" 
-                  src="https://placehold.co/800x600" 
-                  alt="Civil Rights Movement"
-                />
+                <LandingCollageImage />
               </div>
             </div>
           </div>

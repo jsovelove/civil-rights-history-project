@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 /**
  * LittleRockToSNCCConnector - Custom connector from Little Rock date to SNCC date badge
  */
-export default function LittleRockToSNCCConnector({ fromRef, toRef }) {
+export default function LittleRockToSNCCConnector({ fromRef, toRef, horizontalOffset = 7 }) {
   const [connectorPath, setConnectorPath] = useState({ 
     segments: [], 
     show: false 
@@ -24,8 +24,8 @@ export default function LittleRockToSNCCConnector({ fromRef, toRef }) {
         const endX = toRect.left + toRect.width / 2;
         const endY = toRect.top + scrollTop - 98;
 
-        // Calculate center point for the path
-        const screenCenterX = window.innerWidth / 2;
+        // Calculate center point for the path with horizontal offset
+        const screenCenterX = window.innerWidth / 2 - horizontalOffset;
         const horizontalDistance1 = Math.abs(startX - screenCenterX); // Distance to screen center
         const verticalDropHeight = Math.abs(endY - startY) - 50; // Vertical distance
         
@@ -37,7 +37,7 @@ export default function LittleRockToSNCCConnector({ fromRef, toRef }) {
             y: startY,
             width: horizontalDistance1
           },
-          // Vertical segment down through center
+          // Vertical segment down through center (shifted by horizontalOffset)
           {
             type: 'vertical',
             x: screenCenterX,
@@ -58,7 +58,7 @@ export default function LittleRockToSNCCConnector({ fromRef, toRef }) {
       window.removeEventListener('resize', updateConnector);
       window.removeEventListener('scroll', updateConnector);
     };
-  }, [fromRef, toRef]);
+  }, [fromRef, toRef, horizontalOffset]);
 
   if (!connectorPath.show) return null;
 

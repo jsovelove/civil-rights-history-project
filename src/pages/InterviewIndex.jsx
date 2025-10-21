@@ -146,19 +146,19 @@ export default function InterviewIndex() {
   return (
     <div className="min-h-screen overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
       {/* Header Section */}
-      <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-[48px] pt-8 sm:pt-10 md:pt-12 lg:pt-16 xl:pt-20 pb-8 sm:pb-10 md:pb-12 lg:pb-[48px]">
-        {/* Interview count and total minutes */}
-        <div className="mb-[31px]">
-          <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-            {filteredInterviews.length} Interviews, {totalMinutes} minutes
-          </span>
-        </div>
-
+      <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 xl:px-[48px] pt-3 pb-6">
         {/* Main heading */}
         <div className="mb-6 sm:mb-7 md:mb-8 lg:mb-[32px]">
           <h1 className="text-stone-900 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
             Interview Index
           </h1>
+        </div>
+
+        {/* Interview count and total minutes */}
+        <div className="mb-[31px]">
+          <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+            {filteredInterviews.length} Interviews, {totalMinutes} minutes
+          </span>
         </div>
 
         {/* Divider */}

@@ -59,14 +59,28 @@ export default function TopicGlossary() {
    * Initialize data from cache or fetch new data
    */
   useEffect(() => {
-    if (cache.keywords) {
-      console.log('Using cached topic data');
-      setTopicData(cache.keywords);
-      setLoading(false);
-    } else {
-      fetchAndProcessTopics();
-    }
-  }, [cache.keywords]);
+    let cancelled = false;
+    
+    const loadData = async () => {
+      if (cache.keywords) {
+        console.log('Using cached topic data');
+        if (!cancelled) {
+          setTopicData(cache.keywords);
+          setLoading(false);
+        }
+      } else {
+        console.log('No cached data, fetching topics...');
+        await fetchAndProcessTopics();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
 
   /**
    * Update filtered and sorted topics when search term, sort option, or category filter changes
@@ -156,8 +170,14 @@ export default function TopicGlossary() {
       
       if (!usageStats) {
         console.log('No cached usage stats found, calculating...');
-        usageStats = await calculateTopicUsageStats();
-        updateCache('topicUsageStats', usageStats);
+        try {
+          usageStats = await calculateTopicUsageStats();
+          updateCache('topicUsageStats', usageStats);
+        } catch (error) {
+          console.error('Error calculating usage stats:', error);
+          // Continue with empty stats if calculation fails
+          usageStats = {};
+        }
       } else {
         console.log('Using cached topic usage stats');
       }
@@ -188,6 +208,7 @@ export default function TopicGlossary() {
           totalLengthSeconds: stats.totalLengthSeconds,
           count: stats.clipCount,
           
+          
           // Add original data for reference
           originalData: data
         };
@@ -204,6 +225,7 @@ export default function TopicGlossary() {
       });
 
       setTopicData(processedData);
+      updateCache('keywords', processedData); // Cache the processed data
       setLoading(false);
     } catch (error) {
       console.error("Error fetching topics:", error);
@@ -359,21 +381,21 @@ export default function TopicGlossary() {
   const sortedLetters = Object.keys(groupedTopics).sort();
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#EBEAE9' }}>
+    <div className="min-h-screen">
       {/* Header Section */}
-      <div className="w-full max-w-[1632px] mx-auto px-12 pt-3 pb-6">
-        {/* Topic count */}
-        <div className="mb-4">
-          <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-            {filteredTopics.length} Topics {categoryFilter !== 'all' ? `(${categoryFilter})` : ''}
-          </span>
-        </div>
-
+      <div className="w-full px-4 sm:px-8 lg:px-12 pt-3 pb-6">
         {/* Main heading */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-7 md:mb-8 lg:mb-[32px]">
           <h1 className="text-stone-900 text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
             Topic Glossary
           </h1>
+        </div>
+
+        {/* Topic count */}
+        <div className="mb-[31px]">
+          <span className="text-red-500 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+            {filteredTopics.length} Topics {categoryFilter !== 'all' ? `(${categoryFilter})` : ''}
+          </span>
         </div>
 
         {/* Divider */}
@@ -381,7 +403,7 @@ export default function TopicGlossary() {
       </div>
 
       {/* Controls Section */}
-      <div className="w-full max-w-[1632px] mx-auto px-12 mb-8">
+      <div className="w-full px-4 sm:px-8 lg:px-12 mb-8">
         <div className="flex justify-between items-center">
           {/* Search Section */}
           <div className="flex items-center gap-6">
@@ -389,7 +411,7 @@ export default function TopicGlossary() {
               <div className="w-2.5 h-0 absolute left-[38.34px] top-[37.79px] origin-top-left rotate-[-133.05deg] border-2 border-stone-900"></div>
               <div className="w-6 h-6 absolute left-[10px] top-[13.17px] origin-top-left rotate-[-5.18deg] rounded-full border-2 border-stone-900"></div>
             </div>
-            <div className="w-40 h-6">
+            <div className="min-w-64 h-6">
               <input
                 type="text"
                 placeholder="Search in glossary"
@@ -401,55 +423,36 @@ export default function TopicGlossary() {
             </div>
           </div>
 
-          {/* Filter and Sort Section */}
-          <div className="flex items-center gap-8">
-            {/* Category Filter */}
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 relative">
-                <div className="w-9 h-0 absolute left-[42px] top-[12px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
-                <div className="w-9 h-0 absolute left-[42px] top-[24px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
-                <div className="w-9 h-0 absolute left-[42px] top-[36px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
-                <div className="w-2 h-2 absolute left-[11px] top-[9px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
-                <div className="w-2 h-2 absolute left-[29px] top-[21px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
-                <div className="w-2 h-2 absolute left-[17px] top-[33px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
-              </div>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
-                style={{ fontFamily: 'Chivo Mono, monospace' }}
-              >
-                <option value="all">All Categories</option>
-                <option value="concept">Concepts</option>
-                <option value="place">Places</option>
-                <option value="person">People</option>
-                <option value="event">Events</option>
-                <option value="org">Organizations</option>
-                <option value="legal">Legal</option>
-              </select>
+          {/* Filter Section */}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 relative">
+              <div className="w-9 h-0 absolute left-[42px] top-[12px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
+              <div className="w-9 h-0 absolute left-[42px] top-[24px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
+              <div className="w-9 h-0 absolute left-[42px] top-[36px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
+              <div className="w-2 h-2 absolute left-[11px] top-[9px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
+              <div className="w-2 h-2 absolute left-[29px] top-[21px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
+              <div className="w-2 h-2 absolute left-[17px] top-[33px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
             </div>
-
-            {/* Sort */}
-            <div className="flex items-center gap-4">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
-                style={{ fontFamily: 'Chivo Mono, monospace' }}
-              >
-                <option value="importance">Sort by: Importance</option>
-                <option value="alphabetical">Sort by: A-Z</option>
-                <option value="clipCount">Sort by: Most Clips</option>
-                <option value="interviewCount">Sort by: Most Interviews</option>
-              </select>
-              <div className="w-4 h-3 origin-top-left rotate-90 border border-stone-900"></div>
-            </div>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
+              style={{ fontFamily: 'Chivo Mono, monospace' }}
+            >
+              <option value="all">All Categories</option>
+              <option value="concept">Concepts</option>
+              <option value="place">Places</option>
+              <option value="person">People</option>
+              <option value="event">Events</option>
+              <option value="org">Organizations</option>
+              <option value="legal">Legal</option>
+            </select>
           </div>
         </div>
       </div>
 
       {/* Topics by Letter */}
-      <div className="w-full max-w-[1632px] mx-auto px-12 pb-12">
+      <div className="w-full px-4 sm:px-8 lg:px-12 pb-12">
         {filteredTopics.length === 0 ? (
           <div className="text-center py-16">
             <span className="text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
@@ -469,7 +472,7 @@ export default function TopicGlossary() {
                 </div>
 
                 {/* Topics Grid for this letter */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 justify-items-start">
                   {groupedTopics[letter].map((topic) => (
                     <div 
                       key={topic.keyword}
@@ -477,7 +480,7 @@ export default function TopicGlossary() {
                       onClick={() => handleTopicClick(topic.keyword)}
                       title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
                     >
-                      <div className="w-60 inline-flex flex-col justify-start items-start gap-4">
+                      <div className="w-60 flex flex-col justify-start items-start gap-4">
                         <div className="self-stretch flex flex-col justify-start items-start gap-4">
                           <div className="flex flex-col justify-start items-start gap-0.5">
                             <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] capitalize">
