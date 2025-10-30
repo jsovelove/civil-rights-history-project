@@ -118,6 +118,7 @@ async function aggregateInterviews() {
       name: interviewData.documentName || interviewData.name || 'Unknown Name',
       role: interviewData.role || 'Unknown Role',
       roleSimplified: interviewData.roleSimplified || interviewData.role || 'Unknown Role',
+      mainSummary: interviewData.mainSummary || '',
       videoEmbedLink: interviewData.videoEmbedLink,
       thumbnailUrl: videoId ? 
         `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : 

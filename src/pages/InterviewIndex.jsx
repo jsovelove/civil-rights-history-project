@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { searchInterviewsSemanticaly, checkInterviewVectorizationStatus } from '../services/interviewVectorSearch';
 import arrowRight from '../assetts/vectors/arrow right.svg';
 
 /**
@@ -33,45 +34,105 @@ export default function InterviewIndex() {
   const [filteredInterviews, setFilteredInterviews] = useState([]);
   const [sortBy, setSortBy] = useState('A-Z');
   const [totalMinutes, setTotalMinutes] = useState(0);
+  const [useSemanticSearch, setUseSemanticSearch] = useState(false);
+  const [semanticSearchLoading, setSemanticSearchLoading] = useState(false);
+  const [isVectorized, setIsVectorized] = useState(false);
+  const [semanticResults, setSemanticResults] = useState([]);
   const navigate = useNavigate();
 
   /**
-   * Update filtered and sorted interviews when search term or sort changes
+   * Update filtered and sorted interviews when search term, sort, or search mode changes
    */
   useEffect(() => {
-    let filtered = interviews;
+    const keywordSearchInterviews = () => {
+      let filtered = interviews;
+      
+      // Apply search filter (exact name matching only)
+      if (searchTerm) {
+        filtered = interviews.filter(interview =>
+          interview.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      // Apply sorting
+      const sorted = [...filtered].sort((a, b) => {
+        switch (sortBy) {
+          case 'A-Z':
+            return a.name.localeCompare(b.name);
+          case 'Z-A':
+            return b.name.localeCompare(a.name);
+          case 'Duration (High-Low)':
+            return (b.totalMinutes || 0) - (a.totalMinutes || 0);
+          case 'Duration (Low-High)':
+            return (a.totalMinutes || 0) - (b.totalMinutes || 0);
+          default:
+            return a.name.localeCompare(b.name);
+        }
+      });
+      
+      setFilteredInterviews(sorted);
+      setSemanticResults([]);
+    };
+
+    const performSemanticSearch = async () => {
+      try {
+        setSemanticSearchLoading(true);
+        const results = await searchInterviewsSemanticaly(searchTerm, {
+          limit: 50,
+          minSimilarity: 0.3
+        });
+        
+        setSemanticResults(results);
+        
+        // Map semantic results back to full interview objects
+        const semanticInterviews = results
+          .map(result => {
+            const interview = interviews.find(i => i.id === result.interviewId);
+            return interview ? { ...interview, similarity: result.similarity } : null;
+          })
+          .filter(Boolean);
+        
+        setFilteredInterviews(semanticInterviews);
+        setSemanticSearchLoading(false);
+      } catch (error) {
+        console.error('Error in semantic interview search:', error);
+        setSemanticSearchLoading(false);
+        // Fallback to keyword search
+        keywordSearchInterviews();
+      }
+    };
     
-    // Apply search filter
-    if (searchTerm) {
-      filtered = interviews.filter(interview =>
-        interview.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    // For keyword search, execute immediately
+    if (!useSemanticSearch || !searchTerm.trim()) {
+      keywordSearchInterviews();
+      return;
     }
     
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'A-Z':
-          return a.name.localeCompare(b.name);
-        case 'Z-A':
-          return b.name.localeCompare(a.name);
-        case 'Duration (High-Low)':
-          return (b.totalMinutes || 0) - (a.totalMinutes || 0);
-        case 'Duration (Low-High)':
-          return (a.totalMinutes || 0) - (b.totalMinutes || 0);
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
+    // For semantic search, debounce to avoid rapid API calls
+    const debounceTimer = setTimeout(() => {
+      performSemanticSearch();
+    }, 500); // Wait 500ms after user stops typing
     
-    setFilteredInterviews(sorted);
-  }, [searchTerm, interviews, sortBy]);
+    // Cleanup function to cancel pending search if user keeps typing
+    return () => {
+      clearTimeout(debounceTimer);
+    };
+  }, [searchTerm, interviews, sortBy, useSemanticSearch]);
 
   /**
    * Fetch interviews on component mount
    */
   useEffect(() => {
-    fetchInterviews();
+    const loadData = async () => {
+      await fetchInterviews();
+      
+      // Check if interviews are vectorized for semantic search
+      const vectorStatus = await checkInterviewVectorizationStatus();
+      setIsVectorized(vectorStatus.isVectorized);
+      console.log(`Interview vectorization status: ${vectorStatus.count} interviews vectorized`);
+    };
+    
+    loadData();
   }, []);
 
   /**
@@ -168,7 +229,7 @@ export default function InterviewIndex() {
         {/* Controls Row */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-10 md:mb-12 lg:mb-[48px]">
           {/* Search Section */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-wrap">
             {/* Search Icon and Input */}
             <div className="flex items-center gap-6">
               <div className="w-12 h-12 relative">
@@ -177,32 +238,56 @@ export default function InterviewIndex() {
               </div>
               <input
                 type="text"
-                placeholder="Search in index"
+                placeholder={useSemanticSearch ? "Search by themes..." : "Search in index"}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="text-stone-900 text-base sm:text-lg md:text-xl font-light bg-transparent border-none outline-none w-40 sm:w-48 md:w-60"
                 style={{ fontFamily: 'Chivo Mono, monospace' }}
               />
+              {semanticSearchLoading && (
+                <div className="w-5 h-5 border-2 border-stone-900/20 rounded-full animate-spin" style={{
+                  borderTopColor: '#F2483C'
+                }}></div>
+              )}
             </div>
+            
+            {/* Search Mode Toggle */}
+            {isVectorized && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded border border-stone-900">
+                <button
+                  onClick={() => setUseSemanticSearch(false)}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    !useSemanticSearch
+                      ? 'text-white'
+                      : 'text-stone-900 hover:text-stone-600'
+                  }`}
+                  style={{ 
+                    fontFamily: 'Chivo Mono, monospace',
+                    backgroundColor: !useSemanticSearch ? '#F2483C' : 'transparent'
+                  }}
+                >
+                  Name
+                </button>
+                <button
+                  onClick={() => setUseSemanticSearch(true)}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    useSemanticSearch
+                      ? 'text-white'
+                      : 'text-stone-900 hover:text-stone-600'
+                  }`}
+                  style={{ 
+                    fontFamily: 'Chivo Mono, monospace',
+                    backgroundColor: useSemanticSearch ? '#F2483C' : 'transparent'
+                  }}
+                >
+                  Semantic
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right side controls */}
           <div className="flex items-center gap-8">
-            {/* Filter */}
-            <div className="w-32 h-12 flex items-center">
-              <div className="w-12 h-12 relative mr-[15px]">
-                <div className="w-9 h-0 absolute left-[42px] top-[12px] origin-top-left rotate-180 border-2 border-stone-900"></div>
-                <div className="w-9 h-0 absolute left-[42px] top-[24px] origin-top-left rotate-180 border-2 border-stone-900"></div>
-                <div className="w-9 h-0 absolute left-[42px] top-[36px] origin-top-left rotate-180 border-2 border-stone-900"></div>
-                <div className="w-2 h-2 absolute left-[11px] top-[9px] bg-gray-200 rounded-full border-2 border-stone-900" />
-                <div className="w-2 h-2 absolute left-[29px] top-[21px] bg-gray-200 rounded-full border-2 border-stone-900" />
-                <div className="w-2 h-2 absolute left-[17px] top-[33px] bg-gray-200 rounded-full border-2 border-stone-900" />
-              </div>
-              <span className="text-stone-900 text-xl font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                Filter
-              </span>
-            </div>
-
             {/* Sort by dropdown */}
             <div className="w-40 h-6 relative">
               <select 

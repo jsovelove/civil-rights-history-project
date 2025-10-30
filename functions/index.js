@@ -163,7 +163,7 @@ async function performVectorSearch(queryEmbedding, limit = 10, filters = {}, col
           );
 
           if (!isDuplicate) {
-            // Handle both clip embeddings and topic embeddings
+            // Handle clip embeddings, topic embeddings, and interview embeddings
             if (data.topicId) {
               // This is a topic embedding
               results.push({
@@ -178,6 +178,23 @@ async function performVectorSearch(queryEmbedding, limit = 10, filters = {}, col
                 textPreview: data.textPreview,
                 similarity,
                 type: "topic",
+              });
+            } else if (data.interviewId) {
+              // This is an interview embedding
+              results.push({
+                id: doc.id,
+                documentId: data.interviewId, // Use interviewId as documentId for consistency
+                interviewId: data.interviewId,
+                name: data.name,
+                role: data.role || "Unknown Role",
+                roleSimplified: data.roleSimplified || data.role || "Unknown Role",
+                totalMinutes: data.totalMinutes || 0,
+                clipCount: data.clipCount || 0,
+                thumbnailUrl: data.thumbnailUrl || null,
+                videoEmbedLink: data.videoEmbedLink || null,
+                textPreview: data.textPreview,
+                similarity,
+                type: "interview",
               });
             } else {
               // This is a clip embedding
