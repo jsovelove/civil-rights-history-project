@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/common/Footer';
 import { getStorageImageUrl } from '../services/firebase';
+import LOCLogo from '../assetts/logos/Logo_of_the_United_States_Library_of_Congress.svg.png';
+import WWULogo from '../assetts/logos/wwu-logo--full-color_2.png';
 
 /**
  * LandingCollageImage - Component for loading Landing Collage image from Firebase
@@ -73,21 +75,64 @@ export default function About() {
             {/* Left Column - Text */}
             <div className="space-y-6">
               <div className="text-left">
-                <span className="text-black text-4xl font-normal font-['Source_Serif_Pro']">The </span>
-                <span className="text-red-500 text-4xl font-black font-['Source_Serif_Pro']">Civil Rights Movement</span>
-                <span className="text-black text-4xl font-normal font-['Source_Serif_Pro']"> narrated by the activists, artists, and change-makers who were really there.</span>
+                <span className="text-black text-4xl font-normal font-['Source_Serif_Pro']">This site is a resource for exploring the Library of Congress </span>
+                <a 
+                  href="https://www.loc.gov/collections/civil-rights-history-project/about-this-collection/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-red-500 text-4xl font-black font-['Source_Serif_Pro'] hover:underline"
+                >
+                  Civil Rights History Project
+                </a>
+                <span className="text-black text-4xl font-normal font-['Source_Serif_Pro']"> , offering new ways to navigate and connect the stories of those who lived through the movement.</span>
               </div>
               
               <p className="text-black text-2xl font-medium font-['Lora'] leading-relaxed">
-                On May 12, 2009, the U. S. Congress authorized a national initiative by passing The Civil Rights History Project Act of 2009 (Public Law 111-19). The law directed the Library of Congress (LOC) and the Smithsonian Institution's National Museum of African American History and Culture (NMAAHC) to conduct a national survey of existing oral history collections with relevance to the Civil Rights movement to obtain justice, freedom and equality for African Americans and to record and make widely accessible new interviews with people who participated in the struggle. The project was initiated in 2010 with the survey and with interviews beginning in 2011.
+              The <a 
+                href="https://www.loc.gov/collections/civil-rights-history-project/about-this-collection/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-red-500 font-black hover:underline"
+              >
+                Civil Rights History Project
+              </a> is a joint effort between the Library of Congress and the Smithsonian National Museum of African American History and Culture. Together, these institutions collected and preserved more than 145 video interviews—nearly 600 hours of first hand stories from participants in the American civil rights movement. Each interview captures deeply personal experiences of struggle, resilience, and change, forming one of the most significant oral history archives of the twentieth century. 
+              </p>
+
+              <p className="text-black text-2xl font-medium font-['Lora'] leading-relaxed">
+              Our project uses AI to organize the interviews into thematic chapters, each with its own set of summaries and keywords. These chapters allow visitors to explore the archive through curated playlists—for example, stories of segregation (link to playlist), education (link) and activism (link), or the March on Washington (link). By grouping related moments across hundreds of hours of interviews, the system reveals new connections and patterns within the collection. The goal is to make the archive more intuitive and engaging, encouraging reflection, dialogue, and deeper understanding.
+              </p>
+
+              <p className="text-black text-2xl font-medium font-['Lora'] leading-relaxed">
+              This work was supported by a pilot grant from <a 
+                href="https://www.wwu.edu/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-red-500 font-black hover:underline"
+              >
+                Western Washington University
+              </a>.
               </p>
               
-              <div className="pt-8">
-                <div className="flex items-center gap-2 text-red-500 text-2xl font-light font-['Chivo_Mono']">
-                  <div className="w-5 h-3 rotate-90 border-2 border-red-500"></div>
-                  Learn More
-                </div>
+              {/* Logos */}
+              <div className="flex items-end gap-8 mt-8">
+                <a 
+                  href="https://www.loc.gov/collections/civil-rights-history-project/about-this-collection/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <img src={LOCLogo} alt="Library of Congress" className="h-20 w-auto" />
+                </a>
+                <a 
+                  href="https://www.wwu.edu/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <img src={WWULogo} alt="Western Washington University" className="h-32 w-auto" />
+                </a>
               </div>
+              
             </div>
             
             {/* Right Column - Image */}
@@ -99,181 +144,99 @@ export default function About() {
           </div>
         </div>
 
-        {/* Two Column Layout: Project Info + Detailed Content */}
-        <div className="py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-            {/* Left Column - Project Information (2-column nested layout) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Left Side of Left Column */}
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Sources</h3>
-                  <div className="space-y-2">
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Library of Congress Civil Rights History Project Collection</p>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">American Folklife Center in Collaboration with the Smithsonian</p>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">National Museum of African American History and Culture</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-red-500 text-2xl font-bold font-['Acumin_Pro'] mb-4">Led By</h3>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Western Washington University</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-red-500 text-2xl font-bold font-['Acumin_Pro'] mb-4">Expert Resources</h3>
-                  <div className="space-y-2">
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Civil Rights History Project Finding Aid</p>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">American Folklife Center</p>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Ask a Folk Librarian</p>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro'] leading-7">Collections with Film and Video</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Right Side of Left Column */}
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Timeframe</h3>
-                  <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">2024-2025</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Literature</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Name of paper</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-red-500 text-2xl font-bold font-['Inter'] mb-4">Contact</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Right Column - Detailed Text */}
-            <div>
-              <p className="text-stone-900 text-4xl font-medium font-['Lora'] mb-8 leading-relaxed">
-                The video recordings of their recollections cover a wide range of topics within the freedom struggle, such as the influence of the labor movement, nonviolence and self-defense, religious faith, music, and the experiences of young activists.
-              </p>
-              
-              <div className="space-y-6 text-stone-900 text-2xl font-medium font-['Lora'] leading-relaxed">
-                <p>
-                  Many interviewees were active in national organizations such as the Student Nonviolent Coordinating Committee (SNCC), the National Association for the Advancement of Colored People (NAACP), the Congress of Racial Equality (CORE), the Black Panther Party. Other interviewees were key members of specialized and local groups including the Medical Committee for Human Rights, the Deacons for Defense and Justice, the Cambridge (Maryland) Nonviolent Action Committee, and the Newark Community Union Project.
-                </p>
-                
-                <p>
-                  A few interviews focus on Chicano activists who were influenced by the African American freedom struggle and their recollections of the occasional coalitions that developed between the black and brown power movements. Several interviews include men and women who were on the front lines of the struggle in places not well-known for their civil rights movement activity such as Oklahoma City, Oklahoma; Saint Augustine, Florida; and Bogalusa, Louisiana. The collection also includes the reflections of the children of grass-roots activists including Clara Luper, Robert Hicks, and Gayle Jenkins.
-                </p>
-                
-                <p>
-                  The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States. This database was developed by Washington State University's Center for Digital Scholarship and Curation, and had a role in shaping decisions around Project content and management. The database is no longer maintained as an active resource.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        
 
         {/* Team Section */}
         <div className="py-16">
           <div className="border-b border-black pb-4 mb-16">
-            <h2 className="text-red-500 text-6xl lg:text-8xl font-medium font-['Inter']">Team</h2>
+            <h2 className="text-red-500 text-6xl lg:text-8xl font-medium font-['Inter']">Project Team</h2>
           </div>
           
           {/* Team Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Team Member 1 */}
-            <div className="flex gap-8">
-              <div className="w-60 h-60 bg-zinc-300 flex-shrink-0"></div>
-              <div className="flex-1">
-                <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Researcher</p>
-                <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro'] mb-4">Purcell Williams</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Website</p>
-                  </div>
-                </div>
-                <p className="text-stone-900 text-2xl font-medium font-['Lora'] mt-4">
-                  The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States.
-                </p>
-              </div>
+            <div>
+              <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Principal Investigator & Project Director</p>
+              <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro']">
+                <a 
+                  href="https://dustinohara.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-red-500 transition-colors"
+                >
+                  Dustin O'Hara, PhD
+                </a>
+              </h3>
             </div>
             
             {/* Team Member 2 */}
-            <div className="flex gap-8">
-              <div className="w-60 h-60 bg-zinc-300 flex-shrink-0"></div>
-              <div className="flex-1">
-                <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Researcher</p>
-                <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro'] mb-4">Purcell Williams</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Website</p>
-                  </div>
-                </div>
-                <p className="text-stone-900 text-2xl font-medium font-['Lora'] mt-4">
-                  The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States.
-                </p>
-              </div>
+            <div>
+              <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Co-Principal Investigator & Software Developer
+              </p>
+              <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro']">Jack Sovelove</h3>
             </div>
             
             {/* Team Member 3 */}
-            <div className="flex gap-8">
-              <div className="w-60 h-60 bg-zinc-300 flex-shrink-0"></div>
-              <div className="flex-1">
-                <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Researcher</p>
-                <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro'] mb-4">Purcell Williams</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Website</p>
-                  </div>
-                </div>
-                <p className="text-stone-900 text-2xl font-medium font-['Lora'] mt-4">
-                  The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States.
-                </p>
-              </div>
+            <div>
+              <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Designer & Visual Curation
+              </p>
+              <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro']">Sofia Choi</h3>
+            </div>
+        
+          </div>
+        </div>
+
+        {/* Student Interns Section */}
+        <div className="py-16">
+          <h3 className="text-stone-900 text-3xl font-medium font-['Inter'] underline mb-8">Student Interns</h3>
+          
+          {/* Interns List */}
+          <div className="space-y-2">
+            {/* Intern 1 */}
+            <div className="text-black text-2xl">
+              <span className="font-bold font-['Source_Serif_Pro']">Sophia Zhuk</span> - <span className="text-sm font-light font-['Chivo_Mono']">Software Development</span>
             </div>
             
-            {/* Team Member 4 */}
-            <div className="flex gap-8">
-              <div className="w-60 h-60 bg-zinc-300 flex-shrink-0"></div>
-              <div className="flex-1">
-                <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Researcher</p>
-                <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro'] mb-4">Purcell Williams</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Email</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-3 rotate-[-45deg] border border-stone-900"></div>
-                    <p className="text-black text-2xl font-normal font-['Source_Serif_Pro']">Website</p>
-                  </div>
-                </div>
-                <p className="text-stone-900 text-2xl font-medium font-['Lora'] mt-4">
-                  The American Folklore Society (AFS) oversaw the research team of four scholars who gathered the information for a database of existing Civil Rights oral history collections held by repositories across the United States.
-                </p>
-              </div>
+            {/* Intern 2 */}
+            <div className="text-black text-2xl">
+              <span className="font-bold font-['Source_Serif_Pro']">Maya Galley</span> - <span className="text-sm font-light font-['Chivo_Mono']">Software Development and Metadata Design</span>
             </div>
+            
+            {/* Intern 3 */}
+            <div className="text-black text-2xl">
+              <span className="font-bold font-['Source_Serif_Pro']">Alina Sokolova</span> - <span className="text-sm font-light font-['Chivo_Mono']">Concept Design</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Acknowledgements Section */}
+        <div className="py-16">
+          <div className="border-b border-black pb-4 mb-8">
+            <h2 className="text-red-500 text-4xl font-medium font-['Inter']">Acknowledgements</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-black text-2xl font-medium font-['Lora'] leading-relaxed">
+            We would like to thank Guha Shankar and John Fenn from the Library of Congress American Folklife Center, Daniel Chard from the History Department at Western Washington University, and Elizabeth Joffrion and David Bass from Western Libraries for taking the time to meet with us and share their thoughtful feedback and guidance throughout the project.
+            </p>
+          </div>
+        </div>
+
+        {/* Contact Us Section */}
+        <div className="py-16">
+          <div className="border-b border-black pb-4 mb-8">
+            <h2 className="text-red-500 text-4xl font-medium font-['Inter']">Contact Us</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-black text-2xl font-medium font-['Lora'] leading-relaxed">
+              If you have any questions, comments, or would like to learn more about the project, please get in touch:
+            </p>
+            <p className="text-black text-2xl font-medium font-['Lora']">
+              <a href="mailto:dustin.ohara@gmail.com" className="text-red-500 hover:underline">
+                dustin.ohara@gmail.com
+              </a>
+            </p>
           </div>
         </div>
       </div>
