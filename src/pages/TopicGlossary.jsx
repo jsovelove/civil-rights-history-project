@@ -471,32 +471,34 @@ export default function TopicGlossary() {
                   <div className="w-full h-0 border border-black"></div>
                 </div>
 
-                {/* Topics Grid for this letter */}
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 justify-items-start">
-                  {groupedTopics[letter].map((topic) => (
-                    <div 
-                      key={topic.keyword}
-                      className="w-64 cursor-pointer hover:opacity-80 hover:shadow-lg transition-all duration-200 group"
-                      onClick={() => handleTopicClick(topic.keyword)}
-                      title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
-                    >
-                      <div className="w-60 flex flex-col justify-start items-start gap-4">
-                        <div className="self-stretch flex flex-col justify-start items-start gap-4">
-                          <div className="flex flex-col justify-start items-start gap-0.5">
-                            <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] capitalize">
-                              {topic.keyword}
+                {/* Topics Grid for this letter - using padding to create left margin */}
+                <div className="md:ml-[16.666%] lg:ml-[16.666%] xl:ml-[16.666%] 2xl:ml-[16.666%]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {groupedTopics[letter].map((topic, index) => (
+                      <div 
+                        key={topic.keyword}
+                        className="w-64 cursor-pointer transition-all duration-300 group"
+                        onClick={() => handleTopicClick(topic.keyword)}
+                        title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
+                      >
+                        <div className="w-60 flex flex-col justify-start items-start gap-4">
+                          <div className="self-stretch flex flex-col justify-start items-start gap-4">
+                            <div className="flex flex-col justify-start items-start gap-0.5">
+                              <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] capitalize transition-colors duration-300 group-hover:text-[#F2483C] group-hover:underline">
+                                {topic.keyword}
+                              </div>
+                              <div className="text-stone-900 text-base font-light transition-colors duration-300 group-hover:text-[#F2483C]" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                                {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
+                              </div>
                             </div>
-                            <div className="text-stone-900 text-base font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
-                              {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
+                            <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4'] transition-colors duration-300 group-hover:text-[#F2483C]">
+                              {topic.shortDescription || topic.description?.substring(0, 200) + (topic.description?.length > 200 ? '...' : '') || `${topic.keyword} is an important topic in the context of the civil rights movement.`}
                             </div>
-                          </div>
-                          <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4']">
-                            {topic.shortDescription || topic.description?.substring(0, 200) + (topic.description?.length > 200 ? '...' : '') || `${topic.keyword} is an important topic in the context of the civil rights movement.`}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}

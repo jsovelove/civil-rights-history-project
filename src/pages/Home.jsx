@@ -1011,7 +1011,7 @@ export default function Home() {
 
             {/* Watch Related Interviews Link */}
             <div className="flex justify-center relative">
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("brown v. board")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("brown v. board")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1055,32 +1055,34 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:text-right">
-            <div className="lg:order-2 space-y-4 lg:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="lg:order-2 space-y-4 lg:space-y-6 text-left">
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">The Lynching of Emmett Till</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("emmett till")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Lynching of Emmett Till</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The brutal murder of 14-year-old Emmett Till in Mississippi became a pivotal catalyst in the civil rights movement, highlighting the pervasive racial violence and injustice in the United States. The extensive media coverage helped galvanize public opinion and energized activists to fight for racial equality.</p>
 
               {/* Watch Related Interviews Link */}
-              <div className="text-left">
-                <Link to={`/playlist-builder?keywords=${encodeURIComponent("emmett till")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
-                  <span>Watch Related Interviews</span>
-                  <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
-                </Link>
-              </div>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("emmett till")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
+                <span>Watch Related Interviews</span>
+                <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
+              </Link>
             </div>
 
             {/* Image section */}
             <div className="lg:order-1 space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                <EmmettTillImage />
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Emmett Till's mother, Mamie Till, at his funeral (Dave Mann)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("emmett till")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  <EmmettTillImage />
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Emmett Till's mother, Mamie Till, at his funeral (Dave Mann)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -1138,13 +1140,15 @@ export default function Home() {
             <div className="space-y-4 lg:space-y-6">
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Montgomery Bus Boycott</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("montgomery")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Montgomery Bus Boycott</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Initiated by Rosa Parks' refusal to give up her bus seat to a white man in Montgomery, Alabama, this pivotal event marked a significant moment in the Civil Rights Movement.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("montgomery")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("montgomery")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1152,26 +1156,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="space-y-2">
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Rosa Parks gets fingerprinted (Gene Herrick)
-              </p>
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {montgomeryImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : montgomeryImageUrl ? (
-                  <img
-                    src={montgomeryImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Rosa Parks"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("montgomery")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {montgomeryImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : montgomeryImageUrl ? (
+                    <img
+                      src={montgomeryImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Rosa Parks"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Rosa Parks gets fingerprinted (Gene Herrick)
+                </p>
+              </Link>
             </div>
           </div>
         </div>
@@ -1196,13 +1202,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Integration of Little Rock</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("little rock")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Integration of Little Rock</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Little Rock Nine's integration at Little Rock Central High School marked a significant point in the American civil rights movement, highlighting resistance to desegregation and federal intervention.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("little rock")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("little rock")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1210,26 +1218,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {littleRockImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : littleRockImageUrl ? (
-                  <img
-                    src={littleRockImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Elizabeth Eckford"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Elizabeth Eckford approaches Central High (Will Counts)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("little rock")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {littleRockImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : littleRockImageUrl ? (
+                    <img
+                      src={littleRockImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Elizabeth Eckford"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Elizabeth Eckford approaches Central High (Will Counts)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -1292,13 +1302,15 @@ export default function Home() {
             <div className="lg:order-2 space-y-4 lg:space-y-6">
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">SNCC & Student Organizing</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("sncc")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">SNCC & Student Organizing</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Student Nonviolent Coordinating Committee (SNCC) played a critical role in the Civil Rights Movement, known for organizing student activism for racial equality. The organization facilitated voter registration drives, sit-ins, and freedom rides and was a pivotal part of the movement's strategy for nonviolent direct action. The involvement of SNCC and similar groups has had lasting effects on the push for civil rights.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("sncc")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("sncc")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1306,26 +1318,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {hRapBrownImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : hRapBrownImageUrl ? (
-                  <img
-                    src={hRapBrownImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="H. Rap Brown"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
-                H. Rap Brown, SNCC (Marion Trikosko)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("sncc")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {hRapBrownImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : hRapBrownImageUrl ? (
+                    <img
+                      src={hRapBrownImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="H. Rap Brown"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  H. Rap Brown, SNCC (Marion Trikosko)
+                </p>
+              </Link>
             </div>
           </div>
         </div>
@@ -1350,13 +1364,15 @@ export default function Home() {
             <div className="space-y-4 lg:space-y-6">
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Freedom Riders</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom rides")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Freedom Riders</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Sponsored by the Congress for Racial Equality (CORE) and the Student Nonviolent Coordinating Committee, Freedom Rides were a series of bus trips through the American South by civil rights activists who sought to challenge and desegregate interstate transportation facilities following Supreme Court rulings. Despite facing severe violence, the activists drew national attention to the civil rights struggle and forced federal intervention.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom rides")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom rides")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1364,26 +1380,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-2 space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {freedomRiderImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : freedomRiderImageUrl ? (
-                  <img
-                    src={freedomRiderImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Freedom Rider"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Greyhound bus attack (U.S. National Park Service)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom rides")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {freedomRiderImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : freedomRiderImageUrl ? (
+                    <img
+                      src={freedomRiderImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Freedom Rider"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Greyhound bus attack (U.S. National Park Service)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -1436,13 +1454,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">The Murder of Medgar Evers</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("medgar evers")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">The Murder of Medgar Evers</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Medgar Evers, a prominent civil rights activist and field secretary for the NAACP, was assassinated outside his home in Jackson, Mississippi. His murder marked a turning point in the civil rights movement, increasing the urgency and determination of activists who faced growing hostility and violence. Evers' assassination underscored the dangers faced by those fighting for racial equality and galvanized ongoing efforts for civil rights legislation.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("medgar evers")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("medgar evers")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1450,26 +1470,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 space-y-12">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {medgarEversImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : medgarEversImageUrl ? (
-                  <img
-                    src={medgarEversImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Medgar Evers"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
-                Medger Evers (Unknown)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("medgar evers")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {medgarEversImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : medgarEversImageUrl ? (
+                    <img
+                      src={medgarEversImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Medgar Evers"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Medger Evers (Unknown)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -1522,13 +1544,15 @@ export default function Home() {
             <div className="space-y-4 lg:space-y-6">
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">March on Washington</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("march on washington")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">March on Washington</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">This historic event was a major civil rights demonstration, where Martin Luther King Jr. delivered his iconic 'I Have a Dream' speech. It was pivotal in advocating for civil and economic rights for African Americans, showcasing the frustration with the Kennedy administration's inaction against racial violence.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("march on washington")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("march on washington")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1536,26 +1560,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {marchOnWashingtonImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : marchOnWashingtonImageUrl ? (
-                  <img
-                    src={marchOnWashingtonImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="March on Washington"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Demonstrators march down the street (Marion Trikosko)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("march on washington")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {marchOnWashingtonImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : marchOnWashingtonImageUrl ? (
+                    <img
+                      src={marchOnWashingtonImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="March on Washington"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Demonstrators march down the street (Marion Trikosko)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -1662,38 +1688,42 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Image section - Left */}
             <div className="space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {freedomSummerImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : freedomSummerImageUrl ? (
-                  <img
-                    src={freedomSummerImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Freedom Summer Voting"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left pl-12" style={{ lineHeight: '100%' }}>
-                A woman voting (Marion Trikosko)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom summer")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {freedomSummerImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : freedomSummerImageUrl ? (
+                    <img
+                      src={freedomSummerImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Freedom Summer Voting"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left pl-12 hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  A woman voting (Marion Trikosko)
+                </p>
+              </Link>
             </div>
 
             {/* Text content - Right */}
             <div className="space-y-4 lg:space-y-6">
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Freedom Summer</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom summer")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Freedom Summer</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Freedom Summer was a 1964 voter registration drive organized by CORE, the NAACP, and SNCC aimed at increasing the number of registered Black voters in Mississippi. This grassroots effort was part of the larger civil rights movement striving for racial equality in voting rights and was characterized by significant activism and resistance. It included Freedom Schools, which acted as educational centers for prospective voters.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom summer")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom summer")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1720,13 +1750,15 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             <div className="space-y-4 lg:space-y-6">
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Civil Rights Act of 1964</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("civil rights act")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Civil Rights Act of 1964</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Signed by Lyndon B. Johnson, this landmark act declared an official end to legal segregation, outlawing discrimination based on race, color, religion, sex, or national origin.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("civil rights act")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("civil rights act")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1776,26 +1808,28 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Image section - Left */}
             <div className="space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {malcolmXImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : malcolmXImageUrl ? (
-                  <img
-                    src={malcolmXImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Malcolm X"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
-                Malcolm X waits at Martin Luther King press conference (Marion Trikosko)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("malcolm x")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {malcolmXImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : malcolmXImageUrl ? (
+                    <img
+                      src={malcolmXImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Malcolm X"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Malcolm X waits at Martin Luther King press conference (Marion Trikosko)
+                </p>
+              </Link>
             </div>
 
             {/* Text content - Right */}
@@ -1808,13 +1842,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Assassination of Malcolm X</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("malcolm x")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Assassination of Malcolm X</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">While preparing to speak for the Organization of Afro-American Unity, activist Malcolm X was murdered. Malcolm X's uncompromising message of self-determination for African Americans laid the groundwork for organizations to make moves outside the legal framework of the American system. His international approach and recognition of the connection between Black American struggles and anti-imperial struggles in the Third World made him revolutionary within the Civil Rights Movement and brought him international acclaim.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("malcolm x")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("malcolm x")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1893,13 +1929,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Selma to Montgomery</h3>
+              <Link to={`/interviews?topic=${encodeURIComponent("Selma to Montgomery")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Selma to Montgomery</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Despite the legal end of segregation, there was little material change in many Southern States. In Alabama, African Americans were still disenfranchised as White officials employed tactics of intimidation and harassment to prevent them from exercising the right to vote. The murder of activist Jimmie Lee Jackson by state troopers sparked the 54-mile march from Selma to Montgomery. Demonstrators were met with state violence, resulting in media attention from across the country. President Lyndon B. Johnson used the attention to call for the passing of the Voting Rights Act of 1965, which was enacted on August 6th of that year.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/interviews?topic=${encodeURIComponent("Selma to Montgomery")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/interviews?topic=${encodeURIComponent("Selma to Montgomery")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -1907,26 +1945,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {selmaImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : selmaImageUrl ? (
-                  <img
-                    src={selmaImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Selma to Montgomery"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Protestors in Harlem show solidarity with Selma (Stanley Wolfson)
-              </p>
+              <Link to={`/interviews?topic=${encodeURIComponent("Selma to Montgomery")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {selmaImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : selmaImageUrl ? (
+                    <img
+                      src={selmaImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Selma to Montgomery"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Protestors in Harlem show solidarity with Selma (Stanley Wolfson)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -2033,13 +2073,15 @@ export default function Home() {
             {/* Text content - Right */}
             <div className="space-y-4 lg:space-y-6">
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Voting Rights Act</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("voting rights act")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Voting Rights Act</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Voting Rights Act was a landmark act meant to enforce the constitutional voting rights of racial minorities, especially in the South.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("voting rights act")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("voting rights act")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -2075,13 +2117,15 @@ export default function Home() {
             <div className="lg:order-2 space-y-4 lg:space-y-6">
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Black Panther Party</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("black panther party")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Black Panther Party</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Black Panther Party was established in 1966 as a revolutionary organization advocating for African American self-defense and community welfare programs. The Panthers' initiatives included the establishment of community social programs such as free breakfast for children and health clinics. The party was also known for its stance against police brutality and for promoting black empowerment. Women's roles in the party were significant, although challenges in gender dynamics existed.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("black panther party")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("black panther party")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -2089,26 +2133,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {blackPantherImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : blackPantherImageUrl ? (
-                  <img
-                    src={blackPantherImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Black Panthers"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
-                Black Panther Demonstration (Unknown)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("black panther party")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {blackPantherImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : blackPantherImageUrl ? (
+                    <img
+                      src={blackPantherImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Black Panthers"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Black Panther Demonstration (Unknown)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -2184,13 +2230,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Brown Berets</h3>
+              <Link to={`/interviews?topic=${encodeURIComponent("Brown Berets")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Brown Berets</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Chicano Movement was a civil rights movement extending from the 1940s into the 1970s with the goal of achieving Mexican American empowerment, combating discrimination, and promoting cultural pride. It correlated with the broader push for civil rights and influenced identity politics and activism among Mexican Americans. The Brown Beret's modeled themselves after the Black Panther Party and played a major role in Chicano activism.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/interviews?topic=${encodeURIComponent("Brown Berets")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/interviews?topic=${encodeURIComponent("Brown Berets")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -2198,26 +2246,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center relative z-10">
-                {brownBeretsImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : brownBeretsImageUrl ? (
-                  <img
-                    src={brownBeretsImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Brown Berets"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Four brown berets (Unknown)
-              </p>
+              <Link to={`/interviews?topic=${encodeURIComponent("Brown Berets")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center relative z-10">
+                  {brownBeretsImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : brownBeretsImageUrl ? (
+                    <img
+                      src={brownBeretsImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Brown Berets"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Four brown berets (Unknown)
+                </p>
+              </Link>
             </div>
           </div>
         </div>
@@ -2242,13 +2292,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">The Long Hot Summer</h3>
+              <Link to={`/interviews?topic=${encodeURIComponent("The Long Hot Summer")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">The Long Hot Summer</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Long Hot Summer was a series of major civil disturbance occurring over the summer of 1967, spurred by racial tensions, poverty, and allegations of police brutality toward the African-American community. It was part of a wave of urban uprisings across the United States during the 1960s. This event significantly impacted the civil rights movement by highlighting systemic issues in urban areas and prompting calls for reform.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/interviews?topic=${encodeURIComponent("The Long Hot Summer")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/interviews?topic=${encodeURIComponent("The Long Hot Summer")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -2256,26 +2308,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="lg:order-1 space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {longHotSummerImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : longHotSummerImageUrl ? (
-                  <img
-                    src={longHotSummerImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="The Long Hot Summer"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-left" style={{ lineHeight: '100%' }}>
-                Newark Rebellion (Al Lowe)
-              </p>
+              <Link to={`/interviews?topic=${encodeURIComponent("The Long Hot Summer")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {longHotSummerImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : longHotSummerImageUrl ? (
+                    <img
+                      src={longHotSummerImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="The Long Hot Summer"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Newark Rebellion (Al Lowe)
+                </p>
+              </Link>
             </div>
           </div>
         </div>
@@ -2300,13 +2354,15 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Assassination of MLK</h3>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("martin luther king")}`}>
+                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Assassination of MLK</h3>
+              </Link>
 
               {/* Description */}
               <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The most prominent Civil Rights Activist of his era, and the leader of the movement at large, Dr. Martin Luther King Jr. was murdered after giving a speech in Memphis, Tennessee. Riots tore through the streets of major cities across the United States in response to the murder.</p>
 
               {/* Watch Related Interviews Link */}
-              <Link to={`/playlist-builder?keywords=${encodeURIComponent("martin luther king")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("martin luther king")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                 <span>Watch Related Interviews</span>
                 <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
               </Link>
@@ -2314,26 +2370,28 @@ export default function Home() {
 
             {/* Image section */}
             <div className="space-y-2">
-              <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
-                {mlkImageLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading image...</span>
-                  </div>
-                ) : mlkImageUrl ? (
-                  <img
-                    src={mlkImageUrl}
-                    className="w-full h-full object-contain"
-                    alt="Martin Luther King Jr."
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Image not available</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-black text-base font-light font-['Chivo_Mono'] text-right" style={{ lineHeight: '100%' }}>
-                Martin Luther King press conference (Marion Trikosko)
-              </p>
+              <Link to={`/playlist-builder?keywords=${encodeURIComponent("martin luther king")}`} className="block">
+                <div className="h-64 sm:h-80 lg:h-[500px] xl:h-[600px] flex items-center">
+                  {mlkImageLoading ? (
+                    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                      <span className="text-gray-500">Loading image...</span>
+                    </div>
+                  ) : mlkImageUrl ? (
+                    <img
+                      src={mlkImageUrl}
+                      className="w-full h-full object-contain"
+                      alt="Martin Luther King Jr."
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500">Image not available</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                  Martin Luther King press conference (Marion Trikosko)
+                </p>
+              </Link>
             </div>
           </div>
           
@@ -2440,13 +2498,15 @@ export default function Home() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight">Civil Rights Act of 1968</h3>
+                <Link to={`/interviews?topic=${encodeURIComponent("Civil Rights Act of 1968")}`}>
+                  <h3 className="text-black text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-medium font-['Inter'] leading-tight hover:text-red-500 transition-colors">Civil Rights Act of 1968</h3>
+                </Link>
 
                 {/* Description */}
                 <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Signed into law during the riots following Dr. King's assassination, this act expands upon the 1964 Civil Rights Act by declaring it illegal to discriminate in the rental and financing of housing, contributing to the development of equal housing opportunities.</p>
 
                 {/* Watch Related Interviews Link */}
-                <Link to={`/interviews?topic=${encodeURIComponent("Civil Rights Act of 1968")}`} className="inline-flex items-center gap-2 text-stone-900 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:text-red-500 transition-colors">
+                <Link to={`/interviews?topic=${encodeURIComponent("Civil Rights Act of 1968")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
                   <span>Watch Related Interviews</span>
                   <img src={arrowRightIcon} alt="Arrow right" className="w-5 h-4" />
                 </Link>

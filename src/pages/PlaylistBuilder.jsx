@@ -586,17 +586,16 @@ const PlaylistBuilder = () => {
             
              {/* Topic Tags Section - always visible */}
              <div className="mt-6">
-               <h3 className="text-black text-5xl font-medium font-['Inter'] mb-3">Topic Tags</h3>
                <div className="flex flex-wrap gap-x-6 gap-y-2">
                  {getCurrentVideoTags().length > 0 ? (
                    getCurrentVideoTags().map((tag, index) => (
                      <div
                        key={index}
                        data-property-1="Default"
-                       className="px-6 py-3 rounded-[50px] outline outline-1 outline-offset-[-1px] outline-black inline-flex justify-center items-center gap-2.5 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                       className="px-6 py-3 rounded-[50px] outline outline-1 outline-offset-[-1px] outline-black inline-flex justify-center items-center gap-2.5 cursor-pointer hover:bg-red-500 hover:outline-red-500 transition-colors duration-200 group"
                        onClick={() => navigate(`?keywords=${encodeURIComponent(tag)}`)}
                      >
-                       <div className="text-center justify-start text-black text-base font-light font-['Chivo_Mono']">
+                       <div className="text-center justify-start text-black text-base font-light font-['Chivo_Mono'] group-hover:text-white">
                          {tag}
                        </div>
                      </div>
@@ -638,7 +637,7 @@ const PlaylistBuilder = () => {
         <div className="w-full">
           <div className="mb-14">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-black text-5xl font-medium" style={{fontFamily: 'Inter, sans-serif'}}>Event Playlist</h2>
+              <h2 className="text-black text-5xl font-medium" style={{fontFamily: 'Inter, sans-serif'}}>Playlist</h2>
               {/* Playlist navigation arrows */}
               <div className="flex items-center gap-4">
                 <button 

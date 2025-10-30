@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import arrowRight from '../assetts/vectors/arrow right.svg';
 
 /**
  * InterviewIndex Page - Card-based interview directory with search
@@ -234,33 +235,46 @@ export default function InterviewIndex() {
             {filteredInterviews.map((interview) => (
               <div 
                 key={interview.id}
-                className="w-full max-w-xs sm:max-w-sm lg:max-w-md xl:max-w-lg mx-auto cursor-pointer"
+                className="w-full max-w-xs sm:max-w-sm lg:max-w-md xl:max-w-lg mx-auto cursor-pointer group"
                 onClick={() => handleInterviewClick(interview.id)}
               >
                 <div className="w-full flex flex-col items-center gap-3">
-                  {/* Image */}
-                  {interview.thumbnailUrl ? (
-                    <img 
-                      className="w-full aspect-[1.83/1] object-cover" 
-                      src={interview.thumbnailUrl}
-                      alt={interview.name}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full aspect-[1.83/1] bg-zinc-300 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 sm:h-16 sm:w-16 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
+                  {/* Image with zoom effect */}
+                  <div className="w-full aspect-[1.83/1] overflow-hidden">
+                    {interview.thumbnailUrl ? (
+                      <img 
+                        className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-110" 
+                        src={interview.thumbnailUrl}
+                        alt={interview.name}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-300 flex items-center justify-center transition-transform duration-300 ease-in-out group-hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 sm:h-16 sm:w-16 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Text content */}
                   <div className="self-stretch min-h-20 relative">
-                    <div className="w-full text-stone-900 text-4xl font-bold font-['Source_Serif_4']">
-                      {interview.name}
-                    </div>
-                    <div className="justify-start text-stone-900 text-base font-light font-['Chivo_Mono']">
-                      {interview.roleSimplified} | {formatDuration(interview.totalMinutes)}
+                    <div className="w-full relative">
+                      {/* Arrow that appears on hover - positioned absolutely */}
+                      <img 
+                        src={arrowRight}
+                        alt=""
+                        className="h-8 w-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex-shrink-0 absolute left-0 top-1"
+                        style={{ filter: 'invert(35%) sepia(89%) saturate(2893%) hue-rotate(345deg) brightness(97%) contrast(93%)' }}
+                      />
+                      {/* Name that slides right on hover */}
+                      <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] transition-all duration-300 group-hover:text-[#F2483C] group-hover:underline group-hover:translate-x-11">
+                        {interview.name}
+                      </div>
+                      {/* Role and duration stay in place */}
+                      <div className="justify-start text-stone-900 text-base font-light font-['Chivo_Mono'] transition-colors duration-300 group-hover:text-[#F2483C]">
+                        {interview.roleSimplified} | {formatDuration(interview.totalMinutes)}
+                      </div>
                     </div>
                   </div>
                 </div>
