@@ -155,6 +155,7 @@ async function performVectorSearch(queryEmbedding, limit = 10, filters = {}, col
 
         if (passesFilters) {
           const similarity = cosineSimilarity(queryEmbedding, data.embedding);
+
           // Check for duplicates before adding
           const isDuplicate = results.some((existing) =>
             existing.documentId === data.documentId &&
@@ -162,34 +163,53 @@ async function performVectorSearch(queryEmbedding, limit = 10, filters = {}, col
           );
 
           if (!isDuplicate) {
-            results.push({
-              id: doc.id,
-              documentId: data.documentId,
-              segmentId: data.segmentId,
-              textPreview: data.textPreview,
-              similarity,
+            // Handle both clip embeddings and topic embeddings
+            if (data.topicId) {
+              // This is a topic embedding
+              results.push({
+                id: doc.id,
+                documentId: data.topicId, // Use topicId as documentId for consistency
+                topicId: data.topicId,
+                keyword: data.keyword,
+                category: data.category || "general",
+                importanceScore: data.importanceScore || 5,
+                clipCount: data.clipCount || 0,
+                interviewCount: data.interviewCount || 0,
+                textPreview: data.textPreview,
+                similarity,
+                type: "topic",
+              });
+            } else {
+              // This is a clip embedding
+              results.push({
+                id: doc.id,
+                documentId: data.documentId,
+                segmentId: data.segmentId,
+                textPreview: data.textPreview,
+                similarity,
 
-              // Enhanced metadata for clips
-              type: data.type || "unknown",
-              topic: data.topic || "Untitled",
-              timestamp: data.timestamp || "",
-              interviewName: data.interviewName || "Unknown Interview",
-              interviewRole: data.interviewRole || "Unknown Role",
-              mainTopicCategory: data.mainTopicCategory || "General",
-              videoEmbedLink: data.videoEmbedLink || null, // Include video link for thumbnails
+                // Enhanced metadata for clips
+                type: data.type || "unknown",
+                topic: data.topic || "Untitled",
+                timestamp: data.timestamp || "",
+                interviewName: data.interviewName || "Unknown Interview",
+                interviewRole: data.interviewRole || "Unknown Role",
+                mainTopicCategory: data.mainTopicCategory || "General",
+                videoEmbedLink: data.videoEmbedLink || null, // Include video link for thumbnails
 
-              // Rich content indicators
-              hasNotableQuotes: data.hasNotableQuotes || false,
-              hasRelatedEvents: data.hasRelatedEvents || false,
-              notableQuotes: data.notableQuotes || [],
-              relatedEvents: data.relatedEvents || [],
+                // Rich content indicators
+                hasNotableQuotes: data.hasNotableQuotes || false,
+                hasRelatedEvents: data.hasRelatedEvents || false,
+                notableQuotes: data.notableQuotes || [],
+                relatedEvents: data.relatedEvents || [],
 
-              // Additional metadata
-              chapterNumber: data.chapterNumber || 0,
-              keywordsArray: data.keywordsArray || [],
-              keyThemes: data.keyThemes || [],
-              collection: data.collection || "unknown",
-            });
+                // Additional metadata
+                chapterNumber: data.chapterNumber || 0,
+                keywordsArray: data.keywordsArray || [],
+                keyThemes: data.keyThemes || [],
+                collection: data.collection || "unknown",
+              });
+            }
           }
         }
       }

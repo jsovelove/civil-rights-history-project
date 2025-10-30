@@ -27,6 +27,7 @@ import VotingRightsActToBlackPantherConnector from '../components/connectors/Vot
 import BlackPantherToBrownBeretsConnector from '../components/connectors/BlackPantherToBrownBeretsConnector';
 import BrownBeretsToLongHotSummerConnector from '../components/connectors/BrownBeretsToLongHotSummerConnector';
 import LongHotSummerToMLKConnector from '../components/connectors/LongHotSummerToMLKConnector';
+import MLKToCivilRightsAct1968Connector from '../components/connectors/MLKToCivilRightsAct1968Connector';
 import TopicBubbles from '../components/TopicBubbles';
 import LazyGif from '../components/LazyGif';
 
@@ -308,6 +309,7 @@ export default function Home() {
   const brownBeretsDateRef = useRef(null);
   const longHotSummerDateRef = useRef(null);
   const mlkDateRef = useRef(null);
+  const civilRightsAct1968DateRef = useRef(null);
   const [montgomeryImageUrl, setMontgomeryImageUrl] = useState(null);
   const [montgomeryImageLoading, setMontgomeryImageLoading] = useState(true);
   const [littleRockImageUrl, setLittleRockImageUrl] = useState(null);
@@ -2484,6 +2486,12 @@ export default function Home() {
             </div>
           </div>
           
+          {/* MLK to Civil Rights Act of 1968 connector */}
+          <MLKToCivilRightsAct1968Connector 
+            fromRef={mlkDateRef} 
+            toRef={civilRightsAct1968DateRef} 
+          />
+          
           {/* Civil Rights Act of 1968 */}
           <div className="relative mb-32 mt-24 lg:mt-32">
             {/* Event Content */}
@@ -2492,7 +2500,7 @@ export default function Home() {
 
                 {/* Date Badge above title - Left aligned */}
                 <div className="flex justify-start mb-4 lg:mb-6">
-                  <div className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
+                  <div ref={civilRightsAct1968DateRef} className="inline-flex px-3 py-2 lg:px-4 lg:py-3 border border-red-500 bg-transparent">
                     <span className="text-red-500 text-lg lg:text-xl font-normal font-['Chivo_Mono']">April 11th, 1968</span>
                   </div>
                 </div>
