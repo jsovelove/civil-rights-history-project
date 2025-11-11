@@ -203,7 +203,7 @@ const EmmettTillImage = () => {
   useEffect(() => {
     const loadImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Mamie Till.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833116/civil-rights/Photos/Timeline%20Photos/Mamie%20Till.png';
         setImageUrl(url);
       } catch (error) {
         console.error('Failed to load Emmett Till image:', error);
@@ -380,7 +380,7 @@ export default function Home() {
   useEffect(() => {
     const loadLandingImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Landing Photos/Landing Collage 01.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833099/civil-rights/Photos/Timeline%20Landing%20Photos/Landing%20Collage%2001.png';
         setLandingImageUrl(url);
       } catch (error) {
         console.error('Failed to load landing image:', error);
@@ -395,7 +395,7 @@ export default function Home() {
   useEffect(() => {
     const loadMontgomeryImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Rosa Parks.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833122/civil-rights/Photos/Timeline%20Photos/Rosa%20Parks.png';
         setMontgomeryImageUrl(url);
       } catch (error) {
         console.error('Failed to load Montgomery image:', error);
@@ -410,7 +410,7 @@ export default function Home() {
   useEffect(() => {
     const loadLittleRockImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Elizabeth Eckford.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833106/civil-rights/Photos/Timeline%20Photos/Elizabeth%20Eckford.png';
         setLittleRockImageUrl(url);
       } catch (error) {
         console.error('Failed to load Little Rock image:', error);
@@ -425,7 +425,7 @@ export default function Home() {
   useEffect(() => {
     const loadHRapBrownImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/H. Rap Brown.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833109/civil-rights/Photos/Timeline%20Photos/H.%20Rap%20Brown.png';
         setHRapBrownImageUrl(url);
       } catch (error) {
         console.error('Failed to load H. Rap Brown image:', error);
@@ -455,7 +455,7 @@ export default function Home() {
   useEffect(() => {
     const loadFreedomRiderImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Freedom Rider.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833107/civil-rights/Photos/Timeline%20Photos/Freedom%20Rider.png';
         setFreedomRiderImageUrl(url);
       } catch (error) {
         console.error('Failed to load Freedom Rider image:', error);
@@ -470,7 +470,7 @@ export default function Home() {
   useEffect(() => {
     const loadMedgarEversImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Medger Evers.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833120/civil-rights/Photos/Timeline%20Photos/Medger%20Evers.png';
         setMedgarEversImageUrl(url);
       } catch (error) {
         console.error('Failed to load Medgar Evers image:', error);
@@ -500,7 +500,7 @@ export default function Home() {
   useEffect(() => {
     const loadMarchOnWashingtonImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/March on WA.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833118/civil-rights/Photos/Timeline%20Photos/March%20on%20WA.png';
         setMarchOnWashingtonImageUrl(url);
       } catch (error) {
         console.error('Failed to load March on Washington image:', error);
@@ -515,7 +515,7 @@ export default function Home() {
   useEffect(() => {
     const loadFreedomSummerImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Voting.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833127/civil-rights/Photos/Timeline%20Photos/Voting.png';
         setFreedomSummerImageUrl(url);
       } catch (error) {
         console.error('Failed to load Freedom Summer image:', error);
@@ -545,7 +545,7 @@ export default function Home() {
   useEffect(() => {
     const loadMalcolmXImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Malcolm X.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833114/civil-rights/Photos/Timeline%20Photos/Malcolm%20X.png';
         setMalcolmXImageUrl(url);
       } catch (error) {
         console.error('Failed to load Malcolm X image:', error);
@@ -575,7 +575,7 @@ export default function Home() {
   useEffect(() => {
     const loadSelmaImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Selma.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833126/civil-rights/Photos/Timeline%20Photos/Selma.png';
         setSelmaImageUrl(url);
       } catch (error) {
         console.error('Failed to load Selma image:', error);
@@ -620,7 +620,7 @@ export default function Home() {
   useEffect(() => {
     const loadBlackPantherImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Black Panthers.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833101/civil-rights/Photos/Timeline%20Photos/Black%20Panthers.png';
         setBlackPantherImageUrl(url);
       } catch (error) {
         console.error('Failed to load Black Panthers image:', error);
@@ -650,7 +650,7 @@ export default function Home() {
   useEffect(() => {
     const loadBrownBeretsImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/Brown Berets.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833103/civil-rights/Photos/Timeline%20Photos/Brown%20Berets.png';
         setBrownBeretsImageUrl(url);
       } catch (error) {
         console.error('Failed to load Brown Berets image:', error);
@@ -665,7 +665,7 @@ export default function Home() {
   useEffect(() => {
     const loadLongHotSummerImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/long hot summer.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833129/civil-rights/Photos/Timeline%20Photos/long%20hot%20summer.png';
         setLongHotSummerImageUrl(url);
       } catch (error) {
         console.error('Failed to load Long Hot Summer image:', error);
@@ -680,7 +680,7 @@ export default function Home() {
   useEffect(() => {
     const loadMlkImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Timeline Photos/MLK.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833113/civil-rights/Photos/Timeline%20Photos/MLK.png';
         setMlkImageUrl(url);
       } catch (error) {
         console.error('Failed to load MLK image:', error);
@@ -695,7 +695,7 @@ export default function Home() {
   useEffect(() => {
     const loadManPoster = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Posters/Man.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833096/civil-rights/Ephemera/Posters/Man.png';
         setManPosterUrl(url);
       } catch (error) {
         console.error('Failed to load Man poster:', error);
@@ -710,7 +710,7 @@ export default function Home() {
   useEffect(() => {
     const loadHonorKingPoster = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Posters/Honor King.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833094/civil-rights/Ephemera/Posters/Honor%20King.png';
         setHonorKingPosterUrl(url);
       } catch (error) {
         console.error('Failed to load Honor King poster:', error);
@@ -770,7 +770,7 @@ export default function Home() {
   useEffect(() => {
     const loadMarchForDemocraticSchoolsPin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/March for Democratic Schools.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833062/civil-rights/Ephemera/Pins/March%20for%20Democratic%20Schools.png';
         setMarchForDemocraticSchoolsPinUrl(url);
       } catch (error) {
         console.error('Failed to load March for Democratic Schools pin:', error);
@@ -785,7 +785,7 @@ export default function Home() {
   useEffect(() => {
     const loadNowPin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/NOW.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833080/civil-rights/Ephemera/Pins/NOW.png';
         setNowPinUrl(url);
       } catch (error) {
         console.error('Failed to load NOW pin:', error);
@@ -800,7 +800,7 @@ export default function Home() {
   useEffect(() => {
     const loadSnccOvercomePin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/SNCC Overcome.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833087/civil-rights/Ephemera/Pins/SNCC%20Overcome.png';
         setSnccOvercomePinUrl(url);
       } catch (error) {
         console.error('Failed to load SNCC Overcome pin:', error);
@@ -815,7 +815,7 @@ export default function Home() {
   useEffect(() => {
     const loadMarchOnWashingtonPin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/March on Washington.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833075/civil-rights/Ephemera/Pins/March%20on%20Washington.png';
         setMarchOnWashingtonPinUrl(url);
       } catch (error) {
         console.error('Failed to load March on Washington pin:', error);
@@ -830,7 +830,7 @@ export default function Home() {
   useEffect(() => {
     const loadWashingtonFreedomMarchPin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/Washington Freedom March.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833092/civil-rights/Ephemera/Pins/Washington%20Freedom%20March.png';
         setWashingtonFreedomMarchPinUrl(url);
       } catch (error) {
         console.error('Failed to load Washington Freedom March pin:', error);
@@ -845,7 +845,7 @@ export default function Home() {
   useEffect(() => {
     const loadEmancipationMarchPin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/Emancipation March.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833060/civil-rights/Ephemera/Pins/Emancipation%20March.png';
         setEmancipationMarchPinUrl(url);
       } catch (error) {
         console.error('Failed to load Emancipation March pin:', error);
@@ -860,7 +860,7 @@ export default function Home() {
   useEffect(() => {
     const loadSnccVotePin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/SNCC Vote.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833089/civil-rights/Ephemera/Pins/SNCC%20Vote.png';
         setSnccVotePinUrl(url);
       } catch (error) {
         console.error('Failed to load SNCC Vote pin:', error);
@@ -875,7 +875,7 @@ export default function Home() {
   useEffect(() => {
     const loadPantherPin = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Ephemera/Pins/Panther.png');
+        const url = 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833084/civil-rights/Ephemera/Pins/Panther.png';
         setPantherPinUrl(url);
       } catch (error) {
         console.error('Failed to load Panther pin:', error);
@@ -898,9 +898,9 @@ export default function Home() {
             <div className="lg:w-1/2 space-y-6 lg:space-y-8">
               {/* Main Title */}
               <h1 className="leading-tight max-w-2xl">
-                <span className="text-black text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-light font-['Source_Serif_4']">The </span>
+                <span className="text-black text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-normal font-['Source_Serif_4']">The </span>
                 <span className="text-red-500 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold font-['Source_Serif_4']">Civil Rights Movement</span>
-                <span className="text-black text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-light font-['Source_Serif_4']"> narrated by the activists, artists, and change-makers who were really there.</span>
+                <span className="text-black text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-normal font-['Source_Serif_4']"> narrated by the activists, artists, and change-makers who were really there.</span>
               </h1>
 
               {/* Statistics */}

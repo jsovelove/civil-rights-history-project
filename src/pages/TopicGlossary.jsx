@@ -549,64 +549,58 @@ export default function TopicGlossary() {
             )}
           </div>
 
-          {/* View Mode Toggle (only show during semantic search with results) */}
-          {useSemanticSearch && searchTerm && filteredTopics.length > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded border border-stone-900">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  viewMode === 'grid'
-                    ? 'text-white'
-                    : 'text-stone-900 hover:text-stone-600'
-                }`}
-                style={{ 
-                  fontFamily: 'Chivo Mono, monospace',
-                  backgroundColor: viewMode === 'grid' ? '#F2483C' : 'transparent'
-                }}
-              >
-                Grid
-              </button>
-              <button
-                onClick={() => setViewMode('graph')}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  viewMode === 'graph'
-                    ? 'text-white'
-                    : 'text-stone-900 hover:text-stone-600'
-                }`}
-                style={{ 
-                  fontFamily: 'Chivo Mono, monospace',
-                  backgroundColor: viewMode === 'graph' ? '#F2483C' : 'transparent'
-                }}
-              >
-                Network
-              </button>
-            </div>
-          )}
+          {/* Filter Section with View Mode Toggle */}
+          <div className="flex items-center gap-6">
+            {/* View Mode Toggle (only show during semantic search with results) */}
+            {useSemanticSearch && searchTerm && filteredTopics.length > 0 && (
+              <div className="flex items-center gap-0 bg-gray-200 rounded-full border border-stone-900 overflow-hidden">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-4 py-2 text-sm transition-colors ${
+                    viewMode === 'grid'
+                      ? 'text-white'
+                      : 'text-stone-900 hover:text-stone-600'
+                  }`}
+                  style={{ 
+                    fontFamily: 'Chivo Mono, monospace',
+                    backgroundColor: viewMode === 'grid' ? '#F2483C' : 'transparent'
+                  }}
+                >
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('graph')}
+                  className={`px-4 py-2 text-sm transition-colors ${
+                    viewMode === 'graph'
+                      ? 'text-white'
+                      : 'text-stone-900 hover:text-stone-600'
+                  }`}
+                  style={{ 
+                    fontFamily: 'Chivo Mono, monospace',
+                    backgroundColor: viewMode === 'graph' ? '#F2483C' : 'transparent'
+                  }}
+                >
+                  Network
+                </button>
+              </div>
+            )}
 
-          {/* Filter Section */}
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 relative">
-              <div className="w-9 h-0 absolute left-[42px] top-[12px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
-              <div className="w-9 h-0 absolute left-[42px] top-[24px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
-              <div className="w-9 h-0 absolute left-[42px] top-[36px] origin-top-left -rotate-180 border-2 border-stone-900"></div>
-              <div className="w-2 h-2 absolute left-[11px] top-[9px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
-              <div className="w-2 h-2 absolute left-[29px] top-[21px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
-              <div className="w-2 h-2 absolute left-[17px] top-[33px] bg-gray-200 rounded-full border-2 border-stone-900"></div>
+            <div className="flex items-center gap-4">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
+                style={{ fontFamily: 'Chivo Mono, monospace' }}
+              >
+                <option value="all">All Categories</option>
+                <option value="concept">Concepts</option>
+                <option value="place">Places</option>
+                <option value="person">People</option>
+                <option value="event">Events</option>
+                <option value="org">Organizations</option>
+                <option value="legal">Legal</option>
+              </select>
             </div>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="text-stone-900 text-xl font-light bg-transparent border-none outline-none"
-              style={{ fontFamily: 'Chivo Mono, monospace' }}
-            >
-              <option value="all">All Categories</option>
-              <option value="concept">Concepts</option>
-              <option value="place">Places</option>
-              <option value="person">People</option>
-              <option value="event">Events</option>
-              <option value="org">Organizations</option>
-              <option value="legal">Legal</option>
-            </select>
           </div>
         </div>
       </div>

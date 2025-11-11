@@ -230,9 +230,9 @@ export default function ForceDirectedTopicGraph({
   }, [topics, searchQuery, width, height, similarityThreshold, onTopicClick]);
 
   return (
-    <div className="relative w-full h-full bg-gray-200 rounded border border-stone-900">
+    <div className="relative w-full h-full bg-transparent rounded border border-stone-900">
       {/* SVG Canvas */}
-      <svg ref={svgRef} className="w-full h-full" />
+      <svg ref={svgRef} className="w-full h-full bg-transparent" />
 
       {/* Hovered Node Info */}
       {hoveredNode && !hoveredNode.isSearch && (

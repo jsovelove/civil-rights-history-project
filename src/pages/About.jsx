@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/common/Footer';
-import { getStorageImageUrl } from '../services/firebase';
 import LOCLogo from '../assetts/logos/Logo_of_the_United_States_Library_of_Congress.svg.png';
 import WWULogo from '../assetts/logos/wwu-logo--full-color_2.png';
 
@@ -15,7 +14,7 @@ const LandingCollageImage = () => {
   useEffect(() => {
     const loadImage = async () => {
       try {
-        const url = await getStorageImageUrl('photos/Photos/Landing Collage.png');
+        const url = await 'https://res.cloudinary.com/dgbrj4suu/image/upload/v1762833097/civil-rights/Photos/Landing%20Collage.png';
         setImageUrl(url);
       } catch (error) {
         console.error('Failed to load Landing Collage image:', error);
@@ -188,23 +187,28 @@ export default function About() {
 
         {/* Student Interns Section */}
         <div className="py-16">
-          <h3 className="text-stone-900 text-3xl font-medium font-['Inter'] underline mb-8">Student Interns</h3>
+          <div className="border-b border-black pb-4 mb-16">
+            <h2 className="text-red-500 text-6xl lg:text-8xl font-medium font-['Inter']">Student Interns</h2>
+          </div>
           
-          {/* Interns List */}
-          <div className="space-y-2">
+          {/* Interns Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Intern 1 */}
-            <div className="text-black text-2xl">
-              <span className="font-bold font-['Source_Serif_Pro']">Sophia Zhuk</span> - <span className="text-sm font-light font-['Chivo_Mono']">Software Development</span>
+            <div>
+              <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Software Development</p>
+              <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro']">Sophia Zhuk</h3>
             </div>
             
             {/* Intern 2 */}
-            <div className="text-black text-2xl">
-              <span className="font-bold font-['Source_Serif_Pro']">Maya Galley</span> - <span className="text-sm font-light font-['Chivo_Mono']">Software Development and Metadata Design</span>
+            <div>
+              <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Software Development and Metadata Design</p>
+              <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro']">Maya Galley</h3>
             </div>
             
             {/* Intern 3 */}
-            <div className="text-black text-2xl">
-              <span className="font-bold font-['Source_Serif_Pro']">Alina Sokolova</span> - <span className="text-sm font-light font-['Chivo_Mono']">Concept Design</span>
+            <div>
+              <p className="text-stone-900 text-base font-light font-['Chivo_Mono'] mb-2">Concept Design</p>
+              <h3 className="text-stone-900 text-4xl font-bold font-['Source_Serif_Pro']">Alina Sokolova</h3>
             </div>
           </div>
         </div>
