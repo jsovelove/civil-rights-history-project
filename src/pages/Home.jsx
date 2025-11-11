@@ -8,7 +8,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { getStorageImageUrl } from '../services/firebase';
 import Footer from '../components/common/Footer';
 import arrowRightIcon from '../assetts/vectors/arrow right.svg';
 import EmmettToMontgomeryConnector from '../components/connectors/EmmettToMontgomeryConnector';
@@ -29,7 +28,6 @@ import BrownBeretsToLongHotSummerConnector from '../components/connectors/BrownB
 import LongHotSummerToMLKConnector from '../components/connectors/LongHotSummerToMLKConnector';
 import MLKToCivilRightsAct1968Connector from '../components/connectors/MLKToCivilRightsAct1968Connector';
 import TopicBubbles from '../components/TopicBubbles';
-import LazyGif from '../components/LazyGif';
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -238,42 +236,19 @@ const EmmettTillImage = () => {
 /**
  * EmmettTillGif - Component for loading Emmett Till GIF from Firebase
  */
-const EmmettTillGif = () => {
-  const [gifUrl, setGifUrl] = useState(null);
-  const [gifLoading, setGifLoading] = useState(true);
-
-  useEffect(() => {
-    const loadGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Emmett-till02.gif');
-        setGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Emmett Till GIF:', error);
-      } finally {
-        setGifLoading(false);
-      }
-    };
-    loadGif();
-  }, []);
-
-  if (gifLoading) {
-    return (
-      <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-        <span className="text-gray-500">Loading GIF...</span>
-      </div>
-    );
-  }
-
-  return gifUrl ? (
-    <img
-      src={gifUrl}
-      alt="Emmett Till historical GIF"
+const EmmettTillVideo = () => {
+  return (
+    <video 
+      autoPlay 
+      loop 
+      muted 
+      playsInline
       className="w-full h-full object-cover"
-    />
-  ) : (
-    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-      <span className="text-gray-500">GIF not available</span>
-    </div>
+      aria-label="Emmett Till historical video"
+    >
+      <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835915/civil-rights/GIFs/Emmett-till02.mp4" type="video/mp4" />
+      <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835915/civil-rights/GIFs/Emmett-till02.webm" type="video/webm" />
+    </video>
   );
 };
 
@@ -316,34 +291,20 @@ export default function Home() {
   const [littleRockImageLoading, setLittleRockImageLoading] = useState(true);
   const [hRapBrownImageUrl, setHRapBrownImageUrl] = useState(null);
   const [hRapBrownImageLoading, setHRapBrownImageLoading] = useState(true);
-  const [littleRockGifUrl, setLittleRockGifUrl] = useState(null);
-  const [littleRockGifLoading, setLittleRockGifLoading] = useState(true);
   const [freedomRiderImageUrl, setFreedomRiderImageUrl] = useState(null);
   const [freedomRiderImageLoading, setFreedomRiderImageLoading] = useState(true);
   const [medgarEversImageUrl, setMedgarEversImageUrl] = useState(null);
   const [medgarEversImageLoading, setMedgarEversImageLoading] = useState(true);
-  const [marchOnWashingtonGifUrl, setMarchOnWashingtonGifUrl] = useState(null);
-  const [marchOnWashingtonGifLoading, setMarchOnWashingtonGifLoading] = useState(true);
   const [marchOnWashingtonImageUrl, setMarchOnWashingtonImageUrl] = useState(null);
   const [marchOnWashingtonImageLoading, setMarchOnWashingtonImageLoading] = useState(true);
   const [freedomSummerImageUrl, setFreedomSummerImageUrl] = useState(null);
   const [freedomSummerImageLoading, setFreedomSummerImageLoading] = useState(true);
-  const [civilRightsActGifUrl, setCivilRightsActGifUrl] = useState(null);
-  const [civilRightsActGifLoading, setCivilRightsActGifLoading] = useState(true);
   const [malcolmXImageUrl, setMalcolmXImageUrl] = useState(null);
   const [malcolmXImageLoading, setMalcolmXImageLoading] = useState(true);
-  const [malcolmXGifUrl, setMalcolmXGifUrl] = useState(null);
-  const [malcolmXGifLoading, setMalcolmXGifLoading] = useState(true);
   const [selmaImageUrl, setSelmaImageUrl] = useState(null);
   const [selmaImageLoading, setSelmaImageLoading] = useState(true);
-  const [selmaGifUrl, setSelmaGifUrl] = useState(null);
-  const [selmaGifLoading, setSelmaGifLoading] = useState(true);
-  const [votingRightsActGifUrl, setVotingRightsActGifUrl] = useState(null);
-  const [votingRightsActGifLoading, setVotingRightsActGifLoading] = useState(true);
   const [blackPantherImageUrl, setBlackPantherImageUrl] = useState(null);
   const [blackPantherImageLoading, setBlackPantherImageLoading] = useState(true);
-  const [bobbySealeGifUrl, setBobbySealeGifUrl] = useState(null);
-  const [bobbySealeGifLoading, setBobbySealeGifLoading] = useState(true);
   const [brownBeretsImageUrl, setBrownBeretsImageUrl] = useState(null);
   const [brownBeretsImageLoading, setBrownBeretsImageLoading] = useState(true);
   const [longHotSummerImageUrl, setLongHotSummerImageUrl] = useState(null);
@@ -354,12 +315,6 @@ export default function Home() {
   const [manPosterLoading, setManPosterLoading] = useState(true);
   const [honorKingPosterUrl, setHonorKingPosterUrl] = useState(null);
   const [honorKingPosterLoading, setHonorKingPosterLoading] = useState(true);
-  const [longHotSummerGifUrl, setLongHotSummerGifUrl] = useState(null);
-  const [longHotSummerGifLoading, setLongHotSummerGifLoading] = useState(true);
-  const [signingGifUrl, setSigningGifUrl] = useState(null);
-  const [signingGifLoading, setSigningGifLoading] = useState(true);
-  const [selmaGetRightGifUrl, setSelmaGetRightGifUrl] = useState(null);
-  const [selmaGetRightGifLoading, setSelmaGetRightGifLoading] = useState(true);
   const [marchForDemocraticSchoolsPinUrl, setMarchForDemocraticSchoolsPinUrl] = useState(null);
   const [marchForDemocraticSchoolsPinLoading, setMarchForDemocraticSchoolsPinLoading] = useState(true);
   const [nowPinUrl, setNowPinUrl] = useState(null);
@@ -437,20 +392,7 @@ export default function Home() {
     loadHRapBrownImage();
   }, []);
 
-  useEffect(() => {
-    const loadLittleRockGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/little rock.gif');
-        setLittleRockGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Little Rock GIF:', error);
-      } finally {
-        setLittleRockGifLoading(false);
-      }
-    };
-
-    loadLittleRockGif();
-  }, []);
+  // Little Rock GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadFreedomRiderImage = async () => {
@@ -482,20 +424,7 @@ export default function Home() {
     loadMedgarEversImage();
   }, []);
 
-  useEffect(() => {
-    const loadMarchOnWashingtonGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/March-on-Washington.gif');
-        setMarchOnWashingtonGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load March on Washington GIF:', error);
-      } finally {
-        setMarchOnWashingtonGifLoading(false);
-      }
-    };
-
-    loadMarchOnWashingtonGif();
-  }, []);
+  // March on Washington GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadMarchOnWashingtonImage = async () => {
@@ -527,20 +456,7 @@ export default function Home() {
     loadFreedomSummerImage();
   }, []);
 
-  useEffect(() => {
-    const loadCivilRightsActGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Demonstrations-in-Jackson,-Assassination-of-Medgar-Evers.gif');
-        setCivilRightsActGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Civil Rights Act GIF:', error);
-      } finally {
-        setCivilRightsActGifLoading(false);
-      }
-    };
-
-    loadCivilRightsActGif();
-  }, []);
+  // Civil Rights Act GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadMalcolmXImage = async () => {
@@ -557,20 +473,7 @@ export default function Home() {
     loadMalcolmXImage();
   }, []);
 
-  useEffect(() => {
-    const loadMalcolmXGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/MalcolmX.gif');
-        setMalcolmXGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Malcolm X GIF:', error);
-      } finally {
-        setMalcolmXGifLoading(false);
-      }
-    };
-
-    loadMalcolmXGif();
-  }, []);
+  // Malcolm X GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadSelmaImage = async () => {
@@ -587,35 +490,9 @@ export default function Home() {
     loadSelmaImage();
   }, []);
 
-  useEffect(() => {
-    const loadSelmaGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Selma,-Protester-Confrontation.gif');
-        setSelmaGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Selma GIF:', error);
-      } finally {
-        setSelmaGifLoading(false);
-      }
-    };
-
-    loadSelmaGif();
-  }, []);
-
-  useEffect(() => {
-    const loadVotingRightsActGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Voting-Rights-Act-1965.gif');
-        setVotingRightsActGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Voting Rights Act GIF:', error);
-      } finally {
-        setVotingRightsActGifLoading(false);
-      }
-    };
-
-    loadVotingRightsActGif();
-  }, []);
+  // Selma GIF converted to video - no loading needed
+  
+  // Voting Rights Act GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadBlackPantherImage = async () => {
@@ -632,20 +509,7 @@ export default function Home() {
     loadBlackPantherImage();
   }, []);
 
-  useEffect(() => {
-    const loadBobbySealeGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Bobby-Seale.gif');
-        setBobbySealeGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Bobby Seale GIF:', error);
-      } finally {
-        setBobbySealeGifLoading(false);
-      }
-    };
-
-    loadBobbySealeGif();
-  }, []);
+  // Bobby Seale GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadBrownBeretsImage = async () => {
@@ -722,50 +586,11 @@ export default function Home() {
     loadHonorKingPoster();
   }, []);
 
-  useEffect(() => {
-    const loadLongHotSummerGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Long-Hot-Summer.gif');
-        setLongHotSummerGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Long Hot Summer GIF:', error);
-      } finally {
-        setLongHotSummerGifLoading(false);
-      }
-    };
-
-    loadLongHotSummerGif();
-  }, []);
-
-  useEffect(() => {
-    const loadSigningGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/signing.gif');
-        setSigningGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load signing GIF:', error);
-      } finally {
-        setSigningGifLoading(false);
-      }
-    };
-
-    loadSigningGif();
-  }, []);
-
-  useEffect(() => {
-    const loadSelmaGetRightGif = async () => {
-      try {
-        const url = await getStorageImageUrl('photos/GIFs/Selma,-_Get-Right-with-God_02.gif');
-        setSelmaGetRightGifUrl(url);
-      } catch (error) {
-        console.error('Failed to load Selma Get Right GIF:', error);
-      } finally {
-        setSelmaGetRightGifLoading(false);
-      }
-    };
-
-    loadSelmaGetRightGif();
-  }, []);
+  // Long Hot Summer GIF converted to video - no loading needed
+  
+  // Signing GIF converted to video - no loading needed
+  
+  // Selma Get Right GIF converted to video - no loading needed
 
   useEffect(() => {
     const loadMarchForDemocraticSchoolsPin = async () => {
@@ -1096,7 +921,7 @@ export default function Home() {
         <div className="flex">
           {/* GIF Section - Left portion */}
           <div className="w-3/5 h-[500px] sm:h-[600px] lg:h-[700px] xl:h-[800px] flex-shrink-0">
-            <EmmettTillGif />
+            <EmmettTillVideo />
           </div>
           
           {/* Red Rectangle with Quote - Wider right portion */}
@@ -1255,21 +1080,17 @@ export default function Home() {
           {/* Little Rock GIF Section */}
           <div className="mt-12 lg:mt-16 flex justify-center relative z-10">
             <div className="w-full max-w-4xl h-64 sm:h-80 lg:h-96">
-              {littleRockGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : littleRockGifUrl ? (
-                <img
-                  src={littleRockGifUrl}
-                  className="w-full h-full object-contain"
-                  alt="Little Rock Integration GIF"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+              <video 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="w-full h-full object-contain"
+                aria-label="Little Rock Integration video"
+              >
+                <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836720/civil-rights/GIFs/little%20rock.mp4" type="video/mp4" />
+                <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836720/civil-rights/GIFs/little%20rock.webm" type="video/webm" />
+              </video>
             </div>
           </div>
           
@@ -1502,13 +1323,22 @@ export default function Home() {
 
       {/* March on Washington GIF Section - Full Viewport Width */}
       <div className="w-full relative z-10">
-        <LazyGif
-          imagePath="photos/GIFs/March-on-Washington.gif"
-          alt="March on Washington GIF"
-          className="w-full h-full object-cover"
-          containerClassName="w-full h-[600px] sm:h-[700px] lg:h-[900px] xl:h-[1000px]"
-          forwardRef={marchOnWashingtonGifRef}
-        />
+        <div 
+          ref={marchOnWashingtonGifRef}
+          className="w-full h-[600px] sm:h-[700px] lg:h-[900px] xl:h-[1000px]"
+        >
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover"
+            aria-label="March on Washington video"
+          >
+            <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836405/civil-rights/GIFs/March-on-Washington.mp4" type="video/mp4" />
+            <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836405/civil-rights/GIFs/March-on-Washington.webm" type="video/webm" />
+          </video>
+        </div>
       </div>
 
       {/* Timeline Content Continued */}
@@ -1769,21 +1599,17 @@ export default function Home() {
             {/* Image section */}
             <div className="space-y-2">
               <div className="h-48 sm:h-64 lg:h-96">
-                {civilRightsActGifLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading GIF...</span>
-                  </div>
-                ) : civilRightsActGifUrl ? (
-                  <img
-                    src={civilRightsActGifUrl}
-                    className="w-full h-full object-cover"
-                    alt="Demonstrations in Jackson, Assassination of Medgar Evers"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">GIF not available</span>
-                  </div>
-                )}
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full object-cover"
+                  aria-label="Demonstrations in Jackson, Assassination of Medgar Evers video"
+                >
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835855/civil-rights/GIFs/Demonstrations-in-Jackson%2C-Assassination-of-Medgar-Evers.mp4" type="video/mp4" />
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835855/civil-rights/GIFs/Demonstrations-in-Jackson%2C-Assassination-of-Medgar-Evers.webm" type="video/webm" />
+                </video>
               </div>
               <a 
                 href="https://archive.org/details/gov.archives.arc.2546045" 
@@ -1872,21 +1698,17 @@ export default function Home() {
                 Malcom X
               </a>
               <div ref={malcolmXGifRef} className="w-full h-64 sm:h-80 lg:h-96">
-                {malcolmXGifLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading GIF...</span>
-                  </div>
-                ) : malcolmXGifUrl ? (
-                  <img
-                    src={malcolmXGifUrl}
-                    className="w-full h-full object-contain"
-                    alt="Malcolm X GIF"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">GIF not available</span>
-                  </div>
-                )}
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full object-contain"
+                  aria-label="Malcolm X video"
+                >
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836191/civil-rights/GIFs/MalcolmX.mp4" type="video/mp4" />
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836191/civil-rights/GIFs/MalcolmX.webm" type="video/webm" />
+                </video>
               </div>
             </div>
           </div>
@@ -1982,21 +1804,17 @@ export default function Home() {
             {/* Selma GIF - Right side */}
             <div className="flex-1 ml-8 lg:ml-12">
               <div className="h-64 sm:h-80 lg:h-96">
-                {selmaGifLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading GIF...</span>
-                  </div>
-                ) : selmaGifUrl ? (
-                  <img
-                    src={selmaGifUrl}
-                    className="w-full h-full object-cover"
-                    alt="Selma Protester Confrontation"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">GIF not available</span>
-                  </div>
-                )}
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full object-cover"
+                  aria-label="Selma Protester Confrontation video"
+                >
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836464/civil-rights/GIFs/Selma%2C-Protester-Confrontation.mp4" type="video/mp4" />
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836464/civil-rights/GIFs/Selma%2C-Protester-Confrontation.webm" type="video/webm" />
+                </video>
               </div>
               <div className="mt-4 -ml-16">
                 <p className="text-stone-900 font-normal font-['Source_Serif_4'] whitespace-nowrap" style={{ fontSize: '40px', lineHeight: '100%', letterSpacing: '-1%' }}>
@@ -2045,21 +1863,17 @@ export default function Home() {
             {/* GIF section - Left */}
             <div className="space-y-2">
               <div className="h-48 sm:h-64 lg:h-96">
-                {votingRightsActGifLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading GIF...</span>
-                  </div>
-                ) : votingRightsActGifUrl ? (
-                  <img
-                    src={votingRightsActGifUrl}
-                    className="w-full h-full object-cover"
-                    alt="Voting Rights Act 1965"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">GIF not available</span>
-                  </div>
-                )}
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full object-cover"
+                  aria-label="Voting Rights Act 1965 video"
+                >
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836641/civil-rights/GIFs/Voting-Rights-Act-1965.mp4" type="video/mp4" />
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836641/civil-rights/GIFs/Voting-Rights-Act-1965.webm" type="video/webm" />
+                </video>
               </div>
               <a 
                 href="https://archive.org/details/un-un-v38-r22" 
@@ -2174,21 +1988,17 @@ export default function Home() {
             
             {/* Bobby Seale GIF - Right side */}
             <div className="ml-8 lg:ml-12 w-[400px] lg:w-[550px] h-80 sm:h-96 lg:h-[500px] relative z-10">
-              {bobbySealeGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : bobbySealeGifUrl ? (
-                <img
-                  src={bobbySealeGifUrl}
-                  className="w-full h-full object-cover"
-                  alt="Bobby Seale GIF"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+              <video 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="w-full h-full object-cover"
+                aria-label="Bobby Seale video"
+              >
+                <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835719/civil-rights/GIFs/Bobby-Seale.mp4" type="video/mp4" />
+                <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835719/civil-rights/GIFs/Bobby-Seale.webm" type="video/webm" />
+              </video>
               
               {/* Black Panther Pin - Top right */}
               <div className="absolute -top-40 -right-32">
@@ -2455,21 +2265,17 @@ export default function Home() {
                   {/* Long Hot Summer GIF - Right of poster, aligned with top */}
                   <div className="ml-8 space-y-2">
                     <div className="w-[300px] h-[400px]">
-                      {longHotSummerGifLoading ? (
-                        <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                          <span className="text-gray-500">Loading GIF...</span>
-                        </div>
-                      ) : longHotSummerGifUrl ? (
-                        <img
-                          src={longHotSummerGifUrl}
-                          className="w-full h-full object-cover"
-                          alt="Long Hot Summer GIF"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500">GIF not available</span>
-                        </div>
-                      )}
+                      <video 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        className="w-full h-full object-cover"
+                        aria-label="Long Hot Summer video"
+                      >
+                        <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835996/civil-rights/GIFs/Long-Hot-Summer.mp4" type="video/mp4" />
+                        <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762835996/civil-rights/GIFs/Long-Hot-Summer.webm" type="video/webm" />
+                      </video>
                     </div>
                     <a 
                       href="https://archive.org/details/68riotsTBDreel/WJZ-NEWSFILM-001.mov" 
@@ -2522,21 +2328,17 @@ export default function Home() {
 
               {/* GIF section */}
               <div className="lg:order-1 h-48 sm:h-64 lg:h-96">
-                {signingGifLoading ? (
-                  <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-500">Loading GIF...</span>
-                  </div>
-                ) : signingGifUrl ? (
-                  <img
-                    src={signingGifUrl}
-                    className="w-full h-full object-cover"
-                    alt="Signing GIF"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">GIF not available</span>
-                  </div>
-                )}
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full object-cover"
+                  aria-label="Signing of Civil Rights Act 1968 video"
+                >
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836914/civil-rights/GIFs/signing.mp4" type="video/mp4" />
+                  <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836914/civil-rights/GIFs/signing.webm" type="video/webm" />
+                </video>
               </div>
             </div>
           </div>
@@ -2554,21 +2356,17 @@ export default function Home() {
           {/* Selma Get Right GIF - Centered */}
           <div className="mt-12 lg:mt-16 flex justify-center">
             <div className="w-full max-w-6xl h-96 sm:h-[500px] lg:h-[700px] xl:h-[800px] relative">
-              {selmaGetRightGifLoading ? (
-                <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500">Loading GIF...</span>
-                </div>
-              ) : selmaGetRightGifUrl ? (
-                <img
-                  src={selmaGetRightGifUrl}
-                  className="w-full h-full object-contain"
-                  alt="Selma Get Right with God GIF"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-500">GIF not available</span>
-                </div>
-              )}
+              <video 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="w-full h-full object-contain"
+                aria-label="Selma Get Right with God video"
+              >
+                <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836571/civil-rights/GIFs/Selma%2C-_Get-Right-with-God_02.mp4" type="video/mp4" />
+                <source src="https://res.cloudinary.com/dgbrj4suu/video/upload/v1762836571/civil-rights/GIFs/Selma%2C-_Get-Right-with-God_02.webm" type="video/webm" />
+              </video>
               <a 
                 href="https://archive.org/details/gov.archives.arc.53422" 
                 target="_blank" 
