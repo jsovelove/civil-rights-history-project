@@ -613,7 +613,7 @@ export default function TopicGlossary() {
             <div className="min-w-64 h-6 flex items-center gap-4">
               <input
                 type="text"
-                placeholder="Search topics by name or concept..."
+                placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="text-stone-900 text-xl font-light bg-transparent border-none outline-none w-full"

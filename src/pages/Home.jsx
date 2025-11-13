@@ -797,7 +797,7 @@ export default function Home() {
             
 
             {/* Brown v. Board Quote */}
-            <p className="text-black text-5xl font-normal font-['Source_Serif_4']">
+            <p className="text-black text-5xl font-normal font-['Source_Serif_4'] leading-relaxed">
             "We conclude that, in the field of public education, the doctrine of "<em>separate but equal</em>" has no place. Separate educational facilities are <em>inherently unequal</em>. Therefore, we hold that the plaintiffs and others similarly situated for whom the actions have been brought are, by reason of the segregation complained of, deprived of the equal protection of the laws guaranteed by the Fourteenth Amendment. This disposition makes unnecessary any discussion whether such segregation also <em>violates the Due Process Clause</em> of the Fourteenth Amendment."
             </p>
 
@@ -1311,7 +1311,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-left hover:text-red-500 transition-colors mt-6" style={{ lineHeight: '100%' }}>
                   Medger Evers (Unknown)
                 </p>
               </Link>
@@ -2200,7 +2200,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors" style={{ lineHeight: '100%' }}>
+                <p className="text-black text-base font-light font-['Chivo_Mono'] text-right hover:text-red-500 transition-colors mt-6" style={{ lineHeight: '100%' }}>
                   Martin Luther King press conference (Marion Trikosko)
                 </p>
               </Link>
