@@ -43,11 +43,13 @@ export default function TopicGlossary() {
   const [sortBy, setSortBy] = useState('importance'); // 'alphabetical', 'clipCount', 'interviewCount', 'importance'
   const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'concept', 'place', 'person', 'event', 'org', 'legal'
   const [cache, setCache] = useState({});
-  const [useSemanticSearch, setUseSemanticSearch] = useState(false);
   const [semanticSearchLoading, setSemanticSearchLoading] = useState(false);
   const [isVectorized, setIsVectorized] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'graph'
   const [semanticResults, setSemanticResults] = useState([]); // Store semantic search results for graph
+  const [exactMatches, setExactMatches] = useState([]);
+  const [relatedMatches, setRelatedMatches] = useState([]);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const navigate = useNavigate();
 
   // Cache functions
@@ -103,70 +105,43 @@ export default function TopicGlossary() {
     };
   }, []);
 
+  /**
+   * Progress bar animation for semantic search loading
+   */
+  useEffect(() => {
+    if (semanticSearchLoading) {
+      setLoadingProgress(0);
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          // Progress to 90% while loading, slow down as it approaches
+          if (prev < 90) {
+            return prev + (90 - prev) * 0.1;
+          }
+          return prev;
+        });
+      }, 100);
+      
+      return () => clearInterval(interval);
+    } else {
+      // Complete to 100% when done
+      setLoadingProgress(100);
+      setTimeout(() => setLoadingProgress(0), 300);
+    }
+  }, [semanticSearchLoading]);
 
   /**
-   * Update filtered and sorted topics when search term, sort option, or category filter changes
-   * Uses semantic search if enabled and vectorization is available
+   * Unified search: combines keyword and semantic search for best results
+   * Keyword matches appear instantly, semantic enhances with related topics
    */
   useEffect(() => {
     let cancelled = false;
     
-    const filterAndSortTopics = async () => {
+    const performUnifiedSearch = async () => {
+      // No search term - just show all with filters
+      if (!searchTerm) {
       let filtered = topicData;
       
-      // Apply search filter
-      if (searchTerm) {
-        // Use semantic search if enabled and available
-        if (useSemanticSearch && isVectorized) {
-          setSemanticSearchLoading(true);
-          
-          try {
-            const results = await searchTopicsSemanticaly(searchTerm, {
-              limit: 50,
-              category: categoryFilter === 'all' ? null : categoryFilter,
-              minSimilarity: 0.3
-            });
-            
-            if (!cancelled) {
-              // Enrich semantic results with full topic data for graph visualization
-              const enrichedResults = results.map(result => {
-                const fullTopic = topicData.find(t => t.id === result.topicId);
-                return {
-                  ...result,
-                  description: fullTopic?.description || fullTopic?.shortDescription || '',
-                  totalLengthSeconds: fullTopic?.totalLengthSeconds || 0
-                };
-              });
-              setSemanticResults(enrichedResults);
-              
-              // Map semantic results back to full topic data
-              const resultIds = new Set(results.map(r => r.topicId));
-              filtered = topicData.filter(topic => resultIds.has(topic.id));
-              
-              // Sort by semantic relevance
-              filtered.sort((a, b) => {
-                const aResult = results.find(r => r.topicId === a.id);
-                const bResult = results.find(r => r.topicId === b.id);
-                return (bResult?.similarity || 0) - (aResult?.similarity || 0);
-              });
-              
-              console.log(`✅ Semantic search found ${filtered.length} relevant topics`);
-            }
-          } catch (error) {
-            console.error('Semantic search error:', error);
-            // Fall back to keyword search
-            filtered = keywordSearchTopics(searchTerm, topicData, categoryFilter);
-          } finally {
-            if (!cancelled) {
-              setSemanticSearchLoading(false);
-            }
-          }
-        } else {
-          // Use keyword search
-          filtered = keywordSearchTopics(searchTerm, topicData, categoryFilter);
-        }
-      } else {
-        // No search term - apply category filter only
+        // Apply category filter
         if (categoryFilter !== 'all') {
           filtered = filtered.filter(item => item.category === categoryFilter);
         }
@@ -189,19 +164,152 @@ export default function TopicGlossary() {
               return a.keyword.localeCompare(b.keyword);
           }
         });
+        
+        if (!cancelled) {
+          setFilteredTopics(filtered);
+          setExactMatches([]);
+          setRelatedMatches([]);
+        }
+        return;
       }
+      
+      // PHASE 1: Instant keyword search
+      const keywordResults = keywordSearchTopics(searchTerm, topicData, categoryFilter);
+      const keywordIds = new Set(keywordResults.map(r => r.id));
+      
+      // Mark keyword results and set them immediately
+      const enrichedKeywordResults = keywordResults.map(topic => ({
+        ...topic,
+        hasKeywordMatch: true,
+        hasSemanticMatch: false,
+        score: calculateKeywordScore(searchTerm, topic.keyword)
+      }));
 
       if (!cancelled) {
-        setFilteredTopics(filtered);
+        setExactMatches(enrichedKeywordResults);
+        setFilteredTopics(enrichedKeywordResults);
+      }
+      
+      // PHASE 2: Enhance with semantic search (if available)
+      if (isVectorized && !cancelled) {
+        setSemanticSearchLoading(true);
+        
+        try {
+          const semanticResults = await searchTopicsSemanticaly(searchTerm, {
+            limit: 40,
+            category: categoryFilter === 'all' ? null : categoryFilter,
+            minSimilarity: 0.4
+          });
+          
+          if (!cancelled) {
+            // Enrich for graph visualization
+            const enrichedSemanticResults = semanticResults.map(result => {
+              const fullTopic = topicData.find(t => t.id === result.topicId);
+              return {
+                ...result,
+                description: fullTopic?.description || fullTopic?.shortDescription || '',
+                totalLengthSeconds: fullTopic?.totalLengthSeconds || 0
+              };
+            });
+            setSemanticResults(enrichedSemanticResults);
+            
+            // Merge keyword and semantic results
+            const mergedResults = mergeSearchResults(
+              enrichedKeywordResults,
+              semanticResults,
+              topicData
+            );
+            
+            // Separate into exact and related for UI
+            const exact = mergedResults.filter(t => t.hasKeywordMatch);
+            const related = mergedResults.filter(t => !t.hasKeywordMatch && t.hasSemanticMatch);
+            
+            setExactMatches(exact);
+            setRelatedMatches(related);
+            setFilteredTopics(mergedResults);
+            
+            console.log(`✅ Unified search: ${exact.length} exact, ${related.length} related`);
+          }
+        } catch (error) {
+          console.error('Semantic enhancement failed:', error);
+          // Keep keyword results on error
+        } finally {
+          if (!cancelled) {
+            setSemanticSearchLoading(false);
+          }
+        }
       }
     };
     
-    filterAndSortTopics();
+    performUnifiedSearch();
     
     return () => {
       cancelled = true;
     };
-  }, [searchTerm, topicData, sortBy, categoryFilter, useSemanticSearch, isVectorized]);
+  }, [searchTerm, topicData, sortBy, categoryFilter, isVectorized]);
+  
+  /**
+   * Calculates a score for keyword matches (0.9-1.0)
+   * Exact matches score highest, then starts-with, then contains
+   */
+  const calculateKeywordScore = (searchTerm, topicKeyword) => {
+    const searchLower = searchTerm.toLowerCase().trim();
+    const topicLower = topicKeyword.toLowerCase().trim();
+    
+    if (topicLower === searchLower) {
+      return 1.0; // Perfect match
+    } else if (topicLower.startsWith(searchLower)) {
+      return 0.97; // Starts with search term
+    } else {
+      return 0.93; // Contains search term
+    }
+  };
+
+  /**
+   * Merges keyword and semantic search results with intelligent scoring
+   * Topics with both matches get boosted, semantic-only appear below
+   */
+  const mergeSearchResults = (keywordResults, semanticResults, allTopics) => {
+    const resultsMap = new Map();
+    
+    // Add keyword matches with base scores
+    keywordResults.forEach(topic => {
+      resultsMap.set(topic.id, {
+        ...topic,
+        hasKeywordMatch: true,
+        hasSemanticMatch: false,
+        score: topic.score || 1.0
+      });
+    });
+    
+    // Enhance with semantic results
+    semanticResults.forEach(semanticResult => {
+      const existing = resultsMap.get(semanticResult.topicId);
+      
+      if (existing) {
+        // Has both keyword AND semantic match - boost it!
+        existing.hasSemanticMatch = true;
+        existing.similarity = semanticResult.similarity;
+        existing.score = existing.score + (semanticResult.similarity * 0.3); // Boost by up to 0.3
+      } else {
+        // Semantic-only match - add it
+        const fullTopic = allTopics.find(t => t.id === semanticResult.topicId);
+        if (fullTopic) {
+          resultsMap.set(semanticResult.topicId, {
+            ...fullTopic,
+            hasKeywordMatch: false,
+            hasSemanticMatch: true,
+            similarity: semanticResult.similarity,
+            score: semanticResult.similarity
+          });
+        }
+      }
+    });
+    
+    // Convert to array and sort by score (highest first)
+    return Array.from(resultsMap.values())
+      .sort((a, b) => b.score - a.score);
+  };
   
   /**
    * Keyword search fallback function - searches only by topic name
@@ -505,54 +613,19 @@ export default function TopicGlossary() {
             <div className="min-w-64 h-6 flex items-center gap-4">
               <input
                 type="text"
-                placeholder={useSemanticSearch ? "Search by concept or meaning..." : "Search in glossary"}
+                placeholder="Search topics by name or concept..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="text-stone-900 text-xl font-light bg-transparent border-none outline-none w-full"
                 style={{ fontFamily: 'Chivo Mono, monospace' }}
               />
-              {semanticSearchLoading && (
-                <div className="w-5 h-5 border-2 border-stone-900/20 border-t-red-500 rounded-full animate-spin"></div>
-              )}
             </div>
-            {isVectorized && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded border border-stone-900">
-                <button
-                  onClick={() => setUseSemanticSearch(false)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    !useSemanticSearch
-                      ? 'text-white'
-                      : 'text-stone-900 hover:text-stone-600'
-                  }`}
-                  style={{ 
-                    fontFamily: 'Chivo Mono, monospace',
-                    backgroundColor: !useSemanticSearch ? '#F2483C' : 'transparent'
-                  }}
-                >
-                  Keyword
-                </button>
-                <button
-                  onClick={() => setUseSemanticSearch(true)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    useSemanticSearch
-                      ? 'text-white'
-                      : 'text-stone-900 hover:text-stone-600'
-                  }`}
-                  style={{ 
-                    fontFamily: 'Chivo Mono, monospace',
-                    backgroundColor: useSemanticSearch ? '#F2483C' : 'transparent'
-                  }}
-                >
-                  Semantic
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Filter Section with View Mode Toggle */}
           <div className="flex items-center gap-6">
-            {/* View Mode Toggle (only show during semantic search with results) */}
-            {useSemanticSearch && searchTerm && filteredTopics.length > 0 && (
+            {/* View Mode Toggle (only show during search with results) */}
+            {searchTerm && filteredTopics.length > 0 && relatedMatches.length > 0 && (
               <div className="flex items-center gap-0 bg-gray-200 rounded-full border border-stone-900 overflow-hidden">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -605,7 +678,24 @@ export default function TopicGlossary() {
         </div>
       </div>
 
-      {/* Topics by Letter OR Force-Directed Graph */}
+      {/* Loading indicator for related topics */}
+      {semanticSearchLoading && searchTerm && (
+        <div className="w-full px-4 sm:px-8 lg:px-12 mb-6">
+          <div className="flex flex-col gap-2">
+            <span className="text-stone-900 text-sm font-light" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+              Loading related topics...
+            </span>
+            <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-red-500 rounded-full transition-all duration-100 ease-linear" 
+                style={{ width: `${loadingProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Topics by Letter OR Force-Directed Graph OR Unified Search Results */}
       <div className="w-full px-4 sm:px-8 lg:px-12 pb-12">
         {filteredTopics.length === 0 ? (
           <div className="text-center py-16">
@@ -613,7 +703,7 @@ export default function TopicGlossary() {
               No topics found matching your search.
             </span>
           </div>
-        ) : viewMode === 'graph' && useSemanticSearch && searchTerm ? (
+        ) : viewMode === 'graph' && searchTerm && relatedMatches.length > 0 ? (
           /* Force-Directed Network Graph View */
           <div className="w-full" style={{ height: '800px' }}>
             <ForceDirectedTopicGraph
@@ -625,8 +715,93 @@ export default function TopicGlossary() {
               similarityThreshold={0.7}
             />
           </div>
+        ) : searchTerm && (exactMatches.length > 0 || relatedMatches.length > 0) ? (
+          /* Unified Search Results View - showing exact and related topics */
+          <div className="space-y-12">
+            {/* Exact Matches Section */}
+            {exactMatches.length > 0 && (
+              <div className="space-y-6">
+                {exactMatches.length > 0 && relatedMatches.length > 0 && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-stone-900 text-sm font-medium" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                      {exactMatches.length} Matching Topic{exactMatches.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  {exactMatches.map((topic) => (
+                    <div 
+                      key={topic.id}
+                      className="w-64 cursor-pointer transition-all duration-300 group"
+                      onClick={() => handleTopicClick(topic.keyword)}
+                      title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
+                    >
+                      <div className="w-60 flex flex-col justify-start items-start gap-4">
+                        <div className="self-stretch flex flex-col justify-start items-start gap-4">
+                          <div className="flex flex-col justify-start items-start gap-0.5">
+                            <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] capitalize transition-colors duration-300 group-hover:text-[#F2483C] group-hover:underline">
+                              {topic.keyword}
+                            </div>
+                            <div className="text-stone-900 text-base font-light transition-colors duration-300 group-hover:text-[#F2483C]" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                              {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
+                            </div>
+                          </div>
+                          <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4'] transition-colors duration-300 group-hover:text-[#F2483C]">
+                            {topic.shortDescription || topic.description?.substring(0, 200) + (topic.description?.length > 200 ? '...' : '') || `${topic.keyword} is an important topic in the context of the civil rights movement.`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Divider between exact and related */}
+            {exactMatches.length > 0 && relatedMatches.length > 0 && (
+              <div className="flex items-center gap-4 my-8">
+                <div className="flex-1 h-px bg-gray-300"></div>
+                <span className="text-sm text-gray-500 px-4" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                  {relatedMatches.length} Related Topic{relatedMatches.length !== 1 ? 's' : ''}
+                </span>
+                <div className="flex-1 h-px bg-gray-300"></div>
+              </div>
+            )}
+
+            {/* Related Topics Section */}
+            {relatedMatches.length > 0 && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  {relatedMatches.map((topic) => (
+                    <div 
+                      key={topic.id}
+                      className="w-64 cursor-pointer transition-all duration-300 group"
+                      onClick={() => handleTopicClick(topic.keyword)}
+                      title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
+                    >
+                      <div className="w-60 flex flex-col justify-start items-start gap-4">
+                        <div className="self-stretch flex flex-col justify-start items-start gap-4">
+                          <div className="flex flex-col justify-start items-start gap-0.5">
+                            <div className="text-stone-900 text-4xl font-bold font-['Source_Serif_4'] capitalize transition-colors duration-300 group-hover:text-[#F2483C] group-hover:underline">
+                              {topic.keyword}
+                            </div>
+                            <div className="text-stone-900 text-base font-light transition-colors duration-300 group-hover:text-[#F2483C]" style={{ fontFamily: 'Chivo Mono, monospace' }}>
+                              {topic.interviewCount} Interview{topic.interviewCount !== 1 ? 's' : ''}, {formatDuration(topic.totalLengthSeconds)}
+                            </div>
+                          </div>
+                          <div className="self-stretch text-stone-900 text-base font-normal font-['Source_Serif_4'] transition-colors duration-300 group-hover:text-[#F2483C]">
+                            {topic.shortDescription || topic.description?.substring(0, 200) + (topic.description?.length > 200 ? '...' : '') || `${topic.keyword} is an important topic in the context of the civil rights movement.`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          /* Grid View */
+          /* Default Grid View - Alphabetical by Letter */
           <div className="space-y-16">
             {sortedLetters.map((letter) => (
               <div key={letter} className="space-y-6">

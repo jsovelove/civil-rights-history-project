@@ -525,7 +525,7 @@ const PlaylistBuilder = () => {
       <div className="px-12 pt-4">
         {/* Topic title */}
         <div className="mb-8">
-          <h1 className="text-stone-900 text-8xl font-medium mb-4" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
+          <h1 className="text-stone-900 text-8xl font-medium mb-4 capitalize" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
             {keyword || 'Topic Playlist'}
           </h1>
         </div>
@@ -595,7 +595,7 @@ const PlaylistBuilder = () => {
                        className="px-6 py-3 rounded-[50px] outline outline-1 outline-offset-[-1px] outline-black inline-flex justify-center items-center gap-2.5 cursor-pointer hover:bg-red-500 hover:outline-red-500 transition-colors duration-200 group"
                        onClick={() => navigate(`?keywords=${encodeURIComponent(tag)}`)}
                      >
-                       <div className="text-center justify-start text-black text-base font-light font-['Chivo_Mono'] group-hover:text-white">
+                       <div className="text-center justify-start text-black text-base font-light font-['Chivo_Mono'] group-hover:text-white capitalize">
                          {tag}
                        </div>
                      </div>
@@ -611,19 +611,19 @@ const PlaylistBuilder = () => {
           </div>
 
           {/* Side content */}
-          <div className="flex-1 pt-0">
+          <div className="flex-1 pt-0 h-[540px] flex flex-col">
             {currentVideo && (
               <>
                 {/* Interviewee names */}
-                <div className="mb-6">
-                  <h2 className="text-black text-5xl font-semibold" style={{fontFamily: 'Inter, sans-serif'}}>
+                <div className="mb-6 flex-shrink-0">
+                  <h2 className="text-black text-5xl font-semibold capitalize" style={{fontFamily: 'Inter, sans-serif'}}>
                     {currentVideo.name}
                   </h2>
                 </div>
 
 
-                {/* Description */}
-                <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: 'FreightText Pro, serif'}}>
+                {/* Description - scrollable */}
+                <div className="text-black text-2xl font-normal leading-relaxed overflow-y-auto flex-1 pr-4" style={{fontFamily: 'FreightText Pro, serif'}}>
                   {currentVideo.summary}
                 </div>
               </>
@@ -679,21 +679,21 @@ const PlaylistBuilder = () => {
               >
               {videoQueue.map((video, index) => (
                 <div key={video.id} 
-                     className="flex-shrink-0 w-[504px] cursor-pointer hover:opacity-80"
+                     className="flex-shrink-0 w-[504px] cursor-pointer group"
                      onClick={() => setCurrentVideoIndex(index)}>
                   <div className="flex flex-col items-center gap-3">
                     {/* Video thumbnail */}
                     <div className="w-[504px] h-72 bg-zinc-300 rounded overflow-hidden">
                       {video.thumbnailUrl ? (
-                        <img className="w-full h-full object-cover" src={video.thumbnailUrl} alt={video.name} />
+                        <img className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-110" src={video.thumbnailUrl} alt={video.name} />
                       ) : (
-                        <div className="w-full h-full bg-zinc-300" />
+                        <div className="w-full h-full bg-zinc-300 transition-transform duration-300 ease-in-out group-hover:scale-110" />
                       )}
                     </div>
                     
                     {/* Video info */}
                     <div className="w-full h-16 relative">
-                      <div className="absolute left-0 bottom-0 text-stone-900 text-base font-light font-mono">
+                      <div className="absolute left-0 bottom-0 text-stone-900 text-base font-light font-mono transition-colors duration-300 group-hover:text-[#F2483C]">
                         {video.roleSimplified} | {(() => {
                           // Calculate clip length from timestamp
                           try {
@@ -710,7 +710,15 @@ const PlaylistBuilder = () => {
                           return video.clipLength || video.duration || '-- Minutes';
                         })()}
                       </div>
-                      <div className="w-full absolute top-0 left-0 text-stone-900 text-4xl font-bold font-['Source_Serif_4']">
+                      {/* Arrow that appears on hover - positioned absolutely */}
+                      <img 
+                        src={ArrowRightIcon}
+                        alt=""
+                        className="h-8 w-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex-shrink-0 absolute left-0 top-1"
+                        style={{ filter: 'invert(35%) sepia(89%) saturate(2893%) hue-rotate(345deg) brightness(97%) contrast(93%)' }}
+                      />
+                      {/* Name that slides right on hover */}
+                      <div className="w-full absolute top-0 left-0 text-stone-900 text-4xl font-bold font-['Source_Serif_4'] transition-all duration-300 group-hover:text-[#F2483C] group-hover:underline group-hover:translate-x-11 capitalize">
                         {video.name}
                       </div>
                     </div>
@@ -731,7 +739,7 @@ const PlaylistBuilder = () => {
                       {/* Topic square - same size as video thumbnails */}
                       <div className="w-[504px] h-72 border-2 border-black rounded overflow-hidden flex items-center justify-center">
                         <div className="text-center p-8">
-                          <div className="text-black text-4xl font-bold" style={{fontFamily: 'Source Serif Pro, serif'}}>
+                          <div className="text-black text-4xl font-bold capitalize" style={{fontFamily: 'Source Serif Pro, serif'}}>
                             {relatedTerm.topic}
                           </div>
                         </div>
