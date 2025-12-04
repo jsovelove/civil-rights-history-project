@@ -21,6 +21,10 @@ import {
   clearCache
 } from "../services/playlistService";
 import { calculateRelatedTerms, getRelatedTermsForTopic, filterRelatedTermsByAvailability } from "../services/relatedTermsService";
+import { useAuth } from '../contexts/AuthContext';
+import { useInlineFeedback } from '../hooks/useInlineFeedback';
+import FeedbackModal from '../components/FeedbackModal';
+import SelectionFeedbackButton from '../components/SelectionFeedbackButton';
 import ArrowLeftIcon from "../assetts/vectors/arrow left.svg";
 import ArrowRightIcon from "../assetts/vectors/arrow right.svg";
 import SimpleArrowLeftIcon from "../assetts/vectors/simple arrow left.svg";
@@ -33,6 +37,17 @@ const PlaylistBuilder = () => {
   // Routing and navigation
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Inline feedback functionality
+  const {
+    contentRef,
+    selectionContext,
+    showFeedbackModal,
+    handleReportIssue,
+    handleFeedbackSubmit,
+    handleCloseFeedbackModal,
+  } = useInlineFeedback({ user, sectionLabel: 'Playlist' });
   
   // Search and results state
   const [keyword, setKeyword] = useState("");
@@ -510,9 +525,27 @@ const PlaylistBuilder = () => {
   const currentVideo = getCurrentVideo();
 
   return (
-    <div className="w-full min-h-screen overflow-hidden">
-      {/* Background loading indicator - only show when loading */}
-      {backgroundLoading && (
+    <>
+      {/* Feedback UI */}
+      {!showFeedbackModal && (
+        <SelectionFeedbackButton
+          selection={selectionContext}
+          onReport={handleReportIssue}
+          disabled={false}
+        />
+      )}
+      {showFeedbackModal && selectionContext && (
+        <FeedbackModal
+          selectedText={selectionContext.text}
+          sectionLabel={selectionContext.sectionLabel}
+          onSubmit={handleFeedbackSubmit}
+          onClose={handleCloseFeedbackModal}
+        />
+      )}
+      
+      <div ref={contentRef} data-feedback-section="Playlist" className="w-full min-h-screen overflow-hidden">
+        {/* Background loading indicator - only show when loading */}
+        {backgroundLoading && (
         <div className="px-12 pt-4">
           <div className="flex items-center gap-2 text-red-500 text-base font-light font-mono">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
@@ -769,7 +802,8 @@ const PlaylistBuilder = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

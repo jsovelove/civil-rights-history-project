@@ -9,6 +9,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getInterviewData, getInterviewSegments, getAllInterviews } from '../services/firebase'
+import { useAuth } from '../contexts/AuthContext'
+import { useInlineFeedback } from '../hooks/useInlineFeedback'
+import FeedbackModal from '../components/FeedbackModal'
+import SelectionFeedbackButton from '../components/SelectionFeedbackButton'
 import Header from '../components/common/Header'
 import Footer from '../components/common/Footer'
 import ArrowLeftIcon from "../assetts/vectors/arrow left.svg";
@@ -34,6 +38,17 @@ export default function InterviewPlayer() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const documentName = searchParams.get('documentName')
+  const { user } = useAuth()
+  
+  // Inline feedback functionality
+  const {
+    contentRef,
+    selectionContext,
+    showFeedbackModal,
+    handleReportIssue,
+    handleFeedbackSubmit,
+    handleCloseFeedbackModal,
+  } = useInlineFeedback({ user, sectionLabel: 'Interview' })
 
   // Component state variables
   const [loading, setLoading] = useState(true)
@@ -509,12 +524,30 @@ export default function InterviewPlayer() {
   const hasSegments = subSummaries.length > 0;
 
   return (
-    <div className="w-full min-h-screen overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
-      {/* Universal Header */}
-      <Header />
+    <>
+      {/* Feedback UI */}
+      {!showFeedbackModal && (
+        <SelectionFeedbackButton
+          selection={selectionContext}
+          onReport={handleReportIssue}
+          disabled={false}
+        />
+      )}
+      {showFeedbackModal && selectionContext && (
+        <FeedbackModal
+          selectedText={selectionContext.text}
+          sectionLabel={selectionContext.sectionLabel}
+          onSubmit={handleFeedbackSubmit}
+          onClose={handleCloseFeedbackModal}
+        />
+      )}
+      
+      <div className="w-full min-h-screen overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
+        {/* Universal Header */}
+        <Header />
 
-      {/* Main content */}
-      <div className="px-12 pt-4">
+        {/* Main content */}
+        <div ref={contentRef} data-feedback-section="Interview" className="px-12 pt-4">
         {/* Interview title */}
         <div className="mb-8">
           <h1 className="text-stone-900 text-8xl font-medium mb-4" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
@@ -597,7 +630,6 @@ export default function InterviewPlayer() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Interview Segments */}
       <div className="w-full px-12 space-y-8">
@@ -708,43 +740,46 @@ export default function InterviewPlayer() {
         </div>
       )}
 
-      {/* Footer */}
-      <Footer />
+        </div>
+        
+        {/* Footer */}
+        <Footer />
 
-      {/* Description Modal */}
-      {showDescriptionModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
-          onClick={() => setShowDescriptionModal(false)}
-        >
+        {/* Description Modal */}
+        {showDescriptionModal && (
           <div 
-            className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto p-8 relative"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
+            onClick={() => setShowDescriptionModal(false)}
           >
-            {/* Close button */}
-            <button
-              onClick={() => setShowDescriptionModal(false)}
-              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-              aria-label="Close"
+            <div 
+              className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto p-8 relative"
+              onClick={(e) => e.stopPropagation()}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              {/* Close button */}
+              <button
+                onClick={() => setShowDescriptionModal(false)}
+                className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
 
-            {/* Modal content */}
-            <div>
-              <h2 className="text-stone-900 text-5xl font-medium mb-6" style={{fontFamily: 'Inter, sans-serif'}}>
-                Interview Description
-              </h2>
-              
-              <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: '"Source Serif 4", serif'}}>
-                {mainSummary?.mainSummary || 'No description available'}
+              {/* Modal content */}
+              <div>
+                <h2 className="text-stone-900 text-5xl font-medium mb-6" style={{fontFamily: 'Inter, sans-serif'}}>
+                  Interview Description
+                </h2>
+                
+                <div className="text-black text-2xl font-normal leading-relaxed" style={{fontFamily: '"Source Serif 4", serif'}}>
+                  {mainSummary?.mainSummary || 'No description available'}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   )
 }

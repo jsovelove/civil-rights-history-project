@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { getFirestore, doc, getDoc, collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'
+import { getFunctions } from 'firebase/functions'
 import { 
   mapInterviewData, 
   mapSubSummaryData, 
@@ -26,6 +27,7 @@ const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
 export const auth = getAuth(app)
 export const storage = getStorage(app)
+export const functions = getFunctions(app)
 
 /**
  * Get download URL for a file in Firebase Storage

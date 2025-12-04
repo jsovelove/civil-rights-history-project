@@ -7,14 +7,18 @@
  * It implements caching for performance and supports filtering, sorting, and category-based browsing.
  */
 
-import { useState, useEffect, createContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, createContext, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { collection, getDocs, collectionGroup } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { 
   searchTopicsSemanticaly, 
   checkTopicVectorizationStatus 
 } from '../services/topicVectorSearch';
+import { useAuth } from '../contexts/AuthContext';
+import { useInlineFeedback } from '../hooks/useInlineFeedback';
+import FeedbackModal from '../components/FeedbackModal';
+import SelectionFeedbackButton from '../components/SelectionFeedbackButton';
 import ForceDirectedTopicGraph from '../components/visualization/ForceDirectedTopicGraph';
 
 // Create a context for caching (similar to ContentDirectory)
@@ -50,7 +54,23 @@ export default function TopicGlossary() {
   const [exactMatches, setExactMatches] = useState([]);
   const [relatedMatches, setRelatedMatches] = useState([]);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [highlightedTopicId, setHighlightedTopicId] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  
+  // Inline feedback functionality
+  const {
+    contentRef,
+    selectionContext,
+    showFeedbackModal,
+    handleReportIssue,
+    handleFeedbackSubmit,
+    handleCloseFeedbackModal,
+  } = useInlineFeedback({ user, sectionLabel: 'Topic Glossary' });
+  
+  // Track mouse position for click vs. drag detection
+  const mouseDownPos = useRef({ x: 0, y: 0 });
 
   // Cache functions
   const updateCache = (key, data) => {
@@ -104,6 +124,127 @@ export default function TopicGlossary() {
       cancelled = true;
     };
   }, []);
+
+  /**
+   * Scroll to topic when navigated with hash (from Wikipedia-style links)
+   */
+  useEffect(() => {
+    if (!loading && location.hash && topicData.length > 0) {
+      // Decode and normalize the topic ID from the hash
+      let topicId = decodeURIComponent(location.hash.substring(1)); // Remove '#' and decode %20, etc.
+      
+      // Normalize: convert spaces to hyphens, lowercase, remove special chars
+      const normalizedTopicId = topicId
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      console.log(`📍 Attempting to scroll to topic:`);
+      console.log(`  Raw hash: "${location.hash}"`);
+      console.log(`  Decoded: "${topicId}"`);
+      console.log(`  Normalized: "${normalizedTopicId}"`);
+      
+      topicId = normalizedTopicId;
+      
+      // Clear any filters to ensure the topic is visible
+      setSearchTerm('');
+      setCategoryFilter('all');
+      setViewMode('grid'); // Ensure we're in grid view, not graph view
+      
+      // Try multiple times with increasing delays to ensure DOM is ready
+      const attemptScroll = (attempt = 1, maxAttempts = 5) => {
+        let element = document.getElementById(`topic-${topicId}`);
+        let foundTopicId = topicId;
+        
+        // If not found by exact ID, try to find by keyword match or normalized ID
+        if (!element && topicData.length > 0) {
+          // Try to find topic by matching keyword
+          const normalizedSearch = topicId.toLowerCase().replace(/-/g, ' ');
+          
+          const matchingTopic = topicData.find(t => {
+            const normalizedKeyword = t.keyword.toLowerCase();
+            const normalizedTopicId = t.id.toLowerCase()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, '-')
+              .replace(/-+/g, '-')
+              .replace(/^-|-$/g, '');
+            
+            // Match by normalized ID or keyword
+            return normalizedTopicId === topicId ||
+                   normalizedKeyword === normalizedSearch || 
+                   normalizedKeyword.includes(normalizedSearch) ||
+                   normalizedSearch.includes(normalizedKeyword);
+          });
+          
+          if (matchingTopic) {
+            console.log(`🔍 Found topic by match: "${matchingTopic.keyword}"`);
+            console.log(`   Topic data ID: "${matchingTopic.id}"`);
+            element = document.getElementById(`topic-${matchingTopic.id}`);
+            foundTopicId = matchingTopic.id;
+          }
+        }
+        
+        if (element) {
+          console.log(`✅ Found topic "${foundTopicId}" on attempt ${attempt}`);
+          
+          // Smooth scroll to the element
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center'
+          });
+          
+          // Highlight the topic temporarily
+          setHighlightedTopicId(foundTopicId);
+          
+          // Remove highlight after 3 seconds
+          setTimeout(() => {
+            setHighlightedTopicId(null);
+          }, 3000);
+        } else if (attempt < maxAttempts) {
+          console.log(`⏳ Topic "${topicId}" not found yet, retrying (attempt ${attempt}/${maxAttempts})...`);
+          setTimeout(() => attemptScroll(attempt + 1, maxAttempts), 300 * attempt);
+        } else {
+          // Final attempt failed - log detailed debug info
+          console.error(`❌ Topic with ID "${topicId}" not found after ${maxAttempts} attempts`);
+          console.log('Topic data loaded:', topicData.length, 'topics');
+          console.log('Sample topic IDs:', topicData.slice(0, 10).map(t => t.id));
+          
+          // Check if topic exists in data but not in DOM
+          const topicInData = topicData.find(t => t.id === topicId);
+          if (topicInData) {
+            console.log(`✅ Topic exists in data: "${topicInData.keyword}"`);
+            console.log('But element not found in DOM - possible rendering issue');
+          } else {
+            console.log('❌ Topic not found in topic data by ID');
+            // Try to find by keyword
+            const normalizedSearch = topicId.toLowerCase().replace(/-/g, ' ');
+            const byKeyword = topicData.filter(t => 
+              t.keyword.toLowerCase().includes(normalizedSearch) ||
+              normalizedSearch.includes(t.keyword.toLowerCase())
+            );
+            if (byKeyword.length > 0) {
+              console.log('🔍 Topics with matching keywords:', byKeyword.map(t => ({
+                id: t.id, 
+                keyword: t.keyword
+              })));
+            }
+            // Try to find similar IDs
+            const similar = topicData.filter(t => 
+              t.id.includes(topicId) || topicId.includes(t.id)
+            );
+            if (similar.length > 0) {
+              console.log('🔍 Topics with similar IDs:', similar.map(t => ({id: t.id, keyword: t.keyword})));
+            }
+          }
+        }
+      };
+      
+      // Start first attempt after short delay
+      setTimeout(() => attemptScroll(), 300);
+    }
+  }, [location.hash, loading, topicData]);
 
   /**
    * Progress bar animation for semantic search loading
@@ -532,10 +673,28 @@ export default function TopicGlossary() {
 
   /**
    * Handles topic card click to load playlist builder with all relevant clips
+   * Only navigates if it's an actual click, not a text selection drag
    */
-  const handleTopicClick = (keyword) => {
+  const handleTopicClick = (keyword, event) => {
+    // Don't navigate if user was selecting text (dragging mouse)
+    const dragThreshold = 5; // pixels
+    const deltaX = Math.abs(event.clientX - mouseDownPos.current.x);
+    const deltaY = Math.abs(event.clientY - mouseDownPos.current.y);
+    
+    if (deltaX > dragThreshold || deltaY > dragThreshold) {
+      // This was a drag (text selection), don't navigate
+      return;
+    }
+    
     // Navigate to playlist builder with the selected topic/keyword
     navigate(`/playlist-builder?keywords=${encodeURIComponent(keyword)}`);
+  };
+  
+  /**
+   * Track mouse down position
+   */
+  const handleMouseDown = (event) => {
+    mouseDownPos.current = { x: event.clientX, y: event.clientY };
   };
 
   /**
@@ -580,9 +739,27 @@ export default function TopicGlossary() {
   const sortedLetters = Object.keys(groupedTopics).sort();
 
   return (
-    <div className="min-h-screen">
-      {/* Header Section */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 pt-3 pb-6">
+    <>
+      {/* Feedback UI */}
+      {!showFeedbackModal && (
+        <SelectionFeedbackButton
+          selection={selectionContext}
+          onReport={handleReportIssue}
+          disabled={false}
+        />
+      )}
+      {showFeedbackModal && selectionContext && (
+        <FeedbackModal
+          selectedText={selectionContext.text}
+          sectionLabel={selectionContext.sectionLabel}
+          onSubmit={handleFeedbackSubmit}
+          onClose={handleCloseFeedbackModal}
+        />
+      )}
+      
+      <div ref={contentRef} className="min-h-screen">
+        {/* Header Section */}
+        <div className="w-full px-4 sm:px-8 lg:px-12 pt-3 pb-6">
         {/* Main heading */}
         <div className="mb-6 sm:mb-7 md:mb-8 lg:mb-[32px]">
           <h1 className="text-stone-900 text-8xl font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -732,9 +909,14 @@ export default function TopicGlossary() {
                   {exactMatches.map((topic) => (
                     <div 
                       key={topic.id}
-                      className="w-64 cursor-pointer transition-all duration-300 group"
-                      onClick={() => handleTopicClick(topic.keyword)}
+                      id={`topic-${topic.id}`}
+                      className={`w-64 cursor-pointer transition-all duration-300 group ${
+                        highlightedTopicId === topic.id ? 'ring-4 ring-red-500 rounded-lg p-2 -m-2' : ''
+                      }`}
+                      onMouseDown={handleMouseDown}
+                      onClick={(e) => handleTopicClick(topic.keyword, e)}
                       title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
+                      data-feedback-section={`Topic: ${topic.keyword}`}
                     >
                       <div className="w-60 flex flex-col justify-start items-start gap-4">
                         <div className="self-stretch flex flex-col justify-start items-start gap-4">
@@ -775,9 +957,14 @@ export default function TopicGlossary() {
                   {relatedMatches.map((topic) => (
                     <div 
                       key={topic.id}
-                      className="w-64 cursor-pointer transition-all duration-300 group"
-                      onClick={() => handleTopicClick(topic.keyword)}
+                      id={`topic-${topic.id}`}
+                      className={`w-64 cursor-pointer transition-all duration-300 group ${
+                        highlightedTopicId === topic.id ? 'ring-4 ring-red-500 rounded-lg p-2 -m-2' : ''
+                      }`}
+                      onMouseDown={handleMouseDown}
+                      onClick={(e) => handleTopicClick(topic.keyword, e)}
                       title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
+                      data-feedback-section={`Topic: ${topic.keyword}`}
                     >
                       <div className="w-60 flex flex-col justify-start items-start gap-4">
                         <div className="self-stretch flex flex-col justify-start items-start gap-4">
@@ -819,9 +1006,14 @@ export default function TopicGlossary() {
                     {groupedTopics[letter].map((topic, index) => (
                       <div 
                         key={topic.keyword}
-                        className="w-64 cursor-pointer transition-all duration-300 group"
-                        onClick={() => handleTopicClick(topic.keyword)}
+                        id={`topic-${topic.id}`}
+                        className={`w-64 cursor-pointer transition-all duration-300 group ${
+                          highlightedTopicId === topic.id ? 'ring-4 ring-red-500 rounded-lg p-2 -m-2' : ''
+                        }`}
+                        onMouseDown={handleMouseDown}
+                        onClick={(e) => handleTopicClick(topic.keyword, e)}
                         title={`Click to build a playlist with all ${topic.clipCount} clips about "${topic.keyword}"`}
+                        data-feedback-section={`Topic: ${topic.keyword}`}
                       >
                         <div className="w-60 flex flex-col justify-start items-start gap-4">
                           <div className="self-stretch flex flex-col justify-start items-start gap-4">
@@ -847,6 +1039,7 @@ export default function TopicGlossary() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 } 

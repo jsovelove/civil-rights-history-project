@@ -7,7 +7,7 @@
 
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/common/Footer';
 import arrowRightIcon from '../assetts/vectors/arrow right.svg';
 import EmmettToMontgomeryConnector from '../components/connectors/EmmettToMontgomeryConnector';
@@ -28,6 +28,12 @@ import BrownBeretsToLongHotSummerConnector from '../components/connectors/BrownB
 import LongHotSummerToMLKConnector from '../components/connectors/LongHotSummerToMLKConnector';
 import MLKToCivilRightsAct1968Connector from '../components/connectors/MLKToCivilRightsAct1968Connector';
 import TopicBubbles from '../components/TopicBubbles';
+import TopicLinkedText from '../components/TopicLinkedText';
+import FeedbackModal from '../components/FeedbackModal';
+import SelectionFeedbackButton from '../components/SelectionFeedbackButton';
+
+// Simple feedback - just save to Firestore
+const FEEDBACK_ENABLED = true;
 
 /**
  * Simple Ray Component - Easy positioning with Tailwind classes
@@ -160,7 +166,6 @@ const SmartRay = ({
   );
 };
 
-
 /**
  * DecadeSection - Component for decade headers
  */
@@ -263,6 +268,7 @@ export default function Home() {
   const { user } = useAuth();
   const [landingImageUrl, setLandingImageUrl] = useState(null);
   const [imageLoading, setImageLoading] = useState(true);
+  const aiContentRef = useRef(null);
   const timelineRef = useRef(null);
   const timelineStartRef = useRef(null);
   const redRectangleRef = useRef(null);
@@ -331,6 +337,8 @@ export default function Home() {
   const [snccVotePinLoading, setSnccVotePinLoading] = useState(true);
   const [pantherPinUrl, setPantherPinUrl] = useState(null);
   const [pantherPinLoading, setPantherPinLoading] = useState(true);
+  const [selectionContext, setSelectionContext] = useState(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   useEffect(() => {
     const loadLandingImage = async () => {
@@ -712,8 +720,173 @@ export default function Home() {
     loadPantherPin();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const MIN_SELECTION_LENGTH = 24;
+    const BUTTON_WIDTH = 220;
+    const EDGE_PADDING = 16;
+    const scrollListenerOptions = { passive: true };
+
+    const isNodeInsideContent = (node) => {
+      if (!aiContentRef.current || !node) return false;
+      const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      return element ? aiContentRef.current.contains(element) : false;
+    };
+
+    const getSectionLabel = (node) => {
+      const element = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      return (
+        element?.closest('[data-ai-section]')?.getAttribute('data-ai-section') || ''
+      );
+    };
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) {
+        setSelectionContext(null);
+        return;
+      }
+
+      const text = selection.toString().trim();
+      if (!text || text.length < MIN_SELECTION_LENGTH) {
+        setSelectionContext(null);
+        return;
+      }
+
+      const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+      if (!range) {
+        setSelectionContext(null);
+        return;
+      }
+
+      const ancestor = range.commonAncestorContainer;
+      if (!isNodeInsideContent(ancestor)) {
+        setSelectionContext(null);
+        return;
+      }
+
+      const rect = range.getBoundingClientRect();
+      if (!rect || (rect.top === 0 && rect.bottom === 0 && rect.width === 0)) {
+        setSelectionContext(null);
+        return;
+      }
+
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const maxLeft = Math.max(EDGE_PADDING, viewportWidth - BUTTON_WIDTH - EDGE_PADDING);
+      const left = clamp(
+        rect.left + rect.width / 2 - BUTTON_WIDTH / 2,
+        EDGE_PADDING,
+        maxLeft
+      );
+      const top = clamp(rect.bottom + 12, EDGE_PADDING, viewportHeight - 56);
+
+      setSelectionContext({
+        text: text.slice(0, 1500),
+        sectionLabel: getSectionLabel(ancestor),
+        position: { top, left },
+      });
+    };
+
+    const clearSelection = () => {
+      // Don't clear selection if modal is open
+      if (showFeedbackModal) return;
+      setSelectionContext(null);
+    };
+
+    document.addEventListener('mouseup', handleSelectionChange);
+    document.addEventListener('keyup', handleSelectionChange);
+    document.addEventListener('touchend', handleSelectionChange);
+    document.addEventListener('mousedown', clearSelection);
+    window.addEventListener('scroll', clearSelection, scrollListenerOptions);
+
+    return () => {
+      document.removeEventListener('mouseup', handleSelectionChange);
+      document.removeEventListener('keyup', handleSelectionChange);
+      document.removeEventListener('touchend', handleSelectionChange);
+      document.removeEventListener('mousedown', clearSelection);
+      window.removeEventListener('scroll', clearSelection, scrollListenerOptions);
+    };
+  }, [aiContentRef, showFeedbackModal]);
+
+  const handleReportIssue = useCallback(() => {
+    if (!selectionContext) return;
+    setShowFeedbackModal(true);
+  }, [selectionContext]);
+
+  const handleFeedbackSubmit = useCallback(async ({ description, email }) => {
+    if (!selectionContext) return;
+
+    const issueTitle = selectionContext.sectionLabel
+      ? `Issue in ${selectionContext.sectionLabel}`
+      : 'Issue with AI-generated content';
+
+    try {
+      // Save feedback directly to Firestore - simple and works!
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../services/firebase');
+
+      await addDoc(collection(db, 'feedback'), {
+        title: issueTitle,
+        description: description,
+        selectedText: selectionContext.text,
+        pageUrl: window.location.href,
+        sectionLabel: selectionContext.sectionLabel || null,
+        authorEmail: email,
+        authorName: user?.displayName || null,
+        userId: user?.uid || null,
+        status: 'new',
+        createdAt: serverTimestamp(),
+      });
+
+      alert('Thank you! Your feedback has been submitted.');
+      console.log('Feedback saved to Firestore');
+
+      // Clear selection
+      const selection = window.getSelection ? window.getSelection() : null;
+      selection?.removeAllRanges?.();
+      setSelectionContext(null);
+      setShowFeedbackModal(false);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      throw error; // Let modal handle the error
+    }
+  }, [selectionContext, user]);
+
   return (
-    <div className="w-full relative overflow-hidden" style={{ backgroundColor: '#EBEAE9' }}>
+    <>
+      {!showFeedbackModal && (
+        <SelectionFeedbackButton
+          selection={selectionContext}
+          onReport={handleReportIssue}
+          disabled={false}
+        />
+      )}
+      {showFeedbackModal && selectionContext && (
+        <FeedbackModal
+          selectedText={selectionContext.text}
+          sectionLabel={selectionContext.sectionLabel}
+          onSubmit={handleFeedbackSubmit}
+          onClose={() => {
+            setShowFeedbackModal(false);
+            setSelectionContext(null);
+            // Clear text selection
+            const selection = window.getSelection ? window.getSelection() : null;
+            selection?.removeAllRanges?.();
+          }}
+        />
+      )}
+      <div
+        ref={aiContentRef}
+        data-ai-section="Timeline Content"
+        className="w-full relative overflow-hidden"
+        style={{ backgroundColor: '#EBEAE9' }}
+      >
 
       {/* Hero Section */}
       <section className="relative px-4 sm:px-8 lg:px-12 pt-2 pb-24 lg:pt-3 lg:pb-32 flex items-start z-10" style={{ minHeight: '100vh' }}>
@@ -891,7 +1064,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The brutal murder of 14-year-old Emmett Till in Mississippi became a pivotal catalyst in the civil rights movement, highlighting the pervasive racial violence and injustice in the United States. The extensive media coverage helped galvanize public opinion and energized activists to fight for racial equality.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The brutal murder of 14-year-old Emmett Till in Mississippi became a pivotal catalyst in the civil rights movement, highlighting the pervasive racial violence and injustice in the United States. The extensive media coverage helped galvanize public opinion and energized activists to fight for racial equality.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("emmett till")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -972,7 +1149,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Initiated by Rosa Parks' refusal to give up her bus seat to a white man in Montgomery, Alabama, this pivotal event marked a significant moment in the Civil Rights Movement.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  Initiated by Rosa Parks' refusal to give up her bus seat to a white man in Montgomery, Alabama, this pivotal event marked a significant moment in the Civil Rights Movement.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("montgomery")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1034,7 +1215,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Little Rock Nine's integration at Little Rock Central High School marked a significant point in the American civil rights movement, highlighting resistance to desegregation and federal intervention.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The Little Rock Nine's integration at Little Rock Central High School marked a significant point in the American civil rights movement, highlighting resistance to desegregation and federal intervention.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("little rock")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1130,7 +1315,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Student Nonviolent Coordinating Committee (SNCC) played a critical role in the Civil Rights Movement, known for organizing student activism for racial equality. The organization facilitated voter registration drives, sit-ins, and freedom rides and was a pivotal part of the movement's strategy for nonviolent direct action. The involvement of SNCC and similar groups has had lasting effects on the push for civil rights.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The Student Nonviolent Coordinating Committee (SNCC) played a critical role in the Civil Rights Movement, known for organizing student activism for racial equality. The organization facilitated voter registration drives, sit-ins, and freedom rides and was a pivotal part of the movement's strategy for nonviolent direct action. The involvement of SNCC and similar groups has had lasting effects on the push for civil rights.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("sncc")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1192,7 +1381,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Sponsored by the Congress for Racial Equality (CORE) and the Student Nonviolent Coordinating Committee, Freedom Rides were a series of bus trips through the American South by civil rights activists who sought to challenge and desegregate interstate transportation facilities following Supreme Court rulings. Despite facing severe violence, the activists drew national attention to the civil rights struggle and forced federal intervention.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  Sponsored by the Congress for Racial Equality (CORE) and the Student Nonviolent Coordinating Committee, Freedom Rides were a series of bus trips through the American South by civil rights activists who sought to challenge and desegregate interstate transportation facilities following Supreme Court rulings. Despite facing severe violence, the activists drew national attention to the civil rights struggle and forced federal intervention.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom rides")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1282,7 +1475,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Medgar Evers, a prominent civil rights activist and field secretary for the NAACP, was assassinated outside his home in Jackson, Mississippi. His murder marked a turning point in the civil rights movement, increasing the urgency and determination of activists who faced growing hostility and violence. Evers' assassination underscored the dangers faced by those fighting for racial equality and galvanized ongoing efforts for civil rights legislation.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  Medgar Evers, a prominent civil rights activist and field secretary for the NAACP, was assassinated outside his home in Jackson, Mississippi. His murder marked a turning point in the civil rights movement, increasing the urgency and determination of activists who faced growing hostility and violence. Evers' assassination underscored the dangers faced by those fighting for racial equality and galvanized ongoing efforts for civil rights legislation.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("medgar evers")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1381,7 +1578,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">This historic event was a major civil rights demonstration, where Martin Luther King Jr. delivered his iconic 'I Have a Dream' speech. It was pivotal in advocating for civil and economic rights for African Americans, showcasing the frustration with the Kennedy administration's inaction against racial violence.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  This historic event was a major civil rights demonstration, where Martin Luther King Jr. delivered his iconic 'I Have a Dream' speech. It was pivotal in advocating for civil and economic rights for African Americans, showcasing the frustration with the Kennedy administration's inaction against racial violence.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("march on washington")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1552,7 +1753,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Freedom Summer was a 1964 voter registration drive organized by CORE, the NAACP, and SNCC aimed at increasing the number of registered Black voters in Mississippi. This grassroots effort was part of the larger civil rights movement striving for racial equality in voting rights and was characterized by significant activism and resistance. It included Freedom Schools, which acted as educational centers for prospective voters.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  Freedom Summer was a 1964 voter registration drive organized by CORE, the NAACP, and SNCC aimed at increasing the number of registered Black voters in Mississippi. This grassroots effort was part of the larger civil rights movement striving for racial equality in voting rights and was characterized by significant activism and resistance. It included Freedom Schools, which acted as educational centers for prospective voters.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("freedom summer")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1587,7 +1792,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Signed by Lyndon B. Johnson, this landmark act declared an official end to legal segregation, outlawing discrimination based on race, color, religion, sex, or national origin.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  Signed by Lyndon B. Johnson, this landmark act declared an official end to legal segregation, outlawing discrimination based on race, color, religion, sex, or national origin.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("civil rights act")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1675,7 +1884,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">While preparing to speak for the Organization of Afro-American Unity, activist Malcolm X was murdered. Malcolm X's uncompromising message of self-determination for African Americans laid the groundwork for organizations to make moves outside the legal framework of the American system. His international approach and recognition of the connection between Black American struggles and anti-imperial struggles in the Third World made him revolutionary within the Civil Rights Movement and brought him international acclaim.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  While preparing to speak for the Organization of Afro-American Unity, activist Malcolm X was murdered. Malcolm X's uncompromising message of self-determination for African Americans laid the groundwork for organizations to make moves outside the legal framework of the American system. His international approach and recognition of the connection between Black American struggles and anti-imperial struggles in the Third World made him revolutionary within the Civil Rights Movement and brought him international acclaim.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("malcolm x")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1758,7 +1971,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Despite the legal end of segregation, there was little material change in many Southern States. In Alabama, African Americans were still disenfranchised as White officials employed tactics of intimidation and harassment to prevent them from exercising the right to vote. The murder of activist Jimmie Lee Jackson by state troopers sparked the 54-mile march from Selma to Montgomery. Demonstrators were met with state violence, resulting in media attention from across the country. President Lyndon B. Johnson used the attention to call for the passing of the Voting Rights Act of 1965, which was enacted on August 6th of that year.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  Despite the legal end of segregation, there was little material change in many Southern States. In Alabama, African Americans were still disenfranchised as White officials employed tactics of intimidation and harassment to prevent them from exercising the right to vote. The murder of activist Jimmie Lee Jackson by state troopers sparked the 54-mile march from Selma to Montgomery. Demonstrators were met with state violence, resulting in media attention from across the country. President Lyndon B. Johnson used the attention to call for the passing of the Voting Rights Act of 1965, which was enacted on August 6th of that year.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Selma to Montgomery")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1894,7 +2111,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Voting Rights Act was a landmark act meant to enforce the constitutional voting rights of racial minorities, especially in the South.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The Voting Rights Act was a landmark act meant to enforce the constitutional voting rights of racial minorities, especially in the South.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("voting rights act")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -1938,7 +2159,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Black Panther Party was established in 1966 as a revolutionary organization advocating for African American self-defense and community welfare programs. The Panthers' initiatives included the establishment of community social programs such as free breakfast for children and health clinics. The party was also known for its stance against police brutality and for promoting black empowerment. Women's roles in the party were significant, although challenges in gender dynamics existed.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The Black Panther Party was established in 1966 as a revolutionary organization advocating for African American self-defense and community welfare programs. The Panthers' initiatives included the establishment of community social programs such as free breakfast for children and health clinics. The party was also known for its stance against police brutality and for promoting black empowerment. Women's roles in the party were significant, although challenges in gender dynamics existed.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("black panther party")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -2047,7 +2272,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Chicano Movement was a civil rights movement extending from the 1940s into the 1970s with the goal of achieving Mexican American empowerment, combating discrimination, and promoting cultural pride. It correlated with the broader push for civil rights and influenced identity politics and activism among Mexican Americans. The Brown Beret's modeled themselves after the Black Panther Party and played a major role in Chicano activism.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The Chicano Movement was a civil rights movement extending from the 1940s into the 1970s with the goal of achieving Mexican American empowerment, combating discrimination, and promoting cultural pride. It correlated with the broader push for civil rights and influenced identity politics and activism among Mexican Americans. The Brown Beret's modeled themselves after the Black Panther Party and played a major role in Chicano activism.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("Brown Berets")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -2109,7 +2338,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The Long Hot Summer was a series of major civil disturbance occurring over the summer of 1967, spurred by racial tensions, poverty, and allegations of police brutality toward the African-American community. It was part of a wave of urban uprisings across the United States during the 1960s. This event significantly impacted the civil rights movement by highlighting systemic issues in urban areas and prompting calls for reform.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The Long Hot Summer was a series of major civil disturbance occurring over the summer of 1967, spurred by racial tensions, poverty, and allegations of police brutality toward the African-American community. It was part of a wave of urban uprisings across the United States during the 1960s. This event significantly impacted the civil rights movement by highlighting systemic issues in urban areas and prompting calls for reform.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/interviews?topic=${encodeURIComponent("The Long Hot Summer")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -2171,7 +2404,11 @@ export default function Home() {
               </Link>
 
               {/* Description */}
-              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">The most prominent Civil Rights Activist of his era, and the leader of the movement at large, Dr. Martin Luther King Jr. was murdered after giving a speech in Memphis, Tennessee. Riots tore through the streets of major cities across the United States in response to the murder.</p>
+              <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                  The most prominent Civil Rights Activist of his era, and the leader of the movement at large, Dr. Martin Luther King Jr. was murdered after giving a speech in Memphis, Tennessee. Riots tore through the streets of major cities across the United States in response to the murder.
+                </TopicLinkedText>
+              </p>
 
               {/* Watch Related Interviews Link */}
               <Link to={`/playlist-builder?keywords=${encodeURIComponent("martin luther king")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -2317,7 +2554,11 @@ export default function Home() {
                 </Link>
 
                 {/* Description */}
-                <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">Signed into law during the riots following Dr. King's assassination, this act expands upon the 1964 Civil Rights Act by declaring it illegal to discriminate in the rental and financing of housing, contributing to the development of equal housing opportunities.</p>
+                <p className="text-black text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal font-['Source_Serif_4'] leading-relaxed">
+                  <TopicLinkedText linkClassName="text-red-500 hover:underline cursor-pointer font-medium">
+                    Signed into law during the riots following Dr. King's assassination, this act expands upon the 1964 Civil Rights Act by declaring it illegal to discriminate in the rental and financing of housing, contributing to the development of equal housing opportunities.
+                  </TopicLinkedText>
+                </p>
 
                 {/* Watch Related Interviews Link */}
                 <Link to={`/interviews?topic=${encodeURIComponent("Civil Rights Act of 1968")}`} className="inline-flex items-center gap-2 text-red-500 text-base lg:text-xl font-light font-['Chivo_Mono'] hover:underline transition-colors">
@@ -2406,5 +2647,6 @@ export default function Home() {
       {/* Footer */}
       <Footer />
     </div>
+    </>
   );
 }

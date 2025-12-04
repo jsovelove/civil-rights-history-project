@@ -348,3 +348,72 @@ exports.vectorSearch = onCall({
     throw new Error(`Error performing vector search: ${error.message}`);
   }
 });
+
+/**
+ * Cloud Function to submit feedback to Canny
+ * Creates a post on behalf of the user with prefilled context
+ */
+exports.submitCannyFeedback = onCall({
+  maxInstances: 10,
+  cors: true,
+}, async (request) => {
+  try {
+    const {title, details, authorEmail, authorName, boardID} = request.data;
+
+    if (!title || !details) {
+      logger.warn("submitCannyFeedback called without required fields");
+      throw new Error("Missing required 'title' or 'details' field");
+    }
+
+    const cannyApiKey = process.env.CANNY_API_KEY;
+    if (!cannyApiKey) {
+      logger.error("CANNY_API_KEY environment variable not set");
+      throw new Error("Canny API key not configured");
+    }
+
+    logger.info(`Submitting feedback to Canny: "${title.substring(0, 50)}..."`);
+
+    // Prepare the request payload for Canny API
+    const payload = {
+      apiKey: cannyApiKey,
+      boardID: boardID,
+      title: title,
+      details: details,
+    };
+
+    // Add author info if provided (for anonymous users who enter email)
+    if (authorEmail) {
+      payload.authorEmail = authorEmail;
+    }
+    if (authorName) {
+      payload.authorName = authorName;
+    }
+
+    // Call Canny API to create a post
+    const response = await fetch("https://canny.io/api/v1/posts/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`Canny API error: ${response.status} - ${errorText}`);
+      throw new Error(`Canny API returned ${response.status}: ${errorText}`);
+    }
+
+    const result = await response.json();
+    logger.info(`Successfully created Canny post with ID: ${result.id}`);
+
+    return {
+      success: true,
+      postId: result.id,
+      postURL: result.url,
+    };
+  } catch (error) {
+    logger.error("Error in submitCannyFeedback function:", error.message, error.stack);
+    throw new Error(`Error submitting feedback to Canny: ${error.message}`);
+  }
+});
