@@ -7,7 +7,7 @@
 
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Footer from '../components/common/Footer';
 import arrowRightIcon from '../assetts/vectors/arrow right.svg';
 import EmmettToMontgomeryConnector from '../components/connectors/EmmettToMontgomeryConnector';
@@ -31,6 +31,7 @@ import TopicBubbles from '../components/TopicBubbles';
 import TopicLinkedText from '../components/TopicLinkedText';
 import FeedbackModal from '../components/FeedbackModal';
 import SelectionFeedbackButton from '../components/SelectionFeedbackButton';
+import { useInlineFeedback } from '../hooks/useInlineFeedback';
 
 // Simple feedback - just save to Firestore
 const FEEDBACK_ENABLED = true;
@@ -268,7 +269,6 @@ export default function Home() {
   const { user } = useAuth();
   const [landingImageUrl, setLandingImageUrl] = useState(null);
   const [imageLoading, setImageLoading] = useState(true);
-  const aiContentRef = useRef(null);
   const timelineRef = useRef(null);
   const timelineStartRef = useRef(null);
   const redRectangleRef = useRef(null);
@@ -337,8 +337,14 @@ export default function Home() {
   const [snccVotePinLoading, setSnccVotePinLoading] = useState(true);
   const [pantherPinUrl, setPantherPinUrl] = useState(null);
   const [pantherPinLoading, setPantherPinLoading] = useState(true);
-  const [selectionContext, setSelectionContext] = useState(null);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const {
+    contentRef: aiContentRef,
+    selectionContext,
+    showFeedbackModal,
+    handleReportIssue,
+    handleFeedbackSubmit,
+    handleCloseFeedbackModal,
+  } = useInlineFeedback({ user, sectionLabel: 'Timeline Content' });
 
   useEffect(() => {
     const loadLandingImage = async () => {
@@ -720,143 +726,6 @@ export default function Home() {
     loadPantherPin();
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const MIN_SELECTION_LENGTH = 24;
-    const BUTTON_WIDTH = 220;
-    const EDGE_PADDING = 16;
-    const scrollListenerOptions = { passive: true };
-
-    const isNodeInsideContent = (node) => {
-      if (!aiContentRef.current || !node) return false;
-      const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
-      return element ? aiContentRef.current.contains(element) : false;
-    };
-
-    const getSectionLabel = (node) => {
-      const element = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
-      return (
-        element?.closest('[data-ai-section]')?.getAttribute('data-ai-section') || ''
-      );
-    };
-
-    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-    const handleSelectionChange = () => {
-      const selection = window.getSelection();
-      if (!selection || selection.isCollapsed) {
-        setSelectionContext(null);
-        return;
-      }
-
-      const text = selection.toString().trim();
-      if (!text || text.length < MIN_SELECTION_LENGTH) {
-        setSelectionContext(null);
-        return;
-      }
-
-      const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-      if (!range) {
-        setSelectionContext(null);
-        return;
-      }
-
-      const ancestor = range.commonAncestorContainer;
-      if (!isNodeInsideContent(ancestor)) {
-        setSelectionContext(null);
-        return;
-      }
-
-      const rect = range.getBoundingClientRect();
-      if (!rect || (rect.top === 0 && rect.bottom === 0 && rect.width === 0)) {
-        setSelectionContext(null);
-        return;
-      }
-
-      const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      const maxLeft = Math.max(EDGE_PADDING, viewportWidth - BUTTON_WIDTH - EDGE_PADDING);
-      const left = clamp(
-        rect.left + rect.width / 2 - BUTTON_WIDTH / 2,
-        EDGE_PADDING,
-        maxLeft
-      );
-      const top = clamp(rect.bottom + 12, EDGE_PADDING, viewportHeight - 56);
-
-      setSelectionContext({
-        text: text.slice(0, 1500),
-        sectionLabel: getSectionLabel(ancestor),
-        position: { top, left },
-      });
-    };
-
-    const clearSelection = () => {
-      // Don't clear selection if modal is open
-      if (showFeedbackModal) return;
-      setSelectionContext(null);
-    };
-
-    document.addEventListener('mouseup', handleSelectionChange);
-    document.addEventListener('keyup', handleSelectionChange);
-    document.addEventListener('touchend', handleSelectionChange);
-    document.addEventListener('mousedown', clearSelection);
-    window.addEventListener('scroll', clearSelection, scrollListenerOptions);
-
-    return () => {
-      document.removeEventListener('mouseup', handleSelectionChange);
-      document.removeEventListener('keyup', handleSelectionChange);
-      document.removeEventListener('touchend', handleSelectionChange);
-      document.removeEventListener('mousedown', clearSelection);
-      window.removeEventListener('scroll', clearSelection, scrollListenerOptions);
-    };
-  }, [aiContentRef, showFeedbackModal]);
-
-  const handleReportIssue = useCallback(() => {
-    if (!selectionContext) return;
-    setShowFeedbackModal(true);
-  }, [selectionContext]);
-
-  const handleFeedbackSubmit = useCallback(async ({ description, email }) => {
-    if (!selectionContext) return;
-
-    const issueTitle = selectionContext.sectionLabel
-      ? `Issue in ${selectionContext.sectionLabel}`
-      : 'Issue with AI-generated content';
-
-    try {
-      // Save feedback directly to Firestore - simple and works!
-      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-      const { db } = await import('../services/firebase');
-
-      await addDoc(collection(db, 'feedback'), {
-        title: issueTitle,
-        description: description,
-        selectedText: selectionContext.text,
-        pageUrl: window.location.href,
-        sectionLabel: selectionContext.sectionLabel || null,
-        authorEmail: email,
-        authorName: user?.displayName || null,
-        userId: user?.uid || null,
-        status: 'new',
-        createdAt: serverTimestamp(),
-      });
-
-      alert('Thank you! Your feedback has been submitted.');
-      console.log('Feedback saved to Firestore');
-
-      // Clear selection
-      const selection = window.getSelection ? window.getSelection() : null;
-      selection?.removeAllRanges?.();
-      setSelectionContext(null);
-      setShowFeedbackModal(false);
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      throw error; // Let modal handle the error
-    }
-  }, [selectionContext, user]);
 
   return (
     <>
@@ -872,18 +741,12 @@ export default function Home() {
           selectedText={selectionContext.text}
           sectionLabel={selectionContext.sectionLabel}
           onSubmit={handleFeedbackSubmit}
-          onClose={() => {
-            setShowFeedbackModal(false);
-            setSelectionContext(null);
-            // Clear text selection
-            const selection = window.getSelection ? window.getSelection() : null;
-            selection?.removeAllRanges?.();
-          }}
+          onClose={handleCloseFeedbackModal}
         />
       )}
       <div
         ref={aiContentRef}
-        data-ai-section="Timeline Content"
+        data-feedback-section="Timeline Content"
         className="w-full relative overflow-hidden"
         style={{ backgroundColor: '#EBEAE9' }}
       >

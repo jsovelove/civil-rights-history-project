@@ -524,6 +524,31 @@ const PlaylistBuilder = () => {
 
   const currentVideo = getCurrentVideo();
 
+  const playlistLabel = keyword ? `Playlist: ${keyword}` : 'Playlist';
+  const clipTitle =
+    currentVideo?.topic ||
+    currentVideo?.summaryTitle ||
+    (currentVideo?.summary ? `${currentVideo.summary.slice(0, 80)}${currentVideo.summary.length > 80 ? '…' : ''}` : null);
+  const personName =
+    (Array.isArray(currentVideo?.intervieweeNames) && currentVideo.intervieweeNames.filter(Boolean).join(', ')) ||
+    currentVideo?.intervieweeName ||
+    currentVideo?.metadata?.intervieweeName ||
+    currentVideo?.name ||
+    currentVideo?.documentName ||
+    null;
+  const sectionExtras = [clipTitle, personName].filter(Boolean);
+  const feedbackSectionLabel = sectionExtras.length
+    ? `${playlistLabel} • ${sectionExtras.join(' • ')}`
+    : playlistLabel;
+  const feedbackContextDetails = [
+    { label: 'Playlist Topic', value: keyword || 'All Topics' },
+    clipTitle && { label: 'Clip', value: clipTitle },
+    personName && { label: 'Person', value: personName },
+    currentVideo?.roleSimplified && { label: 'Role', value: currentVideo.roleSimplified },
+    currentVideo?.timestamp && { label: 'Clip Timestamp', value: currentVideo.timestamp },
+    currentVideo?.documentName && { label: 'Interview ID', value: currentVideo.documentName },
+  ].filter(Boolean);
+
   return (
     <>
       {/* Feedback UI */}
@@ -540,10 +565,11 @@ const PlaylistBuilder = () => {
           sectionLabel={selectionContext.sectionLabel}
           onSubmit={handleFeedbackSubmit}
           onClose={handleCloseFeedbackModal}
+          contextDetails={feedbackContextDetails}
         />
       )}
       
-      <div ref={contentRef} data-feedback-section="Playlist" className="w-full min-h-screen overflow-hidden">
+      <div ref={contentRef} data-feedback-section={feedbackSectionLabel} className="w-full min-h-screen overflow-hidden">
         {/* Background loading indicator - only show when loading */}
         {backgroundLoading && (
         <div className="px-12 pt-4">

@@ -3,10 +3,13 @@ import { useState, useEffect } from 'react';
 /**
  * Modal for submitting feedback on selected content
  */
-export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, onClose }) {
+export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, onClose, contextDetails = [] }) {
   const [description, setDescription] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const detailsToRender = Array.isArray(contextDetails)
+    ? contextDetails.filter((detail) => detail && detail.value)
+    : [];
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -51,22 +54,48 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
     }
   };
 
+  const handleBackdropClick = (e) => {
+    // Only close if clicking directly on the backdrop, not its children
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleModalClick = (e) => {
+    // Prevent any clicks inside the modal from closing it
+    e.stopPropagation();
+  };
+
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      data-feedback-modal="true"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50 feedback-modal-backdrop"
+      onClick={handleBackdropClick}
+      onMouseDown={(e) => {
+        // Stop all mousedown propagation from the modal container
+        e.stopPropagation();
+        // Only close if clicking directly on the backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
       }}
     >
       <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-modal-title"
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleModalClick}
+        onMouseDown={(e) => {
+          // Prevent mousedown from propagating outside the modal
+          e.stopPropagation();
+        }}
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 id="feedback-modal-title" className="text-xl font-semibold text-gray-900">
                 Report an Issue
               </h2>
               {sectionLabel && (
@@ -99,6 +128,30 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
             </div>
           </div>
 
+          {/* Additional context */}
+          {detailsToRender.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Context
+              </label>
+              <div className="bg-gray-50 border border-gray-300 rounded-md divide-y divide-gray-200">
+                {detailsToRender.map(({ label, value }, index) => (
+                  <div
+                    key={`${label}-${index}`}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 gap-1"
+                  >
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      {label}
+                    </span>
+                    <span className="text-sm text-gray-900 sm:text-right">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Issue Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
@@ -108,6 +161,8 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               placeholder="Describe what's inaccurate, biased, or needs attention..."
               rows={6}
               required
@@ -128,6 +183,8 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               placeholder="your.email@example.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
             />

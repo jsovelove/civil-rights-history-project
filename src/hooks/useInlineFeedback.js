@@ -8,6 +8,13 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
   const [selectionContext, setSelectionContext] = useState(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const contentRef = useRef(null);
+  const modalOpenRef = useRef(false);
+  const preservedSelectionRef = useRef(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    modalOpenRef.current = showFeedbackModal;
+  }, [showFeedbackModal]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -36,6 +43,11 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
     const handleSelectionChange = () => {
+      // Don't update selection context if modal is open
+      if (modalOpenRef.current) {
+        return;
+      }
+
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) {
         setSelectionContext(null);
@@ -83,16 +95,36 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
       });
     };
 
-    const clearSelection = () => {
-      // Don't clear selection if modal is open
-      if (showFeedbackModal) return;
+    const clearSelection = (e) => {
+      // Don't clear if modal is open
+      if (modalOpenRef.current) {
+        return;
+      }
+
+      // Don't clear if clicking inside a modal or input element
+      if (e) {
+        const target = e.target;
+        // Check if click is inside modal
+        if (
+          target.closest('[role="dialog"]') ||
+          target.closest('[data-feedback-modal]') ||
+          target.closest('.feedback-modal-backdrop') ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'BUTTON'
+        ) {
+          return;
+        }
+      }
+      
       setSelectionContext(null);
     };
 
+    // Always register listeners - they check modalOpenRef internally
+    document.addEventListener('mousedown', clearSelection);
     document.addEventListener('mouseup', handleSelectionChange);
     document.addEventListener('keyup', handleSelectionChange);
     document.addEventListener('touchend', handleSelectionChange);
-    document.addEventListener('mousedown', clearSelection);
     window.addEventListener('scroll', clearSelection, scrollListenerOptions);
 
     return () => {
@@ -102,18 +134,21 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
       document.removeEventListener('mousedown', clearSelection);
       window.removeEventListener('scroll', clearSelection, scrollListenerOptions);
     };
-  }, [contentRef, showFeedbackModal, sectionLabel]);
+  }, [contentRef, sectionLabel]);
 
   const handleReportIssue = useCallback(() => {
     if (!selectionContext) return;
+    // Preserve the selection context before opening modal
+    preservedSelectionRef.current = selectionContext;
     setShowFeedbackModal(true);
   }, [selectionContext]);
 
   const handleFeedbackSubmit = useCallback(async ({ description, email }) => {
-    if (!selectionContext) return;
+    const contextToUse = preservedSelectionRef.current || selectionContext;
+    if (!contextToUse) return;
 
-    const issueTitle = selectionContext.sectionLabel
-      ? `Issue in ${selectionContext.sectionLabel}`
+    const issueTitle = contextToUse.sectionLabel
+      ? `Issue in ${contextToUse.sectionLabel}`
       : 'Issue with content';
 
     try {
@@ -123,9 +158,9 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
       await addDoc(collection(db, 'feedback'), {
         title: issueTitle,
         description: description,
-        selectedText: selectionContext.text,
+        selectedText: contextToUse.text,
         pageUrl: window.location.href,
-        sectionLabel: selectionContext.sectionLabel || null,
+        sectionLabel: contextToUse.sectionLabel || null,
         authorEmail: email,
         authorName: user?.displayName || null,
         userId: user?.uid || null,
@@ -140,6 +175,7 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
       const selection = window.getSelection ? window.getSelection() : null;
       selection?.removeAllRanges?.();
       setSelectionContext(null);
+      preservedSelectionRef.current = null;
       setShowFeedbackModal(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
@@ -150,13 +186,14 @@ export function useInlineFeedback({ user, sectionLabel = 'Content' }) {
   const handleCloseFeedbackModal = useCallback(() => {
     setShowFeedbackModal(false);
     setSelectionContext(null);
+    preservedSelectionRef.current = null;
     const selection = window.getSelection ? window.getSelection() : null;
     selection?.removeAllRanges?.();
   }, []);
 
   return {
     contentRef,
-    selectionContext,
+    selectionContext: showFeedbackModal ? (preservedSelectionRef.current || selectionContext) : selectionContext,
     showFeedbackModal,
     handleReportIssue,
     handleFeedbackSubmit,

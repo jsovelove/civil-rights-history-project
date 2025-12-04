@@ -40,16 +40,6 @@ export default function InterviewPlayer() {
   const documentName = searchParams.get('documentName')
   const { user } = useAuth()
   
-  // Inline feedback functionality
-  const {
-    contentRef,
-    selectionContext,
-    showFeedbackModal,
-    handleReportIssue,
-    handleFeedbackSubmit,
-    handleCloseFeedbackModal,
-  } = useInlineFeedback({ user, sectionLabel: 'Interview' })
-
   // Component state variables
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -72,6 +62,26 @@ export default function InterviewPlayer() {
   const [containerEl, setContainerEl] = useState(null) // YouTube container element via callback ref
   const playerRef = useRef(null) // Reference to the YouTube player instance
   const playerUpdateIntervalRef = useRef(null) // Reference to the time update interval
+
+  // Derive a more descriptive label for feedback context
+  const interviewSubject =
+    mainSummary?.title ||
+    (Array.isArray(mainSummary?.intervieweeNames) && mainSummary.intervieweeNames.filter(Boolean).join(', ')) ||
+    mainSummary?.intervieweeName ||
+    mainSummary?.interviewee ||
+    documentName
+
+  const interviewSectionLabel = interviewSubject ? `Interview: ${interviewSubject}` : 'Interview'
+
+  // Inline feedback functionality
+  const {
+    contentRef,
+    selectionContext,
+    showFeedbackModal,
+    handleReportIssue,
+    handleFeedbackSubmit,
+    handleCloseFeedbackModal,
+  } = useInlineFeedback({ user, sectionLabel: interviewSectionLabel })
 
   /**
    * --- Helper Functions ---
@@ -547,7 +557,11 @@ export default function InterviewPlayer() {
         <Header />
 
         {/* Main content */}
-        <div ref={contentRef} data-feedback-section="Interview" className="px-12 pt-4">
+        <div
+          ref={contentRef}
+          data-feedback-section={interviewSectionLabel}
+          className="px-12 pt-4"
+        >
         {/* Interview title */}
         <div className="mb-8">
           <h1 className="text-stone-900 text-8xl font-medium mb-4" style={{fontFamily: 'Acumin Pro, Inter, sans-serif'}}>
