@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/common/Footer';
-import LOCLogo from '../assetts/logos/Logo_of_the_United_States_Library_of_Congress.svg.png';
 import WWULogo from '../assetts/logos/wwu-logo--full-color_2.png';
 
 /**
@@ -114,14 +113,6 @@ export default function About() {
               
               {/* Logos */}
               <div className="flex items-end gap-8 mt-8">
-                <a 
-                  href="https://www.loc.gov/collections/civil-rights-history-project/about-this-collection/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:opacity-80 transition-opacity"
-                >
-                  <img src={LOCLogo} alt="Library of Congress" className="h-20 w-auto" />
-                </a>
                 <a 
                   href="https://www.wwu.edu/" 
                   target="_blank" 

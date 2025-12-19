@@ -31,6 +31,7 @@ import TopicBubbles from '../components/TopicBubbles';
 import TopicLinkedText from '../components/TopicLinkedText';
 import FeedbackModal from '../components/FeedbackModal';
 import SelectionFeedbackButton from '../components/SelectionFeedbackButton';
+import WelcomeDisclaimerModal from '../components/WelcomeDisclaimerModal';
 import { useInlineFeedback } from '../hooks/useInlineFeedback';
 
 // Simple feedback - just save to Firestore
@@ -315,6 +316,17 @@ export default function Home() {
   const [brownBeretsImageLoading, setBrownBeretsImageLoading] = useState(true);
   const [longHotSummerImageUrl, setLongHotSummerImageUrl] = useState(null);
   const [longHotSummerImageLoading, setLongHotSummerImageLoading] = useState(true);
+  
+  // Welcome disclaimer modal state - show on first visit
+  const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcomeDisclaimer');
+    return !hasSeenWelcome;
+  });
+
+  const handleCloseWelcomeModal = () => {
+    localStorage.setItem('hasSeenWelcomeDisclaimer', 'true');
+    setShowWelcomeModal(false);
+  };
   const [mlkImageUrl, setMlkImageUrl] = useState(null);
   const [mlkImageLoading, setMlkImageLoading] = useState(true);
   const [manPosterUrl, setManPosterUrl] = useState(null);
@@ -744,6 +756,12 @@ export default function Home() {
           onClose={handleCloseFeedbackModal}
         />
       )}
+
+      {/* Welcome Disclaimer Modal - shows on first visit */}
+      {showWelcomeModal && (
+        <WelcomeDisclaimerModal onClose={handleCloseWelcomeModal} />
+      )}
+
       <div
         ref={aiContentRef}
         data-feedback-section="Timeline Content"
@@ -765,7 +783,7 @@ export default function Home() {
               </h1>
 
               {/* Statistics */}
-              <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono']">131 Interviews, 13340 Minutes</p>
+              <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono']">145 Interviews</p>
 
 
             </div>

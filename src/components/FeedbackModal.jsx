@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 /**
  * Modal for submitting feedback on selected content
@@ -7,6 +8,8 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
   const [description, setDescription] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const recaptchaRef = useRef(null);
   const detailsToRender = Array.isArray(contextDetails)
     ? contextDetails.filter((detail) => detail && detail.value)
     : [];
@@ -38,12 +41,19 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
       return;
     }
 
+    // Check for CAPTCHA token
+    if (!captchaToken) {
+      alert('Please complete the CAPTCHA verification before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
       await onSubmit({
         description: description.trim(),
         email: email.trim() || null,
+        captchaToken, // Include CAPTCHA token in submission
       });
       onClose();
     } catch (error) {
@@ -52,6 +62,14 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token);
+  };
+
+  const handleCaptchaExpired = () => {
+    setCaptchaToken(null);
   };
 
   const handleBackdropClick = (e) => {
@@ -191,6 +209,22 @@ export default function FeedbackModal({ selectedText, sectionLabel, onSubmit, on
             <p className="mt-1 text-xs text-gray-500">
               Helpful if we need to follow up with you.
             </p>
+          </div>
+
+          {/* CAPTCHA Verification */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Verification <span className="text-red-500">*</span>
+            </label>
+            <div className="flex justify-center">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey="6LdF5zAsAAAAAGgaCJ6LkJnt9J3q36oVHNWdJ98u"
+                onChange={handleCaptchaChange}
+                onExpired={handleCaptchaExpired}
+                theme="light"
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}
