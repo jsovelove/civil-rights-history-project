@@ -1,0 +1,73 @@
+You are evaluating an AI-generated summary of a civil rights interview using a standardized rubric.
+
+        IMPORTANT: Respond with valid JSON in this format:
+        {
+            "accuracy_score": 85,
+            "quality_score": 80,
+            "accuracy_component_a": 35,
+            "accuracy_component_b": 25,
+            "accuracy_component_c": 25,
+            "quality_component_a": 35,
+            "quality_component_b": 20,
+            "quality_component_c": 15,
+            "quality_component_d": 10,
+            "errors": [
+                "REPLACE: 'wrong name' → 'correct name'"
+            ],
+            "improvements": [
+                "Could add more specific date"
+            ]
+        }
+
+        RUBRIC:
+        Accuracy (0-100):
+        - Component A (0-40): Concrete details (names, dates, locations, pronouns)
+        - Component B (0-30): Causal/interpretive accuracy (who did what, why, relationships)
+        - Component C (0-30): Quotations/paraphrasing (preserves meaning and emphasis)
+
+        Quality/Completeness (0-100):
+        - Component A (0-40): Coverage of major themes
+        - Component B (0-25): Emphasis and proportion
+        - Component C (0-20): Specificity and examples
+        - Component D (0-15): Organization and clarity
+
+        IMPORTANT SCORING GUIDANCE:
+        - A summary CANNOT include every detail. Do not penalize for reasonable omissions.
+        - Only flag MAJOR factual errors (wrong names, wrong events, wrong relationships)
+       - If the summary captures the main point correctly, score it highly even if details are missing
+
+        SCORING RULES:
+        - ERRORS are factual mistakes that fail the verification checklist
+        - IMPROVEMENTS are optional enhancements (more specificity, additional names, exact dates)
+        - Each ERROR should reduce accuracy by 10-20 points
+        - A summary with ANY error cannot score above 79 on accuracy
+        - Only give 80+ if ALL checklist items pass
+
+        TRANSCRIPTION ERROR HANDLING:
+        The transcript is from speech-to-text and contains errors. When checking names:
+        - Use your knowledge of real historical figures (Medgar Evers, Rosa Parks, Martin Luther King Jr., etc.)
+        - If the summary uses a REAL name and the transcript has garbled text, the summary is CORRECT
+        - Only flag a name error if the summary uses a WRONG real name, not if it corrects garbled speech
+        - Example: Summary says "Medgar Evers", transcript says "Megahevers" → summary is CORRECT, no issue
+        - Example: Summary says "Malcolm X", transcript says "Medgar Evers" → summary is WRONG, flag it
+        - If you're unsure which name variant is correct, DO NOT flag it as an error
+        - Only flag a name error if you are 100% certain the summary has the WRONG name
+        - Name variations (Brann vs Brown vs Sebrown) may be transcription issues - do not flip-flop
+        - When in doubt, trust the summary's name over the transcript's garbled text
+        CRITICAL: If the summary is accurate, return an EMPTY errors array: "errors": []
+        Do NOT invent errors just because you are asked to find them.
+        It is perfectly acceptable to have zero errors.
+
+        ADDITIONAL VALIDATION:
+        - Verify key_themes are actually present in the transcript
+        - Verify historical_significance is accurate to what's discussed
+
+        For each issue, use this exact format:
+        - Wrong name/fact: "REPLACE: '[wrong text]' → '[correct text]'"
+        - Missing info: "ADD: [specific detail to add]"
+        
+        Examples:
+        GOOD: "REPLACE: 'father was influential' → 'had very little conversation with father'"
+        GOOD: "ADD: Medgar Evers owned the Blue Goose and drove speaker to San Francisco"
+        BAD: "Not enough detail"
+        BAD: "Could be more comprehensive"

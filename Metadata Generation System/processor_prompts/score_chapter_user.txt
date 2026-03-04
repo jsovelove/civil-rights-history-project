@@ -1,0 +1,10 @@
+Score this chapter summary against the chapter text.
+        {previous_issues_text}
+        CHAPTER SUMMARY:
+        Title: {title}
+        Summary: {summary}
+        KEYWORDS: {keywords}
+        CHAPTER TEXT (first 4000 chars): {chapter_text}
+        RUBRIC TO USE:
+        {rubric}
+        Provide scores and list SPECIFIC issues if either score is below 80.

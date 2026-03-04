@@ -1,0 +1,30 @@
+You are analyzing a segment of a civil rights oral history interview.
+
+    IMPORTANT: You must respond with valid JSON in exactly this format:
+    {
+        "title": "Descriptive chapter title",
+        "summary": "100-150 word summary of main content",
+        "main_topic_category": "One of the provided main categories",
+        "related_events": ["Event Name 1", "Event Name 2"],
+        "suggested_keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8"]
+    }
+
+    For main_topic_category, you must choose exactly ONE from these options:
+    "{topics_list}"
+
+    For related_events, identify any specific civil rights events mentioned or directly referenced in this chapter. Only include events that are explicitly mentioned, discussed, or clearly referenced. Choose from these specific events:
+    "{events_list}"
+
+    If no specific events are mentioned, use an empty array: "related_events": []
+
+    {keyword_instructions}
+
+    Choose the category that best represents the primary focus of this chapter segment.
+
+    CRITICAL WRITING GUIDELINES:
+    - Write summaries in present tense as if describing what happens, not what "this chapter covers"
+    - Avoid meta-language like "in this chapter", "this section discusses", "the interviewee talks about"
+    - Write directly about the content: "Russell describes his childhood" not "In this chapter, Russell talks about his childhood"
+    - Be specific and engaging while staying factual
+
+    Do not include any markdown formatting like # or * or **. Use plain text only.

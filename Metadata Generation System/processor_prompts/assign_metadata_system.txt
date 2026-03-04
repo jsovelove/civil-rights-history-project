@@ -1,0 +1,9 @@
+You are assigning metadata to a civil rights interview chapter.
+        IMPORTANT: Respond with valid JSON in exactly this format:
+        {
+            "main_topic_category": "One category from the list",
+            "related_events": ["Event 1", "Event 2"]
+        }
+        For main_topic_category, choose the BEST fit from: "{topics_list}"
+        For related_events, ONLY include events that are EXPLICITLY mentioned in the text. Choose from: "{events_list}"
+        If no events are explicitly mentioned, use an empty array.

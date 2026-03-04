@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% set active_step = 'upload' %}
+
+{% block title %}1. Upload — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 1 — Upload & Blocking</h1>
+    <p>Upload an SRT interview file or run the bundled sample interview.</p>
+    <p style="color: #555; font-size: 15px; line-height: 1.6; margin-top: 6px;">This pipeline simplifies the process of turning an interview into usable metadata for your archive or web application, providing focused chapters, high quality summaries, a table of contents with labeled clips and timestamps, and associated keywords with individual chapters and interviews.</p>
+</div>
+
+<form action="{{ url_for('upload_run') }}" method="post" enctype="multipart/form-data" id="upload-form">
+    <div class="panel">
+        <div class="panel-label">OpenAI API Key</div>
+        <label style="display:block;">
+            <input
+                type="password"
+                name="api_key"
+                placeholder="Paste an OpenAI API key"
+                autocomplete="off"
+                {% if not api_key_present %}required{% endif %}
+                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #d0d7de; margin-top: 8px;"
+            >
+        </label>
+        <p style="margin: 10px 0 0; font-size: 14px; color: #555;">
+            {% if api_key_present %}
+                Current browser-session key: {{ api_key_masked }}. Leave this blank to keep using it, or paste a new one. Your API key is used only for your current session and is not shared with other users.
+            {% else %}
+                Your API key is used only for your current session and is not shared with other users.
+            {% endif %}
+        </p>
+        <div class="output-block" style="margin-top: 12px; font-size: 14px; line-height: 1.6;">
+            <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" rel="noopener noreferrer" style="color: #0550ae;">Get an OpenAI API key</a><br>
+            <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key" target="_blank" rel="noopener noreferrer" style="color: #0550ae;">Where to find your API key</a>
+        </div>
+        {% if api_key_error %}
+        <div class="output-block" style="margin-top: 12px; color: #b42318;">{{ api_key_error }}</div>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <div class="panel-label">Interview Source</div>
+        <label style="display:flex; align-items:center; gap:10px; margin-bottom: 14px; cursor:pointer;">
+            <input type="checkbox" name="use_sample" id="use-sample-checkbox">
+            <span>Use sample interview of Amos C. Brown</span>
+        </label>
+
+        <div class="upload-zone" id="upload-zone" onclick="if (!document.getElementById('use-sample-checkbox').checked) document.getElementById('srt-input').click()">
+            <input type="file" name="srt_file" id="srt-input" accept=".srt" required>
+            <div class="upload-label" id="file-label">
+                <strong>Click to select</strong> an .srt file
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-label">Block Size</div>
+        <div class="slider-group">
+            <label>
+                Number of SRT segments per block:
+                <span class="slider-value" id="block-size-val">{{ state.block_size }}</span>
+            </label>
+            <input type="range" name="block_size" min="10" max="80" value="{{ state.block_size }}"
+                   oninput="document.getElementById('block-size-val').textContent = this.value">
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-label">Optional Modules</div>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" name="enable_engagement" {% if state.steps_enabled.engagement %}checked{% endif %}>
+            <span>Engagement Scoring</span>
+        </label>
+        <p style="margin: 6px 0 0 28px; font-size: 12px; color: #666;">
+            Scores the interview across Narrative Quality, Historical Value, Emotional Resonance, and Accessibility (uses an additional API call).
+        </p>
+    </div>
+
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run Blocking</button>
+    </div>
+</form>
+
+{% if state.srt_path %}
+<div class="panel" style="margin-top: 24px;">
+    <div class="panel-label">Current File</div>
+    <div class="output-block">
+        <pre>{% if state.using_sample %}Source: Bundled sample interview (interview.srt){% else %}File: {{ state.srt_path }}{% endif %}
+Segments: {{ state.segments|length if state.segments else 'N/A' }}
+Block size: {{ state.block_size }}
+Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const fileInput = document.getElementById('srt-input');
+    const fileLabel = document.getElementById('file-label');
+    const sampleCheckbox = document.getElementById('use-sample-checkbox');
+    const uploadZone = document.getElementById('upload-zone');
+
+    function updateSourceMode() {
+        if (sampleCheckbox.checked) {
+            fileInput.required = false;
+            fileInput.value = '';
+            uploadZone.style.opacity = '0.65';
+            uploadZone.style.cursor = 'default';
+            fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
+        } else {
+            fileInput.required = true;
+            uploadZone.style.opacity = '1';
+            uploadZone.style.cursor = 'pointer';
+            fileLabel.innerHTML = '<strong>Click to select</strong> an .srt file';
+        }
+    }
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            fileLabel.innerHTML = '<strong>' + this.files[0].name + '</strong>';
+        }
+    });
+
+    sampleCheckbox.addEventListener('change', updateSourceMode);
+    updateSourceMode();
+
+    document.getElementById('upload-form').addEventListener('submit', function() {
+        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Processing...';
+        document.getElementById('run-btn').disabled = true;
+    });
+</script>
+{% endblock %}

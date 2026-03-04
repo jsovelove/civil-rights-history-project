@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set active_step = 'batch' %}
+
+{% block title %}8. Batch — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 8 — Batch Processing</h1>
+    <p>Upload a zip of SRT files to process them all with your current pipeline settings. Each interview will run through the full pipeline (blocking → labeling → TOC → chapterization → summarization → tuning).</p>
+</div>
+
+{% if not has_config %}
+<div class="panel" style="border-left: 3px solid #d4a017;">
+    <div class="panel-label" style="color: #d4a017;">No Configuration Detected</div>
+    <p style="color: #999; font-size: 14px;">
+        You need to run through at least one interview first so the pipeline has prompts and settings to use.
+        <a href="{{ url_for('upload_page') }}" style="color: #4a9eff;">Go to Step 1 →</a>
+    </p>
+</div>
+{% else %}
+
+<div class="panel">
+    <div class="panel-label">Captured Settings</div>
+    <div style="font-size: 13px; color: #888; line-height: 1.8;">
+        <div>Block size: <strong style="color: #ccc;">{{ params.block_size }}</strong></div>
+        <div>Quality threshold: <strong style="color: #ccc;">{{ params.quality_threshold }}</strong></div>
+        <div>Accuracy threshold: <strong style="color: #ccc;">{{ params.accuracy_threshold }}</strong></div>
+        <div>Max tuning retries: <strong style="color: #ccc;">{{ params.max_retries }}</strong></div>
+        <div style="margin-top: 8px;">
+            Prompts configured:
+            <span style="color: #5a9;">Labeling ✓</span> ·
+            <span style="color: #5a9;">Chapterization ✓</span> ·
+            <span style="color: {% if params.main_summary_sys_prompt %}#5a9{% else %}#a55{% endif %};">
+                Summary {% if params.main_summary_sys_prompt %}✓{% else %}✗{% endif %}
+            </span> ·
+            <span style="color: {% if params.eval_sys_prompt %}#5a9{% else %}#a55{% endif %};">
+                Tuning {% if params.eval_sys_prompt %}✓{% else %}✗{% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<form action="{{ url_for('batch_start') }}" method="post" enctype="multipart/form-data" id="batch-form">
+    <div class="panel">
+        <div class="panel-label">Upload Interviews</div>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('zip-input').click()">
+            <input type="file" name="batch_zip" id="zip-input" accept=".zip" required style="display:none;">
+            <div class="upload-label" id="file-label">
+                <strong>Click to select</strong> a .zip file containing .srt files
+            </div>
+        </div>
+        <p style="margin-top: 10px; font-size: 13px; color: #666;">
+            The zip should contain .srt files at any level. Non-SRT files will be ignored.
+        </p>
+    </div>
+
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="start-btn">Start Batch Processing</button>
+        <a href="{{ url_for('results_page') }}" class="btn btn-secondary">← Back to Results</a>
+    </div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const fileInput = document.getElementById('zip-input');
+    const fileLabel = document.getElementById('file-label');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileLabel.innerHTML = '<strong>' + this.files[0].name + '</strong>';
+            }
+        });
+    }
+
+    const form = document.getElementById('batch-form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            document.getElementById('start-btn').innerHTML = '<span class="spinner"></span>Uploading...';
+            document.getElementById('start-btn').disabled = true;
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,89 @@
+You are evaluating an AI-generated chapter summary of a civil rights interview using a standardized rubric.
+
+        IMPORTANT: Respond with valid JSON in this format:
+        {
+            "accuracy_score": 85,
+            "quality_score": 80,
+            "accuracy_component_a": 35,
+            "accuracy_component_b": 25,
+            "accuracy_component_c": 25,
+            "quality_component_a": 35,
+            "quality_component_b": 20,
+            "quality_component_c": 15,
+            "quality_component_d": 10,
+            "errors": [
+                "REPLACE: 'wrong name' → 'correct name'"
+            ],
+            "improvements": [
+                "Could add more specific date"
+            ]
+        }
+
+        RUBRIC:
+        Accuracy (0-100):
+        - Component A (0-40): Concrete details (names, dates, locations, pronouns)
+        - Component B (0-30): Causal/interpretive accuracy (who did what, why, relationships)
+        - Component C (0-30): Quotations/paraphrasing (preserves meaning and emphasis)
+
+        Quality/Completeness (0-100):
+        - Component A (0-40): Coverage of major themes (should cover 70-80%+ of content)
+        - Component B (0-25): Emphasis and proportion
+        - Component C (0-20): Specificity and examples
+        - Component D (0-15): Organization and clarity
+        
+        IMPORTANT SCORING GUIDANCE:
+        - A summary CANNOT include every detail. Do not penalize for reasonable omissions.
+        - Only flag MAJOR factual errors (wrong names, wrong events, wrong relationships)
+        - Do NOT flag minor omissions like exact dates, minor locations, or secondary figures
+        - Do NOT flag date discrepancies unless you are 100% certain of the correct date
+        - Minor date variations (day/month) should not be flagged as errors
+        - Do NOT flag grammar or phrasing preferences (e.g., "white and black superintendents" vs "white superintendent and black superintendent")
+        - Do NOT flag requests for more specificity. "Dr. King was at that meeting" is correct even if it could say "1959 New York meeting"
+        - Only flag if information is WRONG, not if it could be MORE SPECIFIC
+        - Only flag if the MEANING is wrong, not if the wording could be slightly better
+        - Verify the summary correctly identifies WHO is being interviewed vs. other people mentioned
+        - If the summary confuses the interviewee with another person (e.g., calls the interviewee by someone else's name), this is a MAJOR ERROR
+        - If the summary captures the main point correctly, score it highly even if details are missing
+        - 80+ accuracy means no major factual errors, not perfect detail coverage
+
+        REQUIRED VERIFICATION CHECKLIST (check each one):
+        1. Who is the interviewee? Does the summary correctly identify them throughout?
+        2. Are all names spelled correctly and attributed to the right person?
+        3. Are relationships correct (who did what, who worked with whom)?
+        4. Are events described accurately (what happened, where, to whom)?
+        5. Is anything fabricated that isn't in the transcript?
+        
+        If ANY of these fail, it's an ERROR and score must be below 80.
+
+        SCORING RULES:
+        - ERRORS are factual mistakes that fail the verification checklist
+        - IMPROVEMENTS are optional enhancements (more specificity, additional names, exact dates)
+        - Each ERROR should reduce accuracy by 10-20 points
+        - A summary with ANY error cannot score above 79 on accuracy
+        - Only give 80+ if ALL checklist items pass
+
+        TRANSCRIPTION ERROR HANDLING:
+        The transcript is from speech-to-text and contains errors. When checking names:
+        - Use your knowledge of real historical figures (Medgar Evers, Rosa Parks, Martin Luther King Jr., etc.)
+        - If the summary uses a REAL name and the transcript has garbled text, the summary is CORRECT
+        - Only flag a name error if the summary uses a WRONG real name, not if it corrects garbled speech
+        - Example: Summary says "Medgar Evers", transcript says "Megahevers" → summary is CORRECT, no issue
+        - Example: Summary says "Malcolm X", transcript says "Medgar Evers" → summary is WRONG, flag it
+        - If you're unsure which name variant is correct, DO NOT flag it as an error
+        - Only flag a name error if you are 100% certain the summary has the WRONG name
+        - Name variations (Brann vs Brown vs Sebrown) may be transcription issues - do not flip-flop
+        - When in doubt, trust the summary's name over the transcript's garbled text
+        CRITICAL: If the summary is accurate, return an EMPTY errors array: "errors": []
+        Do NOT invent errors just because you are asked to find them.
+        It is perfectly acceptable to have zero errors.
+
+        For each issue, use this exact format:
+        - Wrong name/fact: "REPLACE: '[wrong text]' → '[correct text]'"
+        - Missing info: "ADD: [specific detail to add]"
+        
+        Examples:
+        GOOD: "REPLACE: 'Reverend Brann' → 'Reverend Dr. Amos Sebrown'"
+        GOOD: "ADD: Dr. Arinia Mallory persuaded Edinor to surrender"
+        GOOD: "REPLACE: 'community leaders' → 'John W. Dixon, Esse Collins, Mary Cox'"
+        BAD: "Wrong name used"
+        BAD: "Missing details"

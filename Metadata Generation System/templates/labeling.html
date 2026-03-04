@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set active_step = 'labeling' %}
+
+{% block title %}2. Labeling — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 2 — Topic Labeling</h1>
+    <p>Label each text block with a main topic category and subtopics. You can edit the prompts used to label below.</p>
+</div>
+
+<!-- Prompts -->
+<form action="{{ url_for('labeling_run') }}" method="post" id="labeling-form">
+    <div class="prompt-grid">
+        <div class="panel">
+            <div class="panel-label">System Prompt</div>
+            <textarea name="sys_prompt" class="prompt-box">{{ state.labeling_sys_prompt }}</textarea>
+        </div>
+        <div class="panel">
+            <div class="panel-label">User Prompt</div>
+            <textarea name="user_prompt" class="prompt-box">{{ state.labeling_user_prompt }}</textarea>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run Labeling</button>
+        <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">← Back</a>
+    </div>
+</form>
+
+{% if labeling_error %}
+<div class="panel" style="margin-top: 24px; border-color: #b42318;">
+    <div class="panel-label" style="color: #f04438;">Labeling Error</div>
+    <div class="output-block" style="color: #f5f5f5;">{{ labeling_error }}</div>
+</div>
+{% endif %}
+
+<!-- Output -->
+{% if state.block_topics %}
+<div class="panel" style="margin-top: 24px;">
+    <div class="panel-label">Labeling Output ({{ state.block_topics|length }} blocks labeled)</div>
+    
+    <form action="{{ url_for('labeling_update_output') }}" method="post">
+        <textarea name="edited_output" class="output-box">{{ state.block_topics | tojson(indent=2) }}</textarea>
+
+        <div class="btn-row">
+            <button type="submit" class="btn btn-primary">Continue to TOC →</button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('labeling-form').submit()">Restart Step</button>
+        </div>
+    </form>
+</div>
+
+<!-- Visual preview -->
+<div class="panel">
+    <div class="panel-label">Preview</div>
+    {% for bt in state.block_topics %}
+    <div class="chapter-card">
+        <div class="chapter-num">Block {{ bt.block_number }}</div>
+        <div style="color: #aaa; font-size: 13px;">
+            <strong>{{ bt.main_topic_category }}</strong>
+            — {{ bt.subtopics | join(', ') }}
+        </div>
+        <div style="font-size: 12px; color: #555; margin-top: 4px;">
+            Confidence: {{ bt.confidence }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('labeling-form').addEventListener('submit', function() {
+        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running...';
+        document.getElementById('run-btn').disabled = true;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% set active_step = 'toc' %}
+
+{% block title %}3. TOC — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 3 — Table of Contents</h1>
+    <p>This step builds a Hierarchical TOC by merging labeled blocks by main topic and subtopics. This step doesn't make any API calls. You can also edit the JSON output.</p>
+</div>
+
+{% if state.toc_bundle %}
+<div class="panel">
+    <div class="panel-label">TOC Output</div>
+    <form action="{{ url_for('toc_update_output') }}" method="post">
+        <textarea name="edited_output" class="output-box">{{ state.toc_bundle | tojson(indent=2) }}</textarea>
+
+        <div class="btn-row">
+            <button type="submit" class="btn btn-primary">Continue to Chapterization →</button>
+            <a href="{{ url_for('labeling_page') }}" class="btn btn-secondary">← Back to Labeling</a>
+        </div>
+    </form>
+</div>
+
+<!-- Visual preview -->
+{% if state.toc_bundle.toc %}
+<div class="panel">
+    <div class="panel-label">Preview</div>
+    {% for entry in state.toc_bundle.toc %}
+    <div class="chapter-card">
+        <div class="chapter-num">{{ entry.topic }}</div>
+        <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+        {% if entry.subtopics %}
+        <div style="margin-top: 8px;">
+            {% for sub in entry.subtopics %}
+            <div style="font-size: 12px; color: #777; margin-left: 16px;">
+                ↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="panel">
+    <div class="output-block"><pre>No labeled blocks available. Complete the labeling step first.</pre></div>
+</div>
+<div class="btn-row">
+    <a href="{{ url_for('labeling_page') }}" class="btn btn-primary">← Back to Labeling</a>
+</div>
+{% endif %}
+{% endblock %}

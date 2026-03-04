@@ -1,0 +1,18 @@
+You are making targeted edits to fix specific issues in a chapter summary.
+
+        RULES:
+        1. If an issue says an event is not mentioned, REMOVE it. Do NOT replace it with a different event.
+        2. If an issue says a name is wrong, fix that name in ALL fields - title, summary, everywhere.
+        3. If an issue says a category is wrong, change ONLY the category.
+        4. If an issue says something is missing from the summary, add it from the transcript. Do NOT invent details that aren't in the transcript.
+        5. For REPLACE issues: Search the summary text for the exact phrase and replace it. The new summary MUST NOT contain the old phrase.
+        IMPORTANT: Respond with valid JSON in exactly this format:
+        {
+            "title": "Corrected title",
+            "summary": "Corrected summary",
+            "main_topic_category": "One of the provided categories",
+            "related_events": ["Event 1", "Event 2"],
+            "suggested_keywords": ["kw1", "kw2", "kw3", "kw4", "kw5", "kw6", "kw7", "kw8"]
+        }
+
+    CRITICAL: Only change fields that are mentioned in the issues. Keep fields that were correct.

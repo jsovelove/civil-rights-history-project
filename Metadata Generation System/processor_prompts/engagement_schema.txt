@@ -1,0 +1,259 @@
+{
+  "interview_metadata": {
+    "interviewee_name": "string (extract from transcript)",
+    "interviewee_title": "string (extract from transcript)",
+    "interview_date": "YYYY-MM-DD (extract from transcript)",
+    "interview_location": "string (extract from transcript)",
+    "interviewer_name": "string (extract from transcript)",
+    "interviewer_affiliation": "string (extract from transcript)",
+    "collection": "string (extract from transcript)",
+    "duration_formatted": "HH:MM:SS",
+    "total_segments": 0,
+    "word_count": 0,
+    "number_of_chapters": 0
+  },
+  
+  "overall_score": {
+    "total": 0,
+    "max_possible": 100,
+    "category": "Exceptional/Excellent/Very Good/Good/Fair/Limited"
+  },
+  
+  "dimension_scores": {
+    "narrative_quality": {
+      "total": 0,
+      "max_possible": 30,
+      "story_structure_coherence": {
+        "score": 0,
+        "max_possible": 10,
+        "evidence": [
+          "quote with (Segment #, HH:MM:SS,mmm)",
+          "quote with (Segment #, HH:MM:SS,mmm)"
+        ],
+        "justification": "2-3 sentences explaining score"
+      },
+      "vivid_details_examples": {
+        "score": 0,
+        "max_possible": 10,
+        "most_vivid_moment": {
+          "quote": "exact quote",
+          "segment": 0,
+          "timestamp": "HH:MM:SS,mmm"
+        },
+        "specificity_count": {
+          "full_names": 0,
+          "specific_dates": 0,
+          "specific_places": 0
+        },
+        "evidence": [
+          "example 1 with segment/timestamp",
+          "example 2",
+          "example 3"
+        ],
+        "justification": "2-3 sentences"
+      },
+      "emotional_authenticity": {
+        "score": 0,
+        "max_possible": 10,
+        "most_authentic_moment": {
+          "quote": "exact quote",
+          "segment": 0,
+          "timestamp": "HH:MM:SS,mmm"
+        },
+        "emotional_range": [
+          "emotion1",
+          "emotion2"
+        ],
+        "vulnerability_elements": [
+          "element1",
+          "element2"
+        ],
+        "justification": "2-3 sentences"
+      },
+      "overall_assessment": "3-5 sentences synthesizing narrative quality"
+    },
+    
+    "historical_value": {
+      "total": 0,
+      "max_possible": 25,
+      "unique_firsthand_perspective": {
+        "score": 0,
+        "max_possible": 10,
+        "major_events": [
+          "event with role and segment/timestamp"
+        ],
+        "key_figures": [
+          {
+            "name": "string",
+            "relationship": "string",
+            "contact_level": "close/moderate/distant"
+          }
+        ],
+        "organizational_involvement": [
+          {
+            "organization": "string",
+            "role": "string",
+            "years": "string"
+          }
+        ],
+        "unique_access": "What insider knowledge does narrator have?",
+        "justification": "2-3 sentences"
+      },
+      "specificity_of_details": {
+        "score": 0,
+        "max_possible": 8,
+        "precision_examples": [
+          "example 1 with segment/timestamp",
+          "example 2",
+          "example 3",
+          "example 4",
+          "example 5"
+        ],
+        "date_specificity": "precise/good/moderate/vague",
+        "name_count": {
+          "full_names": 0,
+          "first_only": 0,
+          "unnamed": 0
+        },
+        "verifiable_claims": [
+          "claim 1",
+          "claim 2"
+        ],
+        "justification": "2-3 sentences"
+      },
+      "fills_historical_gaps": {
+        "score": 0,
+        "max_possible": 7,
+        "new_information": [
+          "contribution 1",
+          "contribution 2"
+        ],
+        "understudied_aspects": [
+          "aspect 1",
+          "aspect 2"
+        ],
+        "narrative_complications": "What does this challenge or complicate?",
+        "historiographical_value": "How would historians use this?",
+        "justification": "2-3 sentences"
+      },
+      "overall_assessment": "3-5 sentences synthesizing historical value"
+    },
+    
+    "emotional_resonance": {
+      "total": 0,
+      "max_possible": 25,
+      "transformation_growth": {
+        "score": 0,
+        "max_possible": 10,
+        "transformation_arc": "Description of narrator's change journey",
+        "key_turning_points": [
+          "moment 1 with segment/timestamp",
+          "moment 2"
+        ],
+        "before_after_contrast": "How narrator changed",
+        "inspirational_quality": "Would this inspire others? How?",
+        "justification": "2-3 sentences"
+      },
+      "tension_conflict_triumph": {
+        "score": 0,
+        "max_possible": 8,
+        "peak_moments": [
+          {
+            "description": "string",
+            "segment_range": "X-Y",
+            "timestamp_range": "HH:MM:SS,mmm - HH:MM:SS,mmm",
+            "stakes": "what was at risk"
+          }
+        ],
+        "conflict_types": [
+          "type1",
+          "type2"
+        ],
+        "emotional_range": "From X emotion to Y emotion",
+        "justification": "2-3 sentences"
+      },
+      "relatable_experiences": {
+        "score": 0,
+        "max_possible": 7,
+        "universal_themes": [
+          "theme1",
+          "theme2"
+        ],
+        "relatable_struggles": [
+          "struggle1",
+          "struggle2"
+        ],
+        "human_moments": [
+          "moment with segment/timestamp",
+          "moment with segment/timestamp"
+        ],
+        "connection_points": "How can diverse audiences relate?",
+        "justification": "2-3 sentences"
+      },
+      "overall_assessment": "3-5 sentences synthesizing emotional resonance"
+    },
+    
+    "accessibility": {
+      "total": 0,
+      "max_possible": 20,
+      "language_clarity": {
+        "score": 0,
+        "max_possible": 7,
+        "verbal_articulation": "excellent/good/fair/poor",
+        "dialect_impact": "none/slight/moderate/heavy",
+        "jargon_use": "rare/occasional/frequent",
+        "barriers": [
+          "barrier1",
+          "barrier2"
+        ],
+        "justification": "2-3 sentences"
+      },
+      "narrative_flow": {
+        "score": 0,
+        "max_possible": 7,
+        "overall_rhythm": "excellent/good/uneven/poor",
+        "high_energy_sections": [
+          "segment/timestamp range with reason"
+        ],
+        "slow_sections": [
+          "segment/timestamp range with reason"
+        ],
+        "interviewer_impact": "excellent/good/mixed/poor",
+        "attention_sustainability": "How long can audiences stay engaged?",
+        "justification": "2-3 sentences"
+      },
+      "broader_themes_connection": {
+        "score": 0,
+        "max_possible": 6,
+        "themes_connected": [
+          "theme1",
+          "theme2"
+        ],
+        "contemporary_relevance": "How does this connect to present?",
+        "meaning_making": "Does narrator help audiences see significance?",
+        "justification": "2-3 sentences"
+      },
+      "overall_assessment": "3-5 sentences synthesizing accessibility"
+    }
+  },
+  
+  "overall_assessment": "4-6 sentences integrating all dimensions",
+  
+  "key_strengths": [
+    "Strength 1 with explanation",
+    "Strength 2 with explanation",
+    "Strength 3 with explanation"
+  ],
+  
+  "key_limitations": [
+    "Limitation 1 with impact",
+    "Limitation 2 with impact"
+  ],
+  
+  "evaluation_metadata": {
+    "evaluator": "AI: Claude (Anthropic)",
+    "evaluation_date": "YYYY-MM-DD",
+    "framework_version": "1.0",
+    "model_used": "claude-sonnet-4-20250514"
+  }
+}

@@ -1,0 +1,16 @@
+The previous chapter summary had these SPECIFIC problems that MUST be fixed: {issues}
+            FOR EACH ISSUE:
+            - If a name is wrong: Find and replace EVERY instance in the summary text, not just the title
+            - If something is missing: Add a specific sentence about it to the summary
+            - If something is incorrect: Rewrite that specific sentence
+            ORIGINAL CONTENT:
+            Title: {original_title}
+            Summary: {original_summary}
+            Main Topic Category: {current_category}
+            Related Events: {current_events}
+            Keywords: {current_keywords}
+            CHAPTER TEXT (use this to find correct information):
+            {transcript_text}
+            Available categories: "{topics_list}"
+            Available events (ONLY use if explicitly mentioned in text): "{events_list}"
+            The summary text MUST be different from the original if there are name or fact errors.

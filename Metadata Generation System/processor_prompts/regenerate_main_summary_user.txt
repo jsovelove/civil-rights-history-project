@@ -1,0 +1,6 @@
+The previous summary had these SPECIFIC problems: {issues}
+                ORIGINAL SUMMARY: {original_summary}
+                ORIGINAL KEY THEMES: {original_key_themes}
+                ORIGINAL HISTORICAL SIGNIFICANCE: {original_historical_significance}
+                TRANSCRIPT: {transcript_text}
+                Edit the summary to fix ALL these issues. Keep any themes or significance that were NOT flagged as issues.

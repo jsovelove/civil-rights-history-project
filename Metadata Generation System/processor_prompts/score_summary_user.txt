@@ -1,0 +1,7 @@
+Score this summary against the transcript.
+        SUMMARY: {summary}
+        KEY THEMES: {key_themes}
+        HISTORICAL SIGNIFICANCE: {historical_significance}
+        TRANSCRIPT (first 12000 chars): {transcript}
+        RUBRIC TO USE: {rubric}
+        Provide scores and list SPECIFIC issues if either score is below 80.

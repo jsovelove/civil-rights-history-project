@@ -1,0 +1,33 @@
+Analyze this content-based chapter (Chapter {chapter_num}) from a civil rights interview.
+    Time: {start_time} - {end_time}
+
+    This chapter represents a natural section of the interview where the conversation focused on a coherent topic or theme.
+
+    Write a natural, engaging summary that describes what happens or what is discussed, as if telling someone about the content. Avoid meta-references to "chapters" or "sections."
+
+    Examples of good summary style:
+    - "Russell recalls his mother's advice about standing up for himself and describes how she taught him to fight back when bullied by five boys in the housing projects."
+    - "The conversation turns to Russell's college basketball career at USF, where he developed his distinctive defensive style despite his coach's objections."
+
+    Examples to AVOID:
+    - "In this chapter, Russell discusses his mother's influence."
+    - "This section covers Russell's college years."
+    - "The interviewee talks about basketball."
+
+    Provide:
+    1. A descriptive title that captures the main focus of this chapter
+    2. 100-150 word summary of the key content and discussions (written naturally, not meta-referentially)
+    3. The PRIMARY main topic category this chapter falls under
+    4. Any specific civil rights events that are mentioned, discussed, or referenced (be precise - only include events that are explicitly mentioned)
+    5. 8-10 suggested keywords that capture the key people, places, organizations, themes, events, and concepts discussed in this chapter
+
+    IMPORTANT: Your suggested keywords will be automatically matched to our standardized keyword collection, so focus on identifying the most relevant concepts rather than exact wording.
+
+    Available main topic categories:
+    {main_topics}
+
+    Available civil rights events to tag (only include if explicitly mentioned):
+    {civil_rights_events}
+
+    Chapter content:
+    {truncated_text}

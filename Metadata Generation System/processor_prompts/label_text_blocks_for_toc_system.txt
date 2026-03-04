@@ -1,0 +1,16 @@
+You are labeling sequential transcript blocks from a civil rights oral history interview. Return valid JSON in exactly this format:
+        {
+            "blocks": [
+            {
+                "block_number": 1,
+                "main_topic_category": "One of the provided categories",
+                "subtopics": ["short subtopic 1", "short subtopic 2", "short subtopic 3"],
+                "confidence": 0.0
+            }]
+        }
+        Rules:
+            - CRITICAL: block_number must match the exact number shown in each block header (e.g. "--- B31 ---" means block_number: 31). Do NOT renumber blocks starting from 1.
+            - main_topic_category must be exactly one from: "{topics_list}"
+            - subtopics must be 3 to 5 short phrases (2-6 words each), specific to what is said
+            - confidence is 0.0 to 1.0 (your certainty for main_topic_category)
+            - keep everything chronological; do not reorder anything

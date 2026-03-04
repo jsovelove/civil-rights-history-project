@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% set active_step = 'summarization' %}
+
+{% block title %}5. Summarization — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 5 — Summarization</h1>
+    <p>Generate the main interview summary and individual chapter summaries.</p>
+</div>
+
+<!-- Main Summary -->
+<form action="{{ url_for('summarization_run_main') }}" method="post" id="main-form">
+    <div class="panel">
+        <div class="panel-label">Main Summary Prompts</div>
+        <div class="prompt-grid">
+            <div>
+                <div class="panel-label" style="margin-top: 8px;">System Prompt</div>
+                <textarea name="main_sys_prompt" class="prompt-box">{{ state.main_summary_sys_prompt }}</textarea>
+            </div>
+            <div>
+                <div class="panel-label" style="margin-top: 8px;">User Prompt</div>
+                <textarea name="main_user_prompt" class="prompt-box">{{ state.main_summary_user_prompt }}</textarea>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="run-main-btn">Run Main Summary</button>
+        </div>
+    </div>
+</form>
+
+{% if state.main_summary %}
+<div class="panel">
+    <div class="panel-label">Main Summary Output</div>
+
+    {% if state.main_summary.summary %}
+    <div class="output-block">
+        <pre>{{ state.main_summary.summary }}</pre>
+    </div>
+    {% endif %}
+
+    {% if state.main_summary.key_themes %}
+    <div style="margin-top: 10px; font-size: 13px; color: #aaa;">
+        <strong style="color: #ccc;">Key Themes:</strong> {{ state.main_summary.key_themes | join(', ') }}
+    </div>
+    {% endif %}
+
+    {% if state.main_summary.historical_significance %}
+    <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
+        <strong style="color: #ccc;">Historical Significance:</strong> {{ state.main_summary.historical_significance }}
+    </div>
+    {% endif %}
+
+    {% if state.main_summary.quality_metrics %}
+    <div style="margin-top: 10px;">
+        <span class="score-badge {% if state.main_summary.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+            Accuracy: {{ state.main_summary.quality_metrics.accuracy_score }}
+        </span>
+        <span class="score-badge {% if state.main_summary.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+            Quality: {{ state.main_summary.quality_metrics.quality_score }}
+        </span>
+    </div>
+    {% if state.main_summary.quality_metrics.errors %}
+    <div style="margin-top: 8px; font-size: 12px; color: #e88;">
+        {% for err in state.main_summary.quality_metrics.errors %}
+        <div>• {{ err }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+<hr style="border-color: #222; margin: 32px 0;">
+
+<!-- Chapter Summaries -->
+<form action="{{ url_for('summarization_run_chapters') }}" method="post" id="chapters-form">
+    <div class="panel">
+        <div class="panel-label">Chapter Summary Prompts</div>
+        <div class="prompt-grid">
+            <div>
+                <div class="panel-label" style="margin-top: 8px;">System Prompt</div>
+                <textarea name="chapter_sys_prompt" class="prompt-box">{{ state.chapter_sys_prompt }}</textarea>
+            </div>
+            <div>
+                <div class="panel-label" style="margin-top: 8px;">User Prompt</div>
+                <textarea name="chapter_user_prompt" class="prompt-box">{{ state.chapter_user_prompt }}</textarea>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="run-ch-btn">Run Chapter Summaries</button>
+        </div>
+    </div>
+</form>
+
+{% if state.chapters %}
+<div class="panel">
+    <div class="panel-label">Chapter Summaries ({{ state.chapters|length }})</div>
+    {% for ch in state.chapters %}
+    <div class="chapter-card">
+        <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+        <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+        <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
+        {% if ch.keywords %}
+        <div style="margin-top: 6px; font-size: 12px; color: #666;">
+            Keywords: {{ ch.keywords | join(', ') }}
+        </div>
+        {% endif %}
+        {% if ch.quality_metrics %}
+        <div style="margin-top: 6px;">
+            <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                Accuracy: {{ ch.quality_metrics.accuracy_score }}
+            </span>
+            <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                Quality: {{ ch.quality_metrics.quality_score }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if state.main_summary or state.chapters %}
+<div class="btn-row" style="margin-top: 16px;">
+    <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to Tuning →</a>
+    <a href="{{ url_for('chapterization_page') }}" class="btn btn-secondary">← Back</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('main-form').addEventListener('submit', function() {
+        document.getElementById('run-main-btn').innerHTML = '<span class="spinner"></span>Running...';
+        document.getElementById('run-main-btn').disabled = true;
+    });
+    document.getElementById('chapters-form').addEventListener('submit', function() {
+        document.getElementById('run-ch-btn').innerHTML = '<span class="spinner"></span>Running...';
+        document.getElementById('run-ch-btn').disabled = true;
+    });
+</script>
+{% endblock %}

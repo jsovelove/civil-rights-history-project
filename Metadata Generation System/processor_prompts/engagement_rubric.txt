@@ -1,0 +1,505 @@
+=================================================================
+MULTI-DIMENSIONAL SCORING FRAMEWORK
+=================================================================
+
+You will score the interview across FOUR DIMENSIONS totaling 100 points:
+
+1. NARRATIVE QUALITY (30 points)
+   - Story Structure and Coherence (10 points)
+   - Vivid, Concrete Details and Examples (10 points)
+   - Emotional Authenticity and Vulnerability (10 points)
+
+2. HISTORICAL VALUE (25 points)
+   - Unique/Firsthand Perspective on Events (10 points)
+   - Specificity of Details (8 points)
+   - Fills Gaps in Historical Record (7 points)
+
+3. EMOTIONAL RESONANCE (25 points)
+   - Personal Transformation/Growth Narratives (10 points)
+   - Moments of Tension, Conflict, or Triumph (8 points)
+   - Relatable Human Experiences (7 points)
+
+4. ACCESSIBILITY (20 points)
+   - Clear, Understandable Language (7 points)
+   - Well-Paced Narrative Flow (7 points)
+   - Connection to Broader Themes (6 points)
+
+=================================================================
+SCORING GUIDELINES
+=================================================================
+
+For EACH sub-dimension, provide:
+1. Numeric score (use full range - don't cluster in 7-9)
+2. Specific evidence with segment numbers and timestamps
+3. Brief justification (2-3 sentences)
+
+=================================================================
+DIMENSION 1: NARRATIVE QUALITY (30 points)
+=================================================================
+
+SUB-DIMENSION 1.1: Story Structure and Coherence (10 points)
+-------------------------------------------------------------
+
+Evaluate whether the interview follows a clear narrative arc and maintains coherent structure.
+
+9-10 points: MASTERFUL STRUCTURE
+- Clear beginning that sets context and draws listener in
+- Logical progression through events or themes
+- Smooth, effective transitions between topics
+- Satisfying resolution or reflection at end
+- Story elements work together cohesively
+- Interviewer and narrator collaborate well on flow
+
+7-8 points: STRONG STRUCTURE
+- Clear overall organization (chronological, thematic, or combination)
+- Mostly logical progression with minor gaps
+- Generally smooth transitions
+- Most sections connect well
+- A few tangents or backtracking moments
+- Overall easy to follow
+
+5-6 points: BASIC STRUCTURE
+- Identifiable structure but somewhat fragmented
+- Some logical flow but also meandering sections
+- Transitions sometimes abrupt or unclear
+- Listener can follow but requires effort
+- Mix of cohesive and disconnected sections
+- Some backtracking or repetition
+
+3-4 points: WEAK STRUCTURE
+- Difficult to identify organizing principle
+- Jumps between topics without clear connections
+- Frequent tangents that don't resolve
+- Confusing chronology or thematic organization
+- Listener struggles to follow narrative thread
+- Interviewer questions don't help create flow
+
+1-2 points: FRAGMENTED
+- No discernible structure
+- Random topic jumps
+- Incoherent organization
+- Impossible to follow narrative
+- No beginning, middle, or end
+
+
+SUB-DIMENSION 1.2: Vivid, Concrete Details and Examples (10 points)
+--------------------------------------------------------------------
+
+Evaluate the richness, specificity, and sensory quality of details provided.
+
+9-10 points: EXCEPTIONAL SPECIFICITY
+- Specific names (full names, first and last)
+- Precise dates and times (not just "1960s" but "March 15, 1963")
+- Detailed locations (specific addresses, landmarks, geographic descriptions)
+- Sensory details (sights, sounds, smells, textures, temperatures)
+- Reconstructed dialogue ("He said to me, 'You need to...'")
+- "You are there" quality - listener can visualize scenes
+- Minimal abstract generalizations
+
+7-8 points: STRONG SPECIFICITY
+- Many specific names, dates, and places throughout
+- Several vivid scenes reconstructed with good detail
+- Some sensory details or dialogue
+- Good mix of specific examples and necessary context
+- Occasional generalizations but mostly concrete
+- Listener can visualize key moments
+
+5-6 points: MODERATE SPECIFICITY
+- Some names provided (often first names only)
+- General timeframes ("early '60s," "that summer")
+- Some specific events described but not in vivid detail
+- Mix of concrete examples and abstract discussion
+- Occasional sensory moments but not sustained
+- Some scenes feel generic rather than specific
+
+3-4 points: LIMITED SPECIFICITY
+- Few names provided, mostly unnamed references ("a man," "some people")
+- Vague timeframes ("back then," "those days")
+- Mostly abstract descriptions without concrete examples
+- Little sensory detail
+- No reconstructed scenes or dialogue
+- Generalizations dominate
+
+1-2 points: ENTIRELY ABSTRACT
+- Almost no names, dates, or specific places
+- No sensory details
+- Pure generalization and abstraction
+- Cannot visualize any specific moments
+
+
+SUB-DIMENSION 1.3: Emotional Authenticity and Vulnerability (10 points)
+------------------------------------------------------------------------
+
+Evaluate the emotional depth, honesty, and narrator's willingness to be vulnerable.
+
+9-10 points: RAW, PROFOUND AUTHENTICITY
+- Raw, unguarded emotional expression
+- Willingness to share difficult truths about self
+- Discusses fears, failures, doubts, or moral struggles
+- Wide emotional range displayed (grief, joy, anger, pride, shame, hope)
+- Moments where narrator's voice breaks, cries, or laughs
+- Vulnerable about personal costs and internal conflicts
+- Goes beyond public narrative to personal truth
+
+7-8 points: GENUINE EMOTIONAL EXPRESSION
+- Clearly genuine emotional moments
+- Some vulnerability about feelings and struggles
+- Expresses range of emotions authentically
+- Mix of emotional and analytical discussion
+- Some guardedness but also openness
+- Willing to discuss difficulties and challenges
+- Emotional responses feel true, not performed
+
+5-6 points: MODERATE EMOTIONAL ENGAGEMENT
+- Some emotional expression but often muted
+- Discusses feelings but doesn't go very deep
+- More comfortable with positive emotions (pride) than difficult ones (fear, grief)
+- Mix of emotional access and intellectual distance
+- Guardedness is evident
+- Emotions mentioned more than deeply felt in telling
+
+3-4 points: EMOTIONALLY DISTANT
+- Minimal emotional expression
+- Overly intellectual or analytical approach
+- Deflects questions about feelings
+- Focuses on facts and events rather than emotional experience
+- Defensive or sanitized account
+- Discomfort with emotional vulnerability evident
+
+1-2 points: EMOTIONALLY FLAT
+- No emotional expression or access
+- Purely factual recitation
+- Actively resists discussing feelings
+- Completely guarded
+- No glimpse of inner emotional life
+
+=================================================================
+DIMENSION 2: HISTORICAL VALUE (25 points)
+=================================================================
+
+SUB-DIMENSION 2.1: Unique/Firsthand Perspective on Events (10 points)
+----------------------------------------------------------------------
+
+Assess how close the narrator was to historically significant events and whether they offer insider perspective.
+
+9-10 points: EXCEPTIONAL INSIDER PERSPECTIVE
+- Direct participant in major historical events
+- Decision-making role or leadership position
+- Witness to pivotal, well-documented moments
+- Close personal relationships with major historical figures
+- Rare perspective (one of few surviving witnesses)
+- Insider knowledge of organizational strategy or debates
+- "I was there" accounts of nationally significant events
+
+7-8 points: STRONG FIRSTHAND EXPERIENCE
+- Participated directly in locally/regionally significant events
+- Close proximity to major events or figures
+- Active member of important organizations
+- Witnessed key moments from privileged position
+- Representative of important movement sectors (youth, women, rural, etc.)
+- Good access to inside information
+
+5-6 points: SOLID PARTICIPANT PERSPECTIVE
+- Participated in movement activities but peripheral to major events
+- Organizational member but not leadership
+- Saw some significant events from distance
+- Representative of broader participant experience
+- Some inside knowledge but not deep access
+
+3-4 points: LIMITED DIRECT PARTICIPATION
+- Lived during the era with awareness of events
+- Minimal direct participation in movement activities
+- Mostly observed rather than participated
+- Distant from major events and figures
+- General community member more than activist
+
+1-2 points: SECONDHAND/DISTANT
+- No direct participation in movement
+- Recounts what they heard or read about
+- No personal access to events or figures
+- Tells others' stories rather than their own
+
+
+SUB-DIMENSION 2.2: Specificity of Details (8 points)
+-----------------------------------------------------
+
+Assess the precision and verifiability of information provided.
+
+7-8 points: EXCEPTIONAL PRECISION
+- Precise dates (day, month, year) consistently provided
+- Full names (first and last) of people mentioned
+- Specific addresses or detailed location descriptions
+- Organizational details (chapter names, officer positions, meeting locations)
+- Numbers, statistics, or quantitative details
+- Verifiable facts that could be cross-referenced
+- Historian could use details to reconstruct events
+
+5-6 points: GOOD SPECIFICITY
+- Specific years and sometimes months
+- Many full names, some first-only
+- Identifiable locations with some detail
+- General organizational structures described
+- Mix of precise and approximate details
+- Most major claims could be verified
+
+3-4 points: MODERATE SPECIFICITY
+- General timeframes ("early '60s," "summer of '64")
+- Mix of names and unnamed references
+- General location descriptions without much detail
+- Vague about organizational structures
+- Some details but many gaps
+
+1-2 points: MINIMAL SPECIFICITY
+- Very vague timeframes ("back then," "those days")
+- Few or no names provided
+- General or inaccurate details
+- Cannot verify most claims
+
+
+SUB-DIMENSION 2.3: Fills Gaps in Historical Record (7 points)
+--------------------------------------------------------------
+
+Assess whether the interview provides new information, corrects misconceptions, or documents understudied aspects.
+
+6-7 points: SIGNIFICANT NEW CONTRIBUTIONS
+- Documents previously unrecorded or rare events
+- Provides perspective from underrepresented group (women, youth, rural, working class, etc.)
+- Reveals behind-the-scenes dynamics not in public record
+- Corrects common misconceptions or oversimplifications
+- Addresses understudied geography, time period, or organization
+- Challenges or significantly complicates dominant narratives
+- Offers unique evidence for historical debates
+
+4-5 points: VALUABLE ADDITIONS
+- Adds substantial nuance to well-known events
+- Provides detailed personal perspective on known history
+- Documents representative experience worth preserving
+- Confirms other accounts but adds valuable texture
+- Some new details or insights among familiar content
+
+2-3 points: LIMITED NEW INFORMATION
+- Mostly repeats well-documented events and narratives
+- Representative story but not particularly unique
+- Confirms existing knowledge without adding much
+- Recounts events extensively covered in other sources
+
+1 point: NO NEW INFORMATION
+- Entirely covers well-documented ground
+- No unique perspective or details
+- Could be written from textbook knowledge
+
+=================================================================
+DIMENSION 3: EMOTIONAL RESONANCE (25 points)
+=================================================================
+
+SUB-DIMENSION 3.1: Personal Transformation/Growth Narratives (10 points)
+-------------------------------------------------------------------------
+
+Assess whether the narrator describes a journey of change, learning, or development.
+
+9-10 points: PROFOUND TRANSFORMATION ARC
+- Clear "before and after" in narrator's identity or worldview
+- Articulates how specific experiences changed them
+- Describes pivotal moments of realization or growth
+- Shows development in understanding, courage, or consciousness
+- Inspiring arc from fear/ignorance to courage/awareness
+- Reflects deeply on personal meaning of experiences
+- Transformation feels authentic and hard-won
+
+7-8 points: CLEAR GROWTH JOURNEY
+- Notable personal development evident
+- Discusses learning and changing through experiences
+- Some specific turning points identified
+- Growth in courage, understanding, or skill
+- Moderate development arc
+- Some reflection on transformation process
+
+5-6 points: MODERATE DEVELOPMENT
+- Some discussion of personal change
+- Mentions growth without deep exploration
+- Learning implied more than explicitly discussed
+- Development evident but not strongly emphasized
+- Limited reflection on how experiences shaped them
+
+3-4 points: LIMITED TRANSFORMATION NARRATIVE
+- Minimal discussion of personal change
+- Focuses on events rather than personal impact
+- Little reflection on development
+- Growth not emphasized or explored
+
+1-2 points: NO TRANSFORMATION NARRATIVE
+- No discussion of personal growth
+- Entirely focused on external events
+- No reflection on impact on self
+
+
+SUB-DIMENSION 3.2: Moments of Tension, Conflict, or Triumph (8 points)
+-----------------------------------------------------------------------
+
+Assess the presence and quality of dramatic moments that create emotional intensity.
+
+7-8 points: HIGH DRAMA AND INTENSITY
+- Multiple high-stakes moments throughout
+- Palpable tension or danger vividly described
+- Dramatic confrontations or conflicts with clear stakes
+- Moments of breakthrough victory or success
+- Suspense, surprise, or dramatic revelation
+- Physical danger or moral dilemmas faced
+- Emotional peaks and valleys create narrative arc
+
+5-6 points: SOLID DRAMATIC MOMENTS
+- Several challenging or tense situations described
+- Some conflict or danger evident
+- A few moments with real stakes
+- Some celebratory victories or successes
+- Moderate dramatic arc
+- Enough tension to maintain interest
+
+3-4 points: LIMITED DRAMATIC CONTENT
+- Conflicts mentioned but not developed
+- Low-level tension or challenges
+- Few high-stakes moments
+- Limited emotional peaks
+- More telling about difficulty than showing it
+
+1-2 points: NO DRAMATIC CONTENT
+- Flat recounting of events
+- No tension or conflict developed
+- No emotional peaks or valleys
+
+
+SUB-DIMENSION 3.3: Relatable Human Experiences (7 points)
+----------------------------------------------------------
+
+Assess how well the interview connects to universal human experiences and emotions.
+
+6-7 points: HIGHLY RELATABLE AND UNIVERSAL
+- Explores universal themes (courage, fear, love, loss, hope, belonging, purpose)
+- Deeply relatable struggles or dilemmas
+- Family dynamics or relationships that resonate broadly
+- Everyday human moments amid extraordinary events
+- Audiences from diverse backgrounds can see themselves in story
+- Specific civil rights context but universal human experience
+
+4-5 points: MODERATELY RELATABLE
+- Some universal themes present
+- Mix of specific and broadly human elements
+- Moderate emotional connection points
+- Some aspects very context-specific, some transcendent
+
+2-3 points: LIMITED RELATABILITY
+- Very context-specific without universal bridges
+- Difficult for general audiences to connect personally
+- Focuses on tactical/organizational details over human experience
+
+1 point: NOT RELATABLE
+- Entirely specific to narrow context
+- No universal themes explored
+- Purely factual or organizational
+
+=================================================================
+DIMENSION 4: ACCESSIBILITY (20 points)
+=================================================================
+
+SUB-DIMENSION 4.1: Clear, Understandable Language (7 points)
+-------------------------------------------------------------
+
+Assess the clarity and accessibility of the narrator's communication style.
+
+6-7 points: HIGHLY ACCESSIBLE
+- Articulate and clear expression throughout
+- Minimal jargon or explains specialized terms
+- Complex ideas communicated accessibly
+- Strong verbal communication skills
+- Little to no dialect that would impede comprehension
+- Self-contextualizes references ("the NAACP, which is...")
+- General audiences can easily follow
+
+4-5 points: GENERALLY ACCESSIBLE
+- Mostly clear communication
+- Some jargon or unexplained acronyms
+- Moderate dialect that may require familiarity
+- Occasional unclear passages
+- Some insider knowledge assumed but manageable
+
+2-3 points: CHALLENGING ACCESSIBILITY
+- Difficult to understand in places
+- Heavy dialect or strong accent
+- Extensive jargon without explanation
+- Poor articulation or rambling
+- Assumes extensive background knowledge
+
+1 point: VERY DIFFICULT
+- Very hard to understand
+- Severe articulation issues
+- Impenetrable jargon
+
+
+SUB-DIMENSION 4.2: Well-Paced Narrative Flow (7 points)
+--------------------------------------------------------
+
+Assess the rhythm, momentum, and engagement sustainability of the narrative.
+
+6-7 points: EXCELLENT PACING
+- Strong narrative momentum throughout
+- Good balance of action and reflection
+- Varies pace (fast for dramatic moments, slower for analysis)
+- Sustains attention from beginning to end
+- Natural storytelling rhythm
+- Interviewer facilitates without interrupting
+
+4-5 points: GENERALLY GOOD PACING
+- Generally maintains momentum
+- Some strong sections, some slower
+- Adequate variation in pacing
+- Most of interview sustains attention
+- Occasional lulls but recovers
+
+2-3 points: UNEVEN PACING
+- Frequently loses momentum
+- Plodding or disjointed
+- Poor variation (all one speed)
+- Difficult to sustain attention
+- Multiple slow or confusing sections
+
+1 point: POOR PACING
+- Cannot maintain momentum
+- Extremely slow or chaotic
+- Painful to sit through
+
+
+SUB-DIMENSION 4.3: Connection to Broader Themes (6 points)
+-----------------------------------------------------------
+
+Assess how well the interview links personal experience to larger Civil Rights themes and contemporary issues.
+
+5-6 points: STRONG THEMATIC CONNECTIONS
+- Explicitly connects personal story to broader movement themes
+- Reflects on historical significance of experiences
+- Draws clear connections to contemporary issues
+- Situates personal experience in larger context
+- Makes historical meaning accessible
+- Helps audiences understand "so what?" and "why does this matter?"
+
+3-4 points: MODERATE CONNECTIONS
+- Some broader connections made
+- Implicit rather than explicit themes
+- Moderate contextualization
+- Some reflection on larger meaning
+
+1-2 points: LIMITED CONNECTIONS
+- Entirely personal without broader context
+- No reflection on larger meaning or significance
+- Doesn't connect to themes beyond specific events
+
+=================================================================
+CRITICAL REQUIREMENTS
+=================================================================
+
+1. CITE SPECIFIC EVIDENCE: For every score, provide quotes with segment numbers and timestamps
+2. USE FULL SCORE RANGE: Don't cluster scores in 7-9 range. Use 1-10 appropriately.
+3. BE BALANCED: Acknowledge both strengths AND limitations
+4. PROVIDE JUSTIFICATIONS: Explain WHY you gave each score in 2-3 sentences
+5. OUTPUT VALID JSON: Your response must be parseable JSON
+
+=================================================================

@@ -1,0 +1,9 @@
+Analyze this interview transcript and identify natural chapter breaks based on topic transitions.
+
+    The text is divided into sequential blocks. Identify where major topic shifts occur and group consecutive blocks into coherent chapters.
+
+    Interview content:
+    {analysis_text}
+    {topic_context}
+
+    Create chapters that represent natural topic transitions in this civil rights interview.

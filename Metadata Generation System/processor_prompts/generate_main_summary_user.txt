@@ -1,0 +1,19 @@
+Please analyze this civil rights interview for {interview_name} and provide a JSON response.
+
+Write a comprehensive summary that captures the person's experiences, background, and key stories they share. Focus on what happened in their life and what they witnessed, not on the fact that they're being interviewed.
+
+Examples of good summary style:
+- "Russell grew up in Louisiana during Jim Crow, where his grandfather once confronted the Ku Klux Klan to protect a Black man being beaten in the woods."
+- "After his mother's death when he was 12, Russell's father moved the family to Oakland and worked multiple jobs to keep his promise that both boys would attend college."
+
+Examples to AVOID:
+- "In this interview, Russell discusses his childhood experiences."
+- "The conversation covers Russell's early life and family background."
+- "Russell talks about growing up in the South."
+
+The summary should be 200-300 words covering the main experiences, events, and personal stories shared.
+Include 4-6 key themes that emerge from their life experiences and stories.
+Describe the historical significance and context of their experiences.
+
+Interview transcript:
+{truncated_transcript}

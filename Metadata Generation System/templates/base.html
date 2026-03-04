@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Civil Rights History - Pipeline Demo{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="pipeline-nav">
+        <div class="nav-title">CR History Pipeline</div>
+        <div class="nav-steps">
+            <a href="{{ url_for('upload_page') }}" class="nav-step {% if active_step == 'upload' %}active{% endif %} {% if state.segments %}done{% endif %}">
+                1. Upload
+            </a>
+            <a href="{{ url_for('labeling_page') }}" class="nav-step {% if active_step == 'labeling' %}active{% endif %} {% if state.block_topics %}done{% endif %} {% if not state.text_blocks %}disabled{% endif %}">
+                2. Labeling
+            </a>
+            <a href="{{ url_for('toc_page') }}" class="nav-step {% if active_step == 'toc' %}active{% endif %} {% if state.toc_bundle %}done{% endif %} {% if not state.block_topics %}disabled{% endif %}">
+                3. TOC
+            </a>
+            <a href="{{ url_for('chapterization_page') }}" class="nav-step {% if active_step == 'chapterization' %}active{% endif %} {% if state.chapter_breaks %}done{% endif %} {% if not state.block_topics %}disabled{% endif %}">
+                4. Chapters
+            </a>
+            <a href="{{ url_for('summarization_page') }}" class="nav-step {% if active_step == 'summarization' %}active{% endif %} {% if state.chapters %}done{% endif %} {% if not state.chapter_breaks %}disabled{% endif %}">
+                5. Summary
+            </a>
+            <a href="{{ url_for('tuning_page') }}" class="nav-step {% if active_step == 'tuning' %}active{% endif %} {% if state.tuning_results %}done{% endif %} {% if not state.main_summary %}disabled{% endif %}">
+                6. Tuning
+            </a>
+            <a href="{{ url_for('engagement_page') }}" class="nav-step {% if active_step == 'engagement' %}active{% endif %} {% if state.engagement_scores %}done{% endif %} {% if not state.text_blocks or not state.steps_enabled.engagement %}disabled{% endif %}">
+                7. Engagement
+            </a>
+            <a href="{{ url_for('results_page') }}" class="nav-step {% if active_step == 'results' %}active{% endif %} {% if not state.main_summary %}disabled{% endif %}">
+                8. Results
+            </a>
+            <a href="{{ url_for('batch_page') }}" class="nav-step {% if active_step == 'batch' %}active{% endif %} {% if not state.main_summary %}disabled{% endif %}">
+                9. Batch
+            </a>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Disable nav links that aren't ready yet
+        document.querySelectorAll('.nav-step.disabled').forEach(el => {
+            el.addEventListener('click', e => e.preventDefault());
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

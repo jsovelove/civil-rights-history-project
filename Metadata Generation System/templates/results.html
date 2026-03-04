@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% set active_step = 'results' %}
+
+{% block title %}7. Results — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 7 — Final Results</h1>
+    <p>This is every pipeline output in one view, including the chapters, summaries, table of contents with time stamped moments and clips, and associated keywords. You can download the results as JSON.</p>
+</div>
+
+<div class="btn-row" style="margin-bottom: 24px;">
+    <a href="{{ url_for('results_download') }}" class="btn btn-success">Download results.json</a>
+    <a href="{{ url_for('batch_page') }}" class="btn btn-primary">Run Batch with These Settings →</a>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
+</div>
+
+<!-- Main Summary -->
+{% if state.main_summary %}
+<div class="panel">
+    <div class="panel-label">Main Summary</div>
+    <div class="output-block">
+        <pre>{{ state.main_summary.get('summary', '') }}</pre>
+    </div>
+    {% if state.main_summary.key_themes %}
+    <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
+        <strong>Key Themes:</strong> {{ state.main_summary.key_themes | join(', ') }}
+    </div>
+    {% endif %}
+    {% if state.main_summary.historical_significance %}
+    <div style="margin-top: 6px; font-size: 13px; color: #aaa;">
+        <strong>Historical Significance:</strong> {{ state.main_summary.historical_significance }}
+    </div>
+    {% endif %}
+    {% if state.main_summary.quality_metrics %}
+    <div style="margin-top: 8px;">
+        <span class="score-badge {% if state.main_summary.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+            Accuracy: {{ state.main_summary.quality_metrics.accuracy_score }}
+        </span>
+        <span class="score-badge {% if state.main_summary.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+            Quality: {{ state.main_summary.quality_metrics.quality_score }}
+        </span>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Chapters -->
+{% if state.chapters %}
+<div class="panel">
+    <div class="panel-label">Chapters ({{ state.chapters|length }})</div>
+    {% for ch in state.chapters %}
+    <div class="chapter-card">
+        <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+        <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+        {% if ch.main_topic_category %}
+        <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
+        {% endif %}
+        <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
+        {% if ch.keywords %}
+        <div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>
+        {% endif %}
+        {% if ch.related_events %}
+        <div style="margin-top: 4px; font-size: 12px; color: #666;">Events: {{ ch.related_events | join(', ') }}</div>
+        {% endif %}
+        {% if ch.quality_metrics %}
+        <div style="margin-top: 6px;">
+            <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                Acc: {{ ch.quality_metrics.accuracy_score }}
+            </span>
+            <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                Qual: {{ ch.quality_metrics.quality_score }}
+            </span>
+        </div>
+        {% if ch.quality_metrics.errors %}
+        <div style="margin-top: 6px; font-size: 12px; color: #e88;">
+            {% for err in ch.quality_metrics.errors %}
+            <div>• {{ err }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if ch.quality_metrics.improvements %}
+        <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
+            {% for imp in ch.quality_metrics.improvements %}
+            <div>↳ {{ imp }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- TOC -->
+{% if state.toc_bundle and state.toc_bundle.toc %}
+<div class="panel">
+    <div class="panel-label">Table of Contents</div>
+    {% for entry in state.toc_bundle.toc %}
+    <div class="chapter-card">
+        <div class="chapter-num">{{ entry.topic }}</div>
+        <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
+        {% for sub in entry.subtopics %}
+        <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }}</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Chapter Breaks -->
+{% if state.chapter_breaks_preview %}
+<div class="panel">
+    <div class="panel-label">Chapter Breaks</div>
+    {% for ch in state.chapter_breaks_preview %}
+    <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
+        Ch {{ ch.chapter }}: {{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Block Topics -->
+{% if state.block_topics %}
+<div class="panel">
+    <div class="panel-label">Block Topics ({{ state.block_topics|length }})</div>
+    {% for bt in state.block_topics %}
+    <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
+        B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Engagement Scores -->
+{% if state.engagement_scores and state.engagement_scores.overall_score is defined %}
+{% set ev = state.engagement_scores %}
+<div class="panel">
+    <div class="panel-label">Engagement Score</div>
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px;">
+        <span style="font-size: 28px; font-weight: 700; color: {% if ev.overall_score.total >= 80 %}#8e8{% elif ev.overall_score.total >= 60 %}#ee8{% else %}#e88{% endif %};">
+            {{ ev.overall_score.total }}/100
+        </span>
+        <span style="font-size: 14px; color: #aaa;">{{ ev.overall_score.category }}</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px;">
+        <div>
+            <span style="color: #666;">Narrative Quality:</span>
+            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.narrative_quality.total if ev.dimension_scores.narrative_quality is defined else 'N/A' }}/30</span>
+        </div>
+        <div>
+            <span style="color: #666;">Historical Value:</span>
+            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.historical_value.total if ev.dimension_scores.historical_value is defined else 'N/A' }}/25</span>
+        </div>
+        <div>
+            <span style="color: #666;">Emotional Resonance:</span>
+            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.emotional_resonance.total if ev.dimension_scores.emotional_resonance is defined else 'N/A' }}/25</span>
+        </div>
+        <div>
+            <span style="color: #666;">Accessibility:</span>
+            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.accessibility.total if ev.dimension_scores.accessibility is defined else 'N/A' }}/20</span>
+        </div>
+    </div>
+    {% if ev.overall_assessment %}
+    <div style="margin-top: 10px; font-size: 13px; color: #999;">{{ ev.overall_assessment }}</div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Raw JSON -->
+<div class="panel">
+    <div class="panel-label">Full JSON Output</div>
+    <div class="output-block" style="max-height: 500px; overflow-y: auto;">
+        <pre id="full-json"></pre>
+    </div>
+</div>
+
+<div class="btn-row" style="margin-top: 16px;">
+    <a href="{{ url_for('results_download') }}" class="btn btn-success">Download results.json</a>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Build full JSON preview
+    const fullData = {
+        main_summary: {{ state.main_summary | tojson if state.main_summary else 'null' }},
+        chapters: {{ state.chapters | tojson if state.chapters else '[]' }},
+        toc: {{ state.toc_bundle | tojson if state.toc_bundle else 'null' }},
+        chapter_breaks: {{ state.chapter_breaks | tojson if state.chapter_breaks else '[]' }},
+        block_topics: {{ state.block_topics | tojson if state.block_topics else '[]' }},
+        engagement_scores: {{ state.engagement_scores | tojson if state.engagement_scores else 'null' }}
+    };
+    document.getElementById('full-json').textContent = JSON.stringify(fullData, null, 2);
+</script>
+{% endblock %}

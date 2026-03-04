@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% set active_step = 'batch' %}
+
+{% block title %}Batch Results — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Batch Results</h1>
+    <p>{{ results|length }} interviews processed. Select a tab to view results for each interview.</p>
+</div>
+
+<div class="btn-row" style="margin-bottom: 16px;">
+    <a href="{{ url_for('batch_download') }}" class="btn btn-success">Download All (ZIP)</a>
+    <a href="{{ url_for('batch_page') }}" class="btn btn-secondary">Run Another Batch</a>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
+</div>
+
+<!-- Interview Tabs -->
+<div class="batch-tabs">
+    {% for name in interview_order %}
+    {% set r = results.get(name, {}) %}
+    <a href="{{ url_for('batch_results', i=name) }}"
+       class="batch-tab {% if name == selected %}active{% endif %} {% if r.get('error') %}tab-error{% endif %}">
+        {{ name }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Selected Interview Results -->
+{% if selected_result %}
+<div class="batch-result-content">
+
+    {% if selected_result.error %}
+    <div class="panel" style="border-left: 3px solid #b42318;">
+        <div class="panel-label" style="color: #b42318;">Error</div>
+        <pre style="color: #e88; font-size: 13px;">{{ selected_result.error }}</pre>
+    </div>
+
+    {% else %}
+
+    <!-- Main Summary -->
+    {% if selected_result.main_summary %}
+    <div class="panel">
+        <div class="panel-label">Main Summary</div>
+        <div class="output-block">
+            <pre>{{ selected_result.main_summary.get('summary', '') if selected_result.main_summary is mapping else selected_result.main_summary }}</pre>
+        </div>
+        {% if selected_result.main_summary is mapping and selected_result.main_summary.key_themes %}
+        <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
+            <strong>Key Themes:</strong> {{ selected_result.main_summary.key_themes | join(', ') }}
+        </div>
+        {% endif %}
+        {% if selected_result.main_summary is mapping and selected_result.main_summary.historical_significance %}
+        <div style="margin-top: 6px; font-size: 13px; color: #aaa;">
+            <strong>Historical Significance:</strong> {{ selected_result.main_summary.historical_significance }}
+        </div>
+        {% endif %}
+        {% if selected_result.main_summary is mapping and selected_result.main_summary.quality_metrics %}
+        <div style="margin-top: 8px;">
+            <span class="score-badge {% if selected_result.main_summary.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                Accuracy: {{ selected_result.main_summary.quality_metrics.accuracy_score }}
+            </span>
+            <span class="score-badge {% if selected_result.main_summary.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                Quality: {{ selected_result.main_summary.quality_metrics.quality_score }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Chapters -->
+    {% if selected_result.chapters %}
+    <div class="panel">
+        <div class="panel-label">Chapters ({{ selected_result.chapters|length }})</div>
+        {% for ch in selected_result.chapters %}
+        <div class="chapter-card">
+            <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+            <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+            {% if ch.main_topic_category %}
+            <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
+            {% endif %}
+            <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
+            {% if ch.keywords %}
+            <div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>
+            {% endif %}
+            {% if ch.related_events %}
+            <div style="margin-top: 4px; font-size: 12px; color: #666;">Events: {{ ch.related_events | join(', ') }}</div>
+            {% endif %}
+            {% if ch.quality_metrics %}
+            <div style="margin-top: 6px;">
+                <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                    Acc: {{ ch.quality_metrics.accuracy_score }}
+                </span>
+                <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                    Qual: {{ ch.quality_metrics.quality_score }}
+                </span>
+            </div>
+            {% if ch.quality_metrics.errors %}
+            <div style="margin-top: 6px; font-size: 12px; color: #e88;">
+                {% for err in ch.quality_metrics.errors %}
+                <div>• {{ err }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if ch.quality_metrics.improvements %}
+            <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
+                {% for imp in ch.quality_metrics.improvements %}
+                <div>↳ {{ imp }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- TOC -->
+    {% if selected_result.toc_bundle and selected_result.toc_bundle.toc %}
+    <div class="panel">
+        <div class="panel-label">Table of Contents</div>
+        {% for entry in selected_result.toc_bundle.toc %}
+        <div class="chapter-card">
+            <div class="chapter-num">{{ entry.topic }}</div>
+            <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
+            {% if entry.subtopics %}
+            {% for sub in entry.subtopics %}
+            <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }}</div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Chapter Breaks -->
+    {% if selected_result.chapter_breaks_preview %}
+    <div class="panel">
+        <div class="panel-label">Chapter Breaks</div>
+        {% for ch in selected_result.chapter_breaks_preview %}
+        <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
+            Ch {{ ch.chapter }}: {{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Block Topics -->
+    {% if selected_result.block_topics %}
+    <div class="panel">
+        <div class="panel-label">Block Topics ({{ selected_result.block_topics|length }})</div>
+        {% for bt in selected_result.block_topics %}
+        <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
+            B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tuning Results -->
+    {% if selected_result.tuning_results %}
+    <div class="panel">
+        <div class="panel-label">Tuning Results</div>
+        {% if selected_result.tuning_results.main_summary %}
+        {% set ms = selected_result.tuning_results.main_summary %}
+        <div style="font-size: 13px; color: #888; margin-bottom: 8px;">
+            Main summary:
+            {% if ms.scores %}
+            Accuracy {{ ms.scores.get('accuracy_score', 'N/A') }} · Quality {{ ms.scores.get('quality_score', 'N/A') }}
+            {% endif %}
+            {% if ms.regenerated %} · Regenerated ({{ ms.retries }} retries){% endif %}
+        </div>
+        {% endif %}
+        {% if selected_result.tuning_results.chapters %}
+        {% for item in selected_result.tuning_results.chapters %}
+        <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
+            Ch {{ loop.index }}:
+            Accuracy {{ item.scores.get('accuracy_score', 'N/A') }} ·
+            Quality {{ item.scores.get('quality_score', 'N/A') }}
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Raw JSON -->
+    <div class="panel">
+        <div class="panel-label">Full JSON Output</div>
+        <div class="output-block" style="max-height: 400px; overflow-y: auto;">
+            <pre id="full-json"></pre>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if selected_result and not selected_result.error %}
+<script>
+    const data = {{ selected_result | tojson }};
+    document.getElementById('full-json').textContent = JSON.stringify(data, null, 2);
+</script>
+{% endif %}
+{% endblock %}

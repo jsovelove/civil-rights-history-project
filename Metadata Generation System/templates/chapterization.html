@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% set active_step = 'chapterization' %}
+
+{% block title %}4. Chapterization — Pipeline Demo{% endblock %}
+
+{% block content %}
+<div class="step-header">
+    <h1>Step 4 — Chapterization</h1>
+    <p>This step creates chapters by detecting topic transitions. Chapter breaks are created by analyzing TOC topic information, reviewing interview content and focus, and using chapterization prompts (which you can edit below).</p>
+</div>
+
+<form action="{{ url_for('chapterization_run') }}" method="post" id="chapter-form">
+    <div class="prompt-grid">
+        <div class="panel">
+            <div class="panel-label">System Prompt</div>
+            <textarea name="sys_prompt" class="prompt-box">{{ state.chapterization_sys_prompt }}</textarea>
+        </div>
+        <div class="panel">
+            <div class="panel-label">User Prompt</div>
+            <textarea name="user_prompt" class="prompt-box">{{ state.chapterization_user_prompt }}</textarea>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run Chapterization</button>
+        <a href="{{ url_for('toc_page') }}" class="btn btn-secondary">← Back</a>
+    </div>
+</form>
+
+{% if state.chapter_breaks_preview %}
+<div class="panel" style="margin-top: 24px;">
+    <div class="panel-label">Chapter Breaks ({{ state.chapter_breaks_preview|length }} chapters)</div>
+
+    {% for ch in state.chapter_breaks_preview %}
+    <div class="chapter-card">
+        <div class="chapter-num">Chapter {{ ch.chapter }}</div>
+        <div class="chapter-time">
+            {{ ch.start_time }} → {{ ch.end_time }} · 
+            {{ ch.segments }} segments · {{ ch.words }} words · 
+            idx {{ ch.start_idx }}–{{ ch.end_idx }}
+        </div>
+        <div class="chapter-snippet">{{ ch.snippet }}</div>
+    </div>
+    {% endfor %}
+
+    <div class="btn-row">
+        <a href="{{ url_for('summarization_page') }}" class="btn btn-primary">Continue to Summarization →</a>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('chapter-form').submit()">Restart Step</button>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('chapter-form').addEventListener('submit', function() {
+        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running...';
+        document.getElementById('run-btn').disabled = true;
+    });
+</script>
+{% endblock %}

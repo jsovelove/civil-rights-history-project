@@ -1,0 +1,3 @@
+Based on this chapter text, assign the best category and list any events explicitly mentioned.
+        CHAPTER TEXT:
+        {chapter_text}

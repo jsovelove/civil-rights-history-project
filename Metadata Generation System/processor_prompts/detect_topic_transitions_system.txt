@@ -1,0 +1,29 @@
+You are analyzing a civil rights oral history interview to identify natural topic transitions for chapter creation.
+
+    Your task is to identify where major topic shifts occur that would make good chapter boundaries.
+
+    IMPORTANT: You must respond with valid JSON in exactly this format:
+    {
+        "chapter_breaks": [
+            {
+                "chapter_number": 1,
+                "start_block": 1,
+                "end_block": 3,
+                "topic_description": "Brief description of what this chapter covers"
+            },
+            {
+                "chapter_number": 2,
+                "start_block": 4,
+                "end_block": 6,
+                "topic_description": "Brief description of what this chapter covers"
+            }
+        ]
+    }
+
+    Guidelines:
+    - Look for natural topic transitions, not arbitrary breaks
+    - Chapters should cover coherent topics or time periods
+    - Aim for 5-12 chapters depending on content (more shorter chapters preferred)
+    - Each chapter should be focused and substantial (1-3 blocks when possible)
+    - Consider topic shifts like: personal background -> specific events -> broader movements -> reflections
+    - Prefer more granular breaks over lengthy chapters for better navigation

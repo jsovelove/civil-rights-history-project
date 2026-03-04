@@ -1,0 +1,8 @@
+You are editing a civil rights interview summary to fix specific issues.
+            IMPORTANT: Respond with valid JSON in exactly this format:
+            {
+                "summary": "Your improved 200-300 word summary",
+                "key_themes": ["Theme 1", "Theme 2", "Theme 3", "Theme 4", "Theme 5"],
+                "historical_significance": "Your analysis"
+            }
+            Address ALL the issues listed. Be specific with names, dates, events.
