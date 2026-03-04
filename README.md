@@ -70,6 +70,25 @@ Then open `http://localhost:5000` in your browser and follow the step-by-step UI
 
 ---
 
+## Frontend Pages
+
+### Home (`/`)
+A custom-built, scroll-driven civil rights history timeline spanning the 1950s through the late 1960s. Each major event — from the murder of Emmett Till through the Civil Rights Act of 1968 — is presented with historical photographs, looping archival video clips (served from Cloudinary), quotes, and decade headers. Animated line connectors drawn in SVG thread the events together visually as the user scrolls. The page also embeds an interactive topic bubble chart and topic-linked text passages. A welcome disclaimer modal is shown on first visit.
+
+### Interview Index (`/interview-index`)
+A card grid of every interview in the collection, showing each interviewee's name, thumbnail, and duration. Supports name-based keyword search and semantic vector search (toggled via a switch), as well as sorting by name or duration. Each card links through to the Interview Player.
+
+### Playlist Builder (`/playlist-builder`)
+The primary exploration tool. Given a keyword, it assembles a sequential playlist of relevant interview segments drawn from across the collection, using progressive loading so the first clip begins playing immediately while the rest load in the background. Features a related-terms panel, shuffle playback, and inline user feedback.
+
+### Topic Glossary (`/topic-glossary`)
+A card-based directory of AI-curated civil rights topics drawn from the `events_and_topics` Firestore collection. Topics are categorized as concepts, places, people, events, organizations, or legal terms, and can be filtered by category, sorted by importance or usage count, and searched by keyword or semantic vector search. Clicking a topic launches its clips directly in the Playlist Builder. Also includes a force-directed topic relationship graph.
+
+### Semantic Search (`/vector-search`)
+A natural language search interface powered by OpenAI vector embeddings. Users enter a free-text query and the app converts it to an embedding, then performs cosine similarity search against all stored clip embeddings to return the top 20 most conceptually relevant segments. Results are displayed as cards showing the clip thumbnail, interviewee name, summary, topic keywords, and a percentage similarity score. Clicking a result navigates to the Clip Player.
+
+---
+
 ## Acknowledgments
 
 - [Library of Congress Civil Rights History Project](https://www.loc.gov/collections/civil-rights-history-project) for the original interview content
