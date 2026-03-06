@@ -79,7 +79,7 @@ Because prompts are separate files, they can be edited without touching Python c
 - **OpenAI client** — reads `OPENAI_API_KEY` from environment or from the key entered in the UI
 - **`chapter_block_size`** — number of SRT segments per text block (default: 23)
 - **`min_chapter_words`** — chapters shorter than this are skipped during summarization (default: 75)
-- **Rubric** — loads `StandardizedRubric_1.md` into memory for use in scoring prompts
+- **Rubric** — loads [`StandardizedRubric_1.md`](StandardizedRubric_1.md) into memory for use in scoring prompts
 - **Historical facts** — loads `civil_rights_facts.json` (a dictionary of known events and verified summaries)
 - **Standard keywords** — fetches the keyword collection from Firestore (`events_and_topics` collection) for keyword matching during chapter generation
 - **`toc_model`** — OpenAI model used for labeling/TOC steps (default: `gpt-4o-mini`)
@@ -325,7 +325,7 @@ Tuning (`processor/tuning.py`) is a separate step that runs after Summarization.
 
 ### Scoring
 
-`score_summary` and `score_chapter` each send the draft summary alongside the source transcript to the OpenAI API. The rubric (loaded from `StandardizedRubric_1.md`) is injected into the prompt. The model returns:
+`score_summary` and `score_chapter` each send the draft summary alongside the source transcript to the OpenAI API. The rubric (loaded from [`StandardizedRubric_1.md`](StandardizedRubric_1.md)) is injected into the prompt. The model returns:
 
 ```json
 {
