@@ -1,6 +1,10 @@
 # Civil Rights History Project
 
-A React-based web application for exploring and creating playlists from civil rights oral history interviews sourced from the [Library of Congress Civil Rights History Project](https://www.loc.gov/collections/civil-rights-history-project). The platform uses AI-generated metadata and vector embeddings to power search, playlist creation, and interactive visualizations.
+This repository contains two things:
+
+1. **A React web application** for exploring and creating playlists from civil rights oral history interviews sourced from the [Library of Congress Civil Rights History Project](https://www.loc.gov/collections/civil-rights-history-project). The platform uses AI-generated metadata and vector embeddings to power search, playlist creation, and interactive visualizations.
+
+2. **A metadata generation pipeline** (`Metadata Generation System/`) — a standalone Python/Flask tool that processes raw interview transcripts through a 7-step AI pipeline to produce the structured metadata that the web app is built on. It generates chapter breaks, summaries, topic classifications, keywords, and engagement scores for each interview, and exports results as JSON ready for Firestore upload.
 
 **Live site:** https://www.civil-rights-history.org/
 
