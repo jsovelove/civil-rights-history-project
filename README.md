@@ -1,6 +1,6 @@
 # Civil Rights History Project
 
-> Over 600 hours of civil rights oral history testimony — firsthand accounts from the people who lived and led the movement — sits in the Library of Congress Civil Rights History Project collection, public but difficult to navigate at scale. This project builds the infrastructure to change that: an open-source AI system that transforms long-form interview archives into transparent, interpretable public knowledge, with every generated summary, label, and interpretive decision traceable, auditable, and revisable. The goal is not to replace curatorial judgment, but to augment it — making primary sources genuinely accessible for civic education, research, and institutional accountability.
+> Over 600 hours of civil rights oral history testimony from the people who lived and led the movement sits in the Library of Congress Civil Rights History Project collection, public but difficult to navigate at scale. This project builds the infrastructure to change that: an open-source AI system that transforms long-form interview archives into transparent, interpretable public knowledge, with every generated summary, label, and interpretive decision traceable, auditable, and revisable. The goal is not to replace curatorial judgment but to augment it, making primary sources genuinely accessible for civic education, research, and institutional accountability.
 
 This repository contains two things:
 
