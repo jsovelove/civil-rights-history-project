@@ -1,5 +1,7 @@
 # Civil Rights History Project
 
+> Over 600 hours of civil rights oral history testimony — firsthand accounts from the people who lived and led the movement — sits in the Library of Congress Civil Rights History Project collection, public but difficult to navigate at scale. This project builds the infrastructure to change that: an open-source AI system that transforms long-form interview archives into transparent, interpretable public knowledge, with every generated summary, label, and interpretive decision traceable, auditable, and revisable. The goal is not to replace curatorial judgment, but to augment it — making primary sources genuinely accessible for civic education, research, and institutional accountability.
+
 This repository contains two things:
 
 1. **A React web application** for exploring and creating playlists from civil rights oral history interviews sourced from the [Library of Congress Civil Rights History Project](https://www.loc.gov/collections/civil-rights-history-project). The platform uses AI-generated metadata and vector embeddings to power search, playlist creation, and interactive visualizations.
@@ -90,9 +92,6 @@ The primary exploration tool. Given a keyword, it assembles a sequential playlis
 
 ### Topic Glossary (`/topic-glossary`)
 A card-based directory of AI-curated civil rights topics drawn from the `events_and_topics` Firestore collection. Topics are categorized as concepts, places, people, events, organizations, or legal terms, and can be filtered by category, sorted by importance or usage count, and searched by keyword or semantic vector search. Clicking a topic launches its clips directly in the Playlist Builder. Also includes a force-directed topic relationship graph.
-
-### Semantic Search (`/vector-search`)
-A natural language search interface powered by OpenAI vector embeddings. Users enter a free-text query and the app converts it to an embedding, then performs cosine similarity search against all stored clip embeddings to return the top 20 most conceptually relevant segments. Results are displayed as cards showing the clip thumbnail, interviewee name, summary, topic keywords, and a percentage similarity score. Clicking a result navigates to the Clip Player.
 
 ---
 
