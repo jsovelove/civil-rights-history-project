@@ -17,7 +17,6 @@ import InterviewIndex from './pages/InterviewIndex'
 import About from './pages/About'
 
 
-
 export default function App() {
   return (
     <>
@@ -115,7 +114,6 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-
 
 
       {/* Catch all route */}

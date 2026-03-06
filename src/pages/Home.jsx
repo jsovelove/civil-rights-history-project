@@ -27,7 +27,6 @@ import BlackPantherToBrownBeretsConnector from '../components/connectors/BlackPa
 import BrownBeretsToLongHotSummerConnector from '../components/connectors/BrownBeretsToLongHotSummerConnector';
 import LongHotSummerToMLKConnector from '../components/connectors/LongHotSummerToMLKConnector';
 import MLKToCivilRightsAct1968Connector from '../components/connectors/MLKToCivilRightsAct1968Connector';
-import TopicBubbles from '../components/TopicBubbles';
 import TopicLinkedText from '../components/TopicLinkedText';
 import FeedbackModal from '../components/FeedbackModal';
 import SelectionFeedbackButton from '../components/SelectionFeedbackButton';
@@ -2510,11 +2509,6 @@ export default function Home() {
             Discover the rest of the archive
           </h2>
           <p className="text-red-500 text-lg sm:text-xl lg:text-2xl font-light font-['Chivo_Mono'] mb-6 lg:mb-8">131 Interviews, 13340 Minutes</p>
-          
-          {/* Top Topics Bubble Cluster */}
-          <div className="mb-8 lg:mb-12">
-            <TopicBubbles maxTopics={30} />
-          </div>
           
           <Link
             to="/topic-glossary"

@@ -38,3 +38,6 @@ Object.entries(mapping).forEach(([gifPath, urls]) => {
   console.log(`  ${urls.mp4}`);
 });
 
+
+
+

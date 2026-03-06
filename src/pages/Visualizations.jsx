@@ -40,7 +40,7 @@ export default function Visualizations() {
    * Intentionally ordered to show timeline first as the default view
    * @type {string[]} Array of tab identifiers
    */
-  const tabs = ['timeline', 'keywords', 'map'];
+  const tabs = ['timeline', 'map'];
   
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen font-body">
@@ -50,7 +50,7 @@ export default function Visualizations() {
           Interactive Visualizations
         </h1>
         <p className="text-lg font-body text-gray-600 max-w-2xl mx-auto">
-          Explore civil rights history through interactive timeline, keyword analysis, and geographical mapping.
+          Explore civil rights history through interactive timeline and geographical mapping.
         </p>
       </div>
       

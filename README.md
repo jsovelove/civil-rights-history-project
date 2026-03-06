@@ -30,7 +30,8 @@ A React-based web application for exploring and creating playlists from civil ri
 │   ├── app.py                    # Flask app
 │   ├── processor/                # Pipeline step modules
 │   ├── processor_prompts/        # LLM prompt templates
-│   └── templates/                # Flask HTML templates
+│   ├── templates/                # Flask HTML templates
+│   └── Metadata Generation Documentation.md  # Pipeline documentation
 ├── scripts/
 │   ├── firebase/                 # Firestore data management scripts
 │   ├── media/                    # Video/GIF processing scripts
@@ -58,6 +59,8 @@ A standalone **Python/Flask** tool (`Metadata Generation System/`) that processe
 
 Each step uses editable LLM prompts (stored in `processor_prompts/`) and can be individually re-run. The tool supports single-file and batch processing, and exports results as JSON ready for Firestore upload.
 
+For a detailed walkthrough of each pipeline stage, see [`Metadata Generation System/Metadata Generation Documentation.md`](Metadata%20Generation%20System/Metadata%20Generation%20Documentation.md).
+
 ### Running the Metadata Tool
 
 ```bash
@@ -73,7 +76,7 @@ Then open `http://localhost:5000` in your browser and follow the step-by-step UI
 ## Frontend Pages
 
 ### Home (`/`)
-A custom-built, scroll-driven civil rights history timeline spanning the 1950s through the late 1960s. Each major event — from the murder of Emmett Till through the Civil Rights Act of 1968 — is presented with historical photographs, looping archival video clips (served from Cloudinary), quotes, and decade headers. Animated line connectors drawn in SVG thread the events together visually as the user scrolls. The page also embeds an interactive topic bubble chart and topic-linked text passages. A welcome disclaimer modal is shown on first visit.
+A custom-built, scroll-driven civil rights history timeline spanning the 1950s through the late 1960s. Each major event — from the murder of Emmett Till through the Civil Rights Act of 1968 — is presented with historical photographs, looping archival video clips (served from Cloudinary), quotes, and decade headers. Animated line connectors drawn in SVG thread the events together visually as the user scrolls. The page also embeds topic-linked text passages. A welcome disclaimer modal is shown on first visit.
 
 ### Interview Index (`/interview-index`)
 A card grid of every interview in the collection, showing each interviewee's name, thumbnail, and duration. Supports name-based keyword search and semantic vector search (toggled via a switch), as well as sorting by name or duration. Each card links through to the Interview Player.

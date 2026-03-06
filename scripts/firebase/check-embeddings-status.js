@@ -79,3 +79,6 @@ async function checkEmbeddingsStatus() {
 // Run the check
 checkEmbeddingsStatus();
 
+
+
+
