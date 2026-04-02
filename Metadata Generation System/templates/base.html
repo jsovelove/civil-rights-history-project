@@ -25,17 +25,23 @@
             <a href="{{ url_for('summarization_page') }}" class="nav-step {% if active_step == 'summarization' %}active{% endif %} {% if state.chapters %}done{% endif %} {% if not state.chapter_breaks %}disabled{% endif %}">
                 5. Summary
             </a>
-            <a href="{{ url_for('tuning_page') }}" class="nav-step {% if active_step == 'tuning' %}active{% endif %} {% if state.tuning_results %}done{% endif %} {% if not state.main_summary %}disabled{% endif %}">
-                6. Tuning
+            <a href="{{ url_for('questions_page') }}" class="nav-step {% if active_step == 'questions' %}active{% endif %} {% if state.questions_ran %}done{% endif %} {% if not state.steps_enabled.questions or not (state.main_summary or state.chapters) %}disabled{% endif %}">
+                6. Questions
+            </a>
+            <a href="{{ url_for('tuning_page') }}" class="nav-step {% if active_step == 'tuning' %}active{% endif %} {% if state.tuning_results %}done{% endif %} {% if not state.main_summary or (state.steps_enabled.questions and state.question_placement == 'after_summary' and not state.questions_ran) %}disabled{% endif %}">
+                7. Tuning
             </a>
             <a href="{{ url_for('engagement_page') }}" class="nav-step {% if active_step == 'engagement' %}active{% endif %} {% if state.engagement_scores %}done{% endif %} {% if not state.text_blocks or not state.steps_enabled.engagement %}disabled{% endif %}">
-                7. Engagement
+                8. Engagement
+            </a>
+            <a href="{{ url_for('clips_page') }}" class="nav-step {% if active_step == 'clips' %}active{% endif %} {% if state.clips_data %}done{% endif %} {% if not state.text_blocks or not state.steps_enabled.clips %}disabled{% endif %}">
+                9. Clips
             </a>
             <a href="{{ url_for('results_page') }}" class="nav-step {% if active_step == 'results' %}active{% endif %} {% if not state.main_summary %}disabled{% endif %}">
-                8. Results
+                10. Results
             </a>
             <a href="{{ url_for('batch_page') }}" class="nav-step {% if active_step == 'batch' %}active{% endif %} {% if not state.main_summary %}disabled{% endif %}">
-                9. Batch
+                11. Batch
             </a>
         </div>
     </nav>

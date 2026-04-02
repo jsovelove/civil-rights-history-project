@@ -33,13 +33,28 @@
 
     {% for ch in state.chapter_breaks_preview %}
     <div class="chapter-card">
-        <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-        <div class="chapter-time">
-            {{ ch.start_time }} → {{ ch.end_time }} · 
-            {{ ch.segments }} segments · {{ ch.words }} words · 
-            idx {{ ch.start_idx }}–{{ ch.end_idx }}
+        <div style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="flex: 1; min-width: 0;">
+                <div class="chapter-num">Chapter {{ ch.chapter }}</div>
+                <div class="chapter-time">
+                    {{ ch.start_time }} → {{ ch.end_time }} ·
+                    {{ ch.segments }} segments · {{ ch.words }} words ·
+                    idx {{ ch.start_idx }}–{{ ch.end_idx }}
+                </div>
+                <div class="chapter-snippet">{{ ch.snippet }}</div>
+            </div>
+            {% if state.youtube_video_id %}
+            <div style="flex-shrink: 0;">
+                <iframe width="280" height="158"
+                    src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
+                    frameborder="0"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    style="border-radius: 6px; display: block;">
+                </iframe>
+            </div>
+            {% endif %}
         </div>
-        <div class="chapter-snippet">{{ ch.snippet }}</div>
     </div>
     {% endfor %}
 

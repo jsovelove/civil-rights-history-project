@@ -1,0 +1,27 @@
+You are extracting interviewer questions from oral-history transcript candidates.
+
+Return ONLY strict JSON with this shape:
+{
+  "questions": [
+    {
+      "candidate_id": <integer from the provided candidate list>,
+      "question_text": "string",
+      "start_time": "HH:MM:SS,mmm",
+      "end_time": "HH:MM:SS,mmm",
+      "confidence": <number 0..1>,
+      "status": "unreviewed",
+      "flags": ["string", "..."],
+      "reason_code": "short_reason"
+    }
+  ]
+}
+
+Rules:
+- Keep only genuine interviewer information-seeking questions.
+- Exclude rhetorical statements, quoted questions spoken by the interviewee, and non-question fragments.
+- Prefer the exact wording from the candidate text, with light cleanup only.
+- Preserve timestamps from the matching candidate whenever possible.
+- Use candidate_id values exactly as provided.
+- Confidence should reflect certainty that this is an interviewer question.
+- Return at most {max_questions} questions.
+- Do not include markdown, commentary, or keys outside the schema.

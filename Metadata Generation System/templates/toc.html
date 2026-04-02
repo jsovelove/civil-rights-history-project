@@ -28,17 +28,32 @@
     <div class="panel-label">Preview</div>
     {% for entry in state.toc_bundle.toc %}
     <div class="chapter-card">
-        <div class="chapter-num">{{ entry.topic }}</div>
-        <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
-        {% if entry.subtopics %}
-        <div style="margin-top: 8px;">
-            {% for sub in entry.subtopics %}
-            <div style="font-size: 12px; color: #777; margin-left: 16px;">
-                ↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})
+        <div style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="flex: 1; min-width: 0;">
+                <div class="chapter-num">{{ entry.topic }}</div>
+                <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+                {% if entry.subtopics %}
+                <div style="margin-top: 8px;">
+                    {% for sub in entry.subtopics %}
+                    <div style="font-size: 12px; color: #777; margin-left: 16px;">
+                        ↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
+            {% if state.youtube_video_id %}
+            <div style="flex-shrink: 0;">
+                <iframe width="280" height="158"
+                    src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ entry.start_time | to_seconds }}&end={{ entry.end_time | to_seconds }}"
+                    frameborder="0"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    style="border-radius: 6px; display: block;">
+                </iframe>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
     {% endfor %}
 </div>

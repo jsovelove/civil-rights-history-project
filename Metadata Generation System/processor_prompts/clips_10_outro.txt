@@ -1,0 +1,78 @@
+## EXAMPLE CLIP ENTRY
+
+```json
+{
+  "clip_id": "BROWN_003",
+  "clip_title": "Medgar Evers Takes Young Organizer Under Wing",
+  "duration": "03:45",
+  "timestamp_start": "00:33:08,000",
+  "timestamp_end": "00:36:53,000",
+  "segment_start": 243,
+  "segment_end": 267,
+
+  "scores": {
+    "total_score": 88,
+    "topic_event_coverage": {
+      "topic_relevance": 22,
+      "event_specificity": 21,
+      "total": 43
+    },
+    "engagement_quality": {
+      "narrative_power": 18,
+      "emotional_resonance": 14,
+      "accessibility": 13,
+      "total": 45
+    }
+  },
+
+  "thematic_tags": {
+    "main_topics": [
+      "Organizations & Movement Networks",
+      "Historical Figures & Turning Points"
+    ],
+    "key_events": [
+      "The Murder of Medgar Evers"
+    ],
+    "additional_keywords": [
+      "NAACP field secretary",
+      "Medgar Evers",
+      "youth organizing",
+      "Mississippi Delta",
+      "Jackson",
+      "sharecropper disguise",
+      "mentorship"
+    ]
+  },
+
+  "content_summary": {
+    "clip_type": "personal_narrative",
+    "primary_focus": "Young activist's relationship with Medgar Evers as mentor and organizing partner",
+    "key_details": [
+      "Sister Gloria introduced narrator to Medgar Evers",
+      "Mother supported dangerous organizing: 'if that's what you want to do, go ahead'",
+      "Disguised as sharecroppers to hold secret meetings in Mississippi Delta"
+    ],
+    "why_valuable": "Rare intimate portrait of Medgar Evers as mentor beyond martyr narrative. Shows organizing tactics and family support for youth activism."
+  },
+
+  "engagement_assessment": {
+    "narrative_structure": "Opens with Evers' warmth, builds through organizing work, peaks with mother's support, closes with dangerous disguise detail",
+    "emotional_tone": "Warm, respectful, quietly courageous",
+    "standout_moment": {
+      "description": "Mother's simple powerful support: 'If that's what you want to do, go ahead. I'm with you'",
+      "timestamp": "00:34:29,000",
+      "segment": 256
+    }
+  },
+
+  "technical_notes": {
+    "content_warnings": [],
+    "editorial_notes": "Could add brief 5-second intro identifying Medgar Evers for younger audiences",
+    "standalone_quality": "excellent"
+  }
+}
+```
+
+---
+
+Now extract ALL viable clips from the interview transcript and score them for the comprehensive clip database.

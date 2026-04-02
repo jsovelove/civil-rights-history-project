@@ -98,24 +98,39 @@
     <div class="panel-label">Chapter Summaries ({{ state.chapters|length }})</div>
     {% for ch in state.chapters %}
     <div class="chapter-card">
-        <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-        <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-        <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
-        {% if ch.keywords %}
-        <div style="margin-top: 6px; font-size: 12px; color: #666;">
-            Keywords: {{ ch.keywords | join(', ') }}
+        <div style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="flex: 1; min-width: 0;">
+                <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
+                {% if ch.keywords %}
+                <div style="margin-top: 6px; font-size: 12px; color: #666;">
+                    Keywords: {{ ch.keywords | join(', ') }}
+                </div>
+                {% endif %}
+                {% if ch.quality_metrics %}
+                <div style="margin-top: 6px;">
+                    <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                        Accuracy: {{ ch.quality_metrics.accuracy_score }}
+                    </span>
+                    <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                        Quality: {{ ch.quality_metrics.quality_score }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% if state.youtube_video_id %}
+            <div style="flex-shrink: 0;">
+                <iframe width="280" height="158"
+                    src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
+                    frameborder="0"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    style="border-radius: 6px; display: block;">
+                </iframe>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
-        {% if ch.quality_metrics %}
-        <div style="margin-top: 6px;">
-            <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Accuracy: {{ ch.quality_metrics.accuracy_score }}
-            </span>
-            <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Quality: {{ ch.quality_metrics.quality_score }}
-            </span>
-        </div>
-        {% endif %}
     </div>
     {% endfor %}
 </div>
@@ -123,7 +138,7 @@
 
 {% if state.main_summary or state.chapters %}
 <div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to Tuning →</a>
+    <a href="{{ url_for('questions_page') if state.steps_enabled.questions and state.question_placement == 'after_summary' else url_for('tuning_page') }}" class="btn btn-primary">Continue to {{ 'Questions' if state.steps_enabled.questions and state.question_placement == 'after_summary' else 'Tuning' }} →</a>
     <a href="{{ url_for('chapterization_page') }}" class="btn btn-secondary">← Back</a>
 </div>
 {% endif %}

@@ -1,0 +1,60 @@
+## STANDARDIZED TAXONOMY
+
+All clips MUST be tagged using these exact categories for cross-interview querying:
+
+### MAIN TOPICS (Tag at least 1, up to 3 per clip)
+
+1. **Voting & Legal Rights**
+   - Voter registration drives, poll taxes, literacy tests
+   - Legal challenges, court cases, constitutional rights
+   - Voting Rights Act and its impact
+
+2. **Organizations & Movement Networks**
+   - NAACP, SCLC, SNCC, CORE, Black Panthers, Brown Berets
+   - Leadership structures, strategy meetings, coordination
+   - Organizational formation, conflicts, collaborations
+
+3. **Violence, Intimidation & State Repression**
+   - Lynchings, bombings, assassinations, police brutality
+   - KKK and white supremacist violence
+   - FBI surveillance, government repression
+   - Personal experiences of danger and fear
+
+4. **Integration, Education & Everyday Segregation**
+   - School desegregation and busing
+   - Segregated facilities (buses, restaurants, bathrooms)
+   - Housing discrimination and neighborhood segregation
+   - Daily indignities and resistance
+
+5. **Historical Figures & Turning Points**
+   - MLK, Malcolm X, Medgar Evers, Rosa Parks, Fannie Lou Hamer, etc.
+   - Key moments that changed the movement
+   - Personal interactions with movement leaders
+
+### KEY CIVIL RIGHTS EVENTS (Tag if directly discussed)
+
+**1950s:**
+- The Lynching of Emmett Till (1955)
+- Montgomery Bus Boycott (1955-1956)
+- Integration of Little Rock (1957)
+
+**1960-1963:**
+- SNCC and Student Organizing (1960+)
+- Freedom Riders (1961)
+- The Murder of Medgar Evers (1963)
+- March on Washington (1963)
+
+**1964-1965:**
+- Freedom Summer (1964)
+- Civil Rights Act of 1964
+- Assassination of Malcolm X (1965)
+- Selma to Montgomery (1965)
+- Voting Rights Act (1965)
+
+**1966-1974:**
+- Black Panther Party (1966+)
+- The Brown Berets (1967+)
+- The Long Hot Summer (1967)
+- Assassination of MLK (1968)
+- Civil Rights Act of 1968
+- Sixth Pan-African Congress (1974)

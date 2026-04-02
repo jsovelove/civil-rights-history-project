@@ -22,6 +22,8 @@ def run_engagement_scoring(
     pipeline_data: Dict[str, Any],
     system_prompt: Optional[str] = None,
     user_prompt: Optional[str] = None,
+    rubric: Optional[str] = None,
+    schema_json_text: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Run the full engagement evaluation on an interview.
@@ -47,9 +49,28 @@ def run_engagement_scoring(
     # within token limits. Chapter previews supply timestamp context.
     eval_prompt = _build_evaluation_prompt(srt_content, pipeline_data, metadata)
 
-    # Load rubric and schema
-    rubric = _load_engagement_rubric(ctx)
-    schema_instruction = _load_engagement_schema(ctx)
+    # Resolve rubric
+    if rubric is None:
+        rubric = _load_engagement_rubric(ctx)
+
+    # Resolve schema
+    if schema_json_text is not None:
+        try:
+            schema = json.loads(schema_json_text)
+            schema_instruction = "\nOUTPUT FORMAT - RESPOND WITH VALID JSON ONLY:\n\n"
+            schema_instruction += json.dumps(schema, indent=2)
+            schema_instruction += """
+
+IMPORTANT:
+- Return ONLY valid JSON
+- Do not include any text outside the JSON structure
+- Ensure all numeric scores are integers
+- Ensure all required fields are present
+"""
+        except (json.JSONDecodeError, Exception):
+            schema_instruction = _load_engagement_schema(ctx)
+    else:
+        schema_instruction = _load_engagement_schema(ctx)
 
     # Resolve system prompt
     if system_prompt is None:

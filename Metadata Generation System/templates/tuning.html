@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% set active_step = 'tuning' %}
 
-{% block title %}6. Tuning — Pipeline Demo{% endblock %}
+{% block title %}7. Tuning — Pipeline Demo{% endblock %}
 
 {% block content %}
 <div class="step-header">
-    <h1>Step 6 — Tuning</h1>
+    <h1>Step 7 — Tuning</h1>
     <p>This step scores summaries against a standardized rubric, generates feedback for improvement, and regenerates summaries. Score thresholds determine when the LLM considers summaries to be good enough to stop tuning.</p>
 </div>
 
@@ -61,7 +61,7 @@
 
     <div class="btn-row">
         <button type="submit" class="btn btn-primary" id="run-btn">Run Scoring & Regeneration</button>
-        <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">← Back</a>
+        <a href="{{ url_for('questions_page') if state.steps_enabled.questions and state.question_placement == 'after_summary' else url_for('summarization_page') }}" class="btn btn-secondary">← Back</a>
     </div>
 </form>
 
@@ -75,18 +75,24 @@
     <div class="panel">
         <div class="panel-label">Main Summary Scores</div>
         <div style="margin-bottom: 12px;">
+            {% if ms.scores.accuracy_score is defined and ms.scores.quality_score is defined %}
             <span class="score-badge {% if ms.scores.accuracy_score >= state.accuracy_threshold %}score-pass{% else %}score-fail{% endif %}">
                 Accuracy: {{ ms.scores.accuracy_score }}
             </span>
             <span class="score-badge {% if ms.scores.quality_score >= state.quality_threshold %}score-pass{% else %}score-fail{% endif %}">
                 Quality: {{ ms.scores.quality_score }}
             </span>
+            {% elif ms.scores.error is defined %}
+            <span class="score-badge score-fail">Scoring failed: {{ ms.scores.error }}</span>
+            {% else %}
+            <span class="score-badge score-fail">Scores unavailable</span>
+            {% endif %}
             {% if ms.regenerated %}
             <span style="font-size: 12px; color: #aa8;">Regenerated {{ ms.retries }}x</span>
             {% endif %}
         </div>
 
-        {% if ms.scores.errors %}
+        {% if ms.scores.errors is defined and ms.scores.errors %}
         <div style="font-size: 13px; color: #e88; margin-bottom: 12px;">
             <strong>Issues:</strong>
             {% for err in ms.scores.errors %}
@@ -123,14 +129,20 @@
         <div class="chapter-card">
             <div class="chapter-num">Chapter {{ item.chapter.chapter_number }} — {{ item.chapter.title }}</div>
             <div style="margin-top: 6px;">
+                {% if item.scores.accuracy_score is defined and item.scores.quality_score is defined %}
                 <span class="score-badge {% if item.scores.accuracy_score >= state.accuracy_threshold %}score-pass{% else %}score-fail{% endif %}">
-                    Accuracy: {{ item.scores.get('accuracy_score', 'N/A') }}
+                    Accuracy: {{ item.scores.accuracy_score }}
                 </span>
                 <span class="score-badge {% if item.scores.quality_score >= state.quality_threshold %}score-pass{% else %}score-fail{% endif %}">
-                    Quality: {{ item.scores.get('quality_score', 'N/A') }}
+                    Quality: {{ item.scores.quality_score }}
                 </span>
+                {% elif item.scores.error is defined %}
+                <span class="score-badge score-fail">Scoring failed: {{ item.scores.error }}</span>
+                {% else %}
+                <span class="score-badge score-fail">Scores unavailable</span>
+                {% endif %}
             </div>
-            {% if item.scores.errors %}
+            {% if item.scores.errors is defined and item.scores.errors %}
             <div style="font-size: 12px; color: #e88; margin-top: 6px;">
                 {% for err in item.scores.errors %}
                 <div>• {{ err }}</div>

@@ -1,0 +1,45 @@
+## CLIP SCORING SYSTEM
+
+Score each clip on TWO dimensions (0-100 total):
+
+### DIMENSION 1: Topic/Event Coverage (0-50 points)
+
+**Topic Relevance (0-25 points)**
+- 20-25: Clearly and substantially addresses 2+ Main Topics
+- 15-19: Clearly addresses 1 Main Topic with good depth
+- 10-14: Addresses 1 Main Topic but limited depth
+- 5-9: Tangentially related to topics
+- 0-4: Minimal topic relevance
+
+**Event Specificity (0-25 points)**
+- 20-25: Directly discusses 2+ Key Events with firsthand details
+- 15-19: Directly discusses 1 Key Event with substantial content
+- 10-14: Mentions Key Event(s) with some detail
+- 5-9: Brief mention of Key Event(s)
+- 0-4: No specific event coverage (general discussion)
+
+### DIMENSION 2: Engagement Quality (0-50 points)
+
+**Narrative Power (0-20 points)**
+- 18-20: Exceptional storytelling - vivid, dramatic, complete arc
+- 15-17: Strong narrative with specific details and clear structure
+- 12-14: Good story but missing some vivid details or structure
+- 9-11: Adequate narrative, somewhat rambling or incomplete
+- 6-8: Weak narrative structure, hard to follow
+- 0-5: No clear narrative, disjointed
+
+**Emotional Resonance (0-15 points)**
+- 13-15: Deeply moving, authentic emotion, universally relatable
+- 10-12: Strong emotional content, genuine feeling
+- 7-9: Moderate emotional engagement
+- 4-6: Limited emotional content
+- 0-3: Emotionally flat or detached
+
+**Accessibility & Standalone Quality (0-15 points)**
+- 13-15: Perfectly standalone, clear language, no background needed
+- 10-12: Mostly standalone, minimal context needed
+- 7-9: Requires some background but manageable
+- 4-6: Requires significant context to understand
+- 0-3: Cannot stand alone, confusing without context
+
+**TOTAL SCORE: 0-100 points**

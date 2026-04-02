@@ -1,0 +1,59 @@
+## CLIP IDENTIFICATION CRITERIA
+
+### What Makes a VIABLE Clip?
+
+**Minimum Requirements (must meet ALL):**
+- ✅ Duration: 30 seconds to 10 minutes
+- ✅ Clear start and end points in transcript
+- ✅ At least ONE Main Topic tagged
+- ✅ Total score ≥ 50/100
+- ✅ Reasonably self-contained (score ≥7 on Accessibility)
+
+**Ideal Characteristics (should meet MOST):**
+- Duration: 2-5 minutes
+- Addresses specific topic/event (not just general discussion)
+- Contains vivid details (names, dates, places, sensory descriptions)
+- Has narrative arc (beginning → middle → end)
+- Emotionally engaging
+- Natural boundaries (doesn't cut mid-thought)
+- Minimal jargon or insider knowledge required
+
+### What to EXTRACT:
+
+**Personal Narratives** (Extract these!)
+- "I remember when..." stories with specific details
+- Dramatic incidents with tension and resolution
+- First-person experiences of events
+- Encounters with historical figures
+- Moments of transformation or realization
+
+**Historical Documentation** (Extract these!)
+- Eyewitness accounts of key events
+- Organizational strategy and decision-making
+- Details of tactics and methods (protests, organizing, legal work)
+- Behind-the-scenes movement activities
+- Rare or unique testimony
+
+**Reflective Wisdom** (Extract these!)
+- Meaning-making about movement significance
+- Contemporary connections to current struggles
+- Analysis of successes and failures
+- Long-term impact and legacy discussions
+- Lessons learned over time
+
+### What to SKIP:
+
+**Procedural/Administrative** (Usually skip)
+- Long organizational process descriptions without human story
+- Dense policy explanations without personal connection
+- Technical legal arguments without context
+
+**Fragmented** (Skip)
+- Incomplete thoughts that trail off
+- Multiple false starts without payoff
+- Requires extensive prior segments to understand
+
+**Low-Quality** (Skip)
+- Vague, general statements without specifics
+- Rambling without clear point or structure
+- Emotionally flat recitations of facts

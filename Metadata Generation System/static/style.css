@@ -459,3 +459,169 @@ input[type="number"]:focus {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Questions Table ────────────────────────────────────────────── */
+.questions-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 980px;
+}
+
+.questions-table th,
+.questions-table td {
+    border: 1px solid #2a2a2a;
+    padding: 10px;
+    vertical-align: top;
+    font-size: 12px;
+}
+
+.questions-table th {
+    color: #aaa;
+    background: #161616;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 600;
+}
+
+.questions-table .mono {
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    color: #999;
+}
+
+.confidence-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.confidence-high { background: #34c759; }
+.confidence-medium { background: #f4b400; }
+.confidence-low { background: #ff5a5f; }
+
+/* ── Interview Queue ────────────────────────────────────────────── */
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.queue-item--completed {
+    border-color: #2a5a3a;
+    background: #0d1a12;
+}
+
+.queue-item--completed:hover {
+    border-color: #3a7a4a;
+    background: #111f16;
+}
+
+.queue-item--active {
+    border-color: #2d5a8e;
+    background: #0d1520;
+}
+
+.queue-item--queued {
+    border-color: #222;
+    background: #0e0e0e;
+    opacity: 0.6;
+}
+
+.queue-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.queue-item-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.queue-item-info {
+    min-width: 0;
+}
+
+.queue-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-item--queued .queue-item-name {
+    color: #888;
+}
+
+.queue-status-text {
+    font-size: 12px;
+    margin-top: 2px;
+    display: block;
+}
+
+.queue-status-text--done {
+    color: #5a9;
+}
+
+.queue-status-text--active {
+    color: #6ab0ff;
+}
+
+.queue-status-text--queued {
+    color: #555;
+}
+
+.queue-item-right {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+.queue-view-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8e8;
+    background: #1a3f1a;
+    border: 1px solid #2d5a2d;
+    border-radius: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.queue-view-btn:hover {
+    background: #245a24;
+}
+
+.queue-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #1a2a40;
+    border-top-color: #4a9eff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ── Disabled batch tab ─────────────────────────────────────────── */
+
+.batch-tab--disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}

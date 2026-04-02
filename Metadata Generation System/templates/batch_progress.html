@@ -6,11 +6,11 @@
 {% block content %}
 <div class="step-header">
     <h1>Batch Processing</h1>
-    <p>Processing interviews. This page updates automatically.</p>
+    <p>Processing interviews. Completed interviews can be viewed while the batch continues.</p>
 </div>
 
 <div class="panel" id="progress-panel">
-    <div class="panel-label">Progress</div>
+    <div class="panel-label">Overall Progress</div>
 
     <div id="progress-info" style="margin-bottom: 16px;">
         <div style="font-size: 15px; color: #ccc;" id="progress-text">Starting...</div>
@@ -21,8 +21,12 @@
         <div class="batch-progress-fill" id="progress-fill" style="width: 0%;"></div>
     </div>
     <div style="font-size: 12px; color: #666; margin-top: 6px;" id="progress-count">0 / 0</div>
+</div>
 
-    <div id="completed-list" style="margin-top: 20px;"></div>
+<!-- Interview Queue -->
+<div class="panel" id="queue-panel">
+    <div class="panel-label">Interview Queue</div>
+    <div id="interview-queue"></div>
 </div>
 
 <div id="done-actions" style="display: none;" class="btn-row">
@@ -37,8 +41,72 @@
     const progressDetail = document.getElementById('progress-detail');
     const progressFill = document.getElementById('progress-fill');
     const progressCount = document.getElementById('progress-count');
-    const completedList = document.getElementById('completed-list');
+    const interviewQueue = document.getElementById('interview-queue');
     const doneActions = document.getElementById('done-actions');
+
+    const resultsBaseUrl = '{{ url_for("batch_results") }}';
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function renderQueue(data) {
+        const p = data.progress;
+        if (!p) return;
+
+        const order = data.interview_order || [];
+        const completed = p.completed || [];
+        const completedSet = new Set(completed);
+        const currentName = p.current_name || '';
+        const currentStep = p.current_step || '';
+        const isRunning = data.running;
+
+        let html = '';
+
+        for (let i = 0; i < order.length; i++) {
+            const name = order[i];
+            let statusClass, statusIcon, statusLabel, extraHtml = '';
+
+            if (completedSet.has(name)) {
+                statusClass = 'queue-item--completed';
+                statusIcon = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none">'
+                    + '<circle cx="9" cy="9" r="8" stroke="#4a9" stroke-width="1.5" fill="#1a3f1a"/>'
+                    + '<path d="M5.5 9.5L7.5 11.5L12.5 6.5" stroke="#8e8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
+                    + '</svg>';
+                statusLabel = '<span class="queue-status-text queue-status-text--done">Completed</span>';
+                extraHtml = '<a href="' + resultsBaseUrl + '?i=' + encodeURIComponent(name)
+                    + '&from=progress" class="queue-view-btn">View Output →</a>';
+
+            } else if (isRunning && name === currentName) {
+                statusClass = 'queue-item--active';
+                statusIcon = '<span class="queue-spinner"></span>';
+                statusLabel = '<span class="queue-status-text queue-status-text--active">'
+                    + escapeHtml(currentStep) + '</span>';
+
+            } else {
+                statusClass = 'queue-item--queued';
+                statusIcon = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none">'
+                    + '<circle cx="9" cy="9" r="8" stroke="#555" stroke-width="1.5" fill="none" stroke-dasharray="3 3"/>'
+                    + '</svg>';
+                statusLabel = '<span class="queue-status-text queue-status-text--queued">Queued</span>';
+            }
+
+            html += '<div class="queue-item ' + statusClass + '">'
+                + '<div class="queue-item-left">'
+                +   '<div class="queue-item-icon">' + statusIcon + '</div>'
+                +   '<div class="queue-item-info">'
+                +     '<div class="queue-item-name">' + escapeHtml(name) + '</div>'
+                +     statusLabel
+                +   '</div>'
+                + '</div>'
+                + '<div class="queue-item-right">' + extraHtml + '</div>'
+                + '</div>';
+        }
+
+        interviewQueue.innerHTML = html;
+    }
 
     function poll() {
         fetch('{{ url_for("batch_status") }}')
@@ -50,27 +118,24 @@
                 }
 
                 const p = data.progress;
-                const pct = p.total > 0 ? Math.round((p.current / p.total) * 100) : 0;
+                const completed = (p.completed || []).length;
+                const pct = p.total > 0 ? Math.round((completed / p.total) * 100) : 0;
 
                 progressFill.style.width = pct + '%';
-                progressCount.textContent = p.current + ' / ' + p.total + ' interviews';
+                progressCount.textContent = completed + ' / ' + p.total + ' interviews';
 
                 if (data.running) {
                     progressText.textContent = 'Processing: ' + p.current_name;
-                    progressDetail.textContent = 'Step: ' + p.current_step + '  (' + (p.current + 1) + ' of ' + p.total + ')';
+                    progressDetail.textContent = 'Step: ' + p.current_step
+                        + '  (' + (completed + 1) + ' of ' + p.total + ')';
                 } else {
                     progressText.textContent = 'Batch complete!';
                     progressDetail.textContent = p.total + ' interviews processed.';
+                    progressFill.style.width = '100%';
                     doneActions.style.display = 'flex';
                 }
 
-                if (p.completed && p.completed.length > 0) {
-                    let html = '<div style="font-size: 13px; color: #666; margin-bottom: 6px;">Completed:</div>';
-                    for (const name of p.completed) {
-                        html += '<div style="font-size: 13px; color: #5a9; margin-left: 8px;">✓ ' + name + '</div>';
-                    }
-                    completedList.innerHTML = html;
-                }
+                renderQueue(data);
 
                 if (data.running) {
                     setTimeout(poll, 2000);

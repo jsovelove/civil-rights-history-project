@@ -1,0 +1,28 @@
+## EXTRACTION PROCESS
+
+### STEP 1: Read Entire Transcript
+- Review ALL segments, not just early portions
+- Note chapter structure and topic shifts
+- Identify potential clip boundaries
+
+### STEP 2: Identify Clip Candidates
+- Look for natural story units (complete narratives)
+- Mark segments where topic shifts occur
+- Find high-engagement moments (drama, emotion, insight)
+- Aim for **15-25 clips per 2-hour interview**
+
+### STEP 3: Score Each Clip
+- Topic/Event Coverage (0-50)
+- Engagement Quality (0-50)
+- Total: 0-100
+
+### STEP 4: Tag Each Clip
+- Main Topics (1-3 from standardized list)
+- Key Events (0-5 from standardized list)
+- Additional Keywords (3-7 specific terms)
+
+### STEP 5: Extract Metadata
+- Exact timestamps (start/end)
+- Segment numbers (start/end)
+- Duration
+- Transcript excerpts (opening/key moment/closing)

@@ -1,18 +1,40 @@
 {% extends "base.html" %}
 {% set active_step = 'engagement' %}
 
-{% block title %}7. Engagement Scoring — Pipeline Demo{% endblock %}
+{% block title %}8. Engagement Scoring — Pipeline Demo{% endblock %}
 
 {% block content %}
 <div class="step-header">
-    <h1>Step 7 — Engagement Scoring</h1>
+    <h1>Step 8 — Engagement Scoring</h1>
     <p>Score the interview across four dimensions: Narrative Quality (30), Historical Value (25), Emotional Resonance (25), and Accessibility (20).</p>
 </div>
 
 <form action="{{ url_for('engagement_run') }}" method="post" id="engagement-form">
     <div class="panel">
-        <div class="panel-label">Engagement System Prompt</div>
-        <textarea name="sys_prompt" class="prompt-box">{{ state.engagement_sys_prompt }}</textarea>
+        <div class="panel-label">Engagement Prompts</div>
+
+        <!-- Tab bar -->
+        <div class="prompt-tabs" style="display: flex; gap: 0; border-bottom: 1px solid #2a2d31; margin-bottom: 0;">
+            {% for tab_id, tab_label in [("sys_prompt","System Prompt"),("rubric","Rubric"),("schema","Schema (JSON)")] %}
+            <button type="button"
+                    class="prompt-tab-btn {% if loop.first %}active{% endif %}"
+                    data-tab="{{ tab_id }}"
+                    style="padding: 8px 16px; font-size: 13px; background: {% if loop.first %}#1e2126{% else %}#13161a{% endif %}; color: {% if loop.first %}#e8e8e8{% else %}#666{% endif %}; border: none; border-bottom: {% if loop.first %}2px solid #4a9eff{% else %}2px solid transparent{% endif %}; cursor: pointer; margin-bottom: -1px;">
+                {{ tab_label }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Tab panes -->
+        <div class="prompt-tab-pane" id="tab-sys_prompt" style="display: block;">
+            <textarea name="sys_prompt" class="prompt-box" style="border-top: none; border-radius: 0 0 6px 6px;">{{ state.engagement_sys_prompt }}</textarea>
+        </div>
+        <div class="prompt-tab-pane" id="tab-rubric" style="display: none;">
+            <textarea name="rubric" class="prompt-box" style="border-top: none; border-radius: 0 0 6px 6px;">{{ state.engagement_rubric }}</textarea>
+        </div>
+        <div class="prompt-tab-pane" id="tab-schema" style="display: none;">
+            <textarea name="schema" class="prompt-box" style="border-top: none; border-radius: 0 0 6px 6px; font-family: monospace; font-size: 12px;">{{ state.engagement_schema }}</textarea>
+        </div>
     </div>
 
     <div class="btn-row">
@@ -96,6 +118,7 @@
 <!-- Dimension Details -->
 {% if ev.dimension_scores is defined %}
 {% set ds = ev.dimension_scores %}
+{% set maxes = get_engagement_maxes() %}
 
 <!-- Narrative Quality -->
 {% if ds.narrative_quality is defined %}
@@ -106,11 +129,12 @@
     {% for sub_name, sub_key in [("Story Structure & Coherence", "story_structure_coherence"), ("Vivid Details & Examples", "vivid_details_examples"), ("Emotional Authenticity", "emotional_authenticity")] %}
     {% if nq[sub_key] is defined %}
     {% set sub = nq[sub_key] %}
+    {% set sub_max = maxes.get(sub_key, 0) %}
     <div class="chapter-card">
         <div class="chapter-num">{{ sub_name }}</div>
         <div style="margin-top: 4px;">
-            <span class="score-badge {% if sub.score / sub.max_possible >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
-                {{ sub.score }}/{{ sub.max_possible }}
+            <span class="score-badge {% if sub.score is defined and sub_max > 0 and sub.score / sub_max >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
+                {{ sub.score|default("?") }}/{{ sub_max if sub_max else "?" }}
             </span>
         </div>
         {% if sub.justification %}
@@ -142,11 +166,12 @@
     {% for sub_name, sub_key in [("Unique Firsthand Perspective", "unique_firsthand_perspective"), ("Specificity of Details", "specificity_of_details"), ("Fills Historical Gaps", "fills_historical_gaps")] %}
     {% if hv[sub_key] is defined %}
     {% set sub = hv[sub_key] %}
+    {% set sub_max = maxes.get(sub_key, 0) %}
     <div class="chapter-card">
         <div class="chapter-num">{{ sub_name }}</div>
         <div style="margin-top: 4px;">
-            <span class="score-badge {% if sub.score / sub.max_possible >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
-                {{ sub.score }}/{{ sub.max_possible }}
+            <span class="score-badge {% if sub.score is defined and sub_max > 0 and sub.score / sub_max >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
+                {{ sub.score|default("?") }}/{{ sub_max if sub_max else "?" }}
             </span>
         </div>
         {% if sub.justification %}
@@ -171,11 +196,12 @@
     {% for sub_name, sub_key in [("Transformation & Growth", "transformation_growth"), ("Tension, Conflict & Triumph", "tension_conflict_triumph"), ("Relatable Experiences", "relatable_experiences")] %}
     {% if er[sub_key] is defined %}
     {% set sub = er[sub_key] %}
+    {% set sub_max = maxes.get(sub_key, 0) %}
     <div class="chapter-card">
         <div class="chapter-num">{{ sub_name }}</div>
         <div style="margin-top: 4px;">
-            <span class="score-badge {% if sub.score / sub.max_possible >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
-                {{ sub.score }}/{{ sub.max_possible }}
+            <span class="score-badge {% if sub.score is defined and sub_max > 0 and sub.score / sub_max >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
+                {{ sub.score|default("?") }}/{{ sub_max if sub_max else "?" }}
             </span>
         </div>
         {% if sub.justification %}
@@ -200,11 +226,12 @@
     {% for sub_name, sub_key in [("Language Clarity", "language_clarity"), ("Narrative Flow", "narrative_flow"), ("Broader Themes Connection", "broader_themes_connection")] %}
     {% if ac[sub_key] is defined %}
     {% set sub = ac[sub_key] %}
+    {% set sub_max = maxes.get(sub_key, 0) %}
     <div class="chapter-card">
         <div class="chapter-num">{{ sub_name }}</div>
         <div style="margin-top: 4px;">
-            <span class="score-badge {% if sub.score / sub.max_possible >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
-                {{ sub.score }}/{{ sub.max_possible }}
+            <span class="score-badge {% if sub.score is defined and sub_max > 0 and sub.score / sub_max >= 0.8 %}score-pass{% else %}score-fail{% endif %}">
+                {{ sub.score|default("?") }}/{{ sub_max if sub_max else "?" }}
             </span>
         </div>
         {% if sub.justification %}
@@ -249,7 +276,7 @@
 {% endif %}
 
 <div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('results_page') }}" class="btn btn-primary">Continue to Results →</a>
+    <a href="{{ url_for('clips_page') }}" class="btn btn-primary">Continue to Clips →</a>
     <button type="button" class="btn btn-secondary" onclick="document.getElementById('engagement-form').submit()">Re-run Scoring</button>
 </div>
 {% endif %}
@@ -260,6 +287,25 @@
     document.getElementById('engagement-form').addEventListener('submit', function() {
         document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Scoring (this may take 1-3 minutes)...';
         document.getElementById('run-btn').disabled = true;
+    });
+
+    // Tab switching
+    document.querySelectorAll('.prompt-tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const target = this.dataset.tab;
+            document.querySelectorAll('.prompt-tab-btn').forEach(function(b) {
+                b.style.background = '#13161a';
+                b.style.color = '#666';
+                b.style.borderBottom = '2px solid transparent';
+            });
+            document.querySelectorAll('.prompt-tab-pane').forEach(function(p) {
+                p.style.display = 'none';
+            });
+            this.style.background = '#1e2126';
+            this.style.color = '#e8e8e8';
+            this.style.borderBottom = '2px solid #4a9eff';
+            document.getElementById('tab-' + target).style.display = 'block';
+        });
     });
 </script>
 {% endblock %}

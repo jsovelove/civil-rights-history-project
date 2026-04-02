@@ -6,7 +6,9 @@ individually controllable steps.
 
 import json
 import os
+import re
 import shutil
+import traceback
 from io import BytesIO
 from threading import Lock
 from uuid import uuid4
@@ -14,6 +16,11 @@ from uuid import uuid4
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, session
 from werkzeug.local import LocalProxy
 from werkzeug.utils import secure_filename
+from processor.questions import (
+    compute_question_stats,
+    generate_questions,
+    normalize_question_rows,
+)
 
 # ── app setup ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(__file__)
@@ -21,6 +28,67 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY') or os.urandom(24)
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+
+# ── engagement rubric max scores ───────────────────────────────────────
+_ENGAGEMENT_MAXES: dict = {}
+
+
+def _load_engagement_maxes() -> dict:
+    """
+    Parse processor_prompts/engagement_schema.txt and return a flat dict
+    mapping each sub-dimension JSON key → max_possible value.
+    Cached after first successful load so rubric changes take effect on restart.
+    """
+    global _ENGAGEMENT_MAXES
+    if _ENGAGEMENT_MAXES:
+        return _ENGAGEMENT_MAXES
+    schema_path = os.path.join(BASE_DIR, 'processor_prompts', 'engagement_schema.txt')
+    try:
+        with open(schema_path, encoding='utf-8') as f:
+            schema = json.load(f)
+        for dim_val in schema.get('dimension_scores', {}).values():
+            for k, v in dim_val.items():
+                if isinstance(v, dict) and 'max_possible' in v:
+                    _ENGAGEMENT_MAXES[k] = v['max_possible']
+    except Exception as exc:
+        print(f"Warning: could not load engagement maxes from schema: {exc}")
+    return _ENGAGEMENT_MAXES
+
+
+app.jinja_env.globals['get_engagement_maxes'] = _load_engagement_maxes
+
+
+@app.template_filter('to_seconds')
+def to_seconds_filter(time_str):
+    """Convert SRT timestamp (HH:MM:SS,mmm or HH:MM:SS) to integer seconds."""
+    if not time_str:
+        return 0
+    s = str(time_str).split(',')[0].strip()
+    parts = s.split(':')
+    try:
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+    except (ValueError, IndexError):
+        pass
+    return 0
+
+# ── YouTube helpers ────────────────────────────────────────────────────
+_YT_ID_RE = re.compile(
+    r'(?:youtube\.com/watch\?(?:.*&)?v=|youtu\.be/|youtube\.com/embed/)'
+    r'([a-zA-Z0-9_-]{11})'
+)
+
+
+def extract_youtube_id(url: str):
+    """Return the 11-char YouTube video ID from any recognisable URL, or None."""
+    if not url:
+        return None
+    m = _YT_ID_RE.search(url)
+    return m.group(1) if m else None
+
 
 # ── pipeline state (per browser session, resets on restart) ───────────
 # Each visitor gets an isolated in-memory pipeline state.
@@ -61,7 +129,21 @@ def _new_state():
         "main_summary": None,        # Dict
         "chapters": None,            # List[Dict]
 
-        # step 6 - tuning
+        # step 6 - questions
+        "questions_sys_prompt": "",
+        "questions_user_prompt": "",
+        "questions_rewrite_sys_prompt": "",
+        "questions_rewrite_user_prompt": "",
+        "questions_context_max_rows": 14,
+        "questions_context_before_chars": 220,
+        "questions_context_after_chars": 140,
+        "questions_rows": None,      # List[Dict]
+        "questions_stats": None,     # Dict
+        "questions_error": None,
+        "questions_ran": False,
+        "question_placement": "after_summary",
+
+        # step 7 - tuning
         "eval_sys_prompt": "",
         "eval_user_prompt": "",
         "revision_sys_prompt": "",
@@ -73,12 +155,25 @@ def _new_state():
 
         # step 7 - engagement scoring
         "engagement_sys_prompt": "",
+        "engagement_rubric": "",
+        "engagement_schema": "",
         "engagement_scores": None,
+
+        # step 8 - clip extraction
+        "clips_prompt_sections": {},  # dict: section_id -> content string
+        "clips_token_limit": 30000,
+        "clips_data": None,
 
         # module toggles (set on upload page)
         "steps_enabled": {
+            "questions": True,
             "engagement": True,
+            "clips": True,
         },
+
+        # video preview (optional)
+        "youtube_url": "",
+        "youtube_video_id": None,
 
         # processor instance
         "processor": None,
@@ -150,9 +245,18 @@ def _reset_downstream():
     state["chapter_breaks_preview"] = None
     state["main_summary"] = None
     state["chapters"] = None
+    state["questions_rows"] = None
+    state["questions_stats"] = None
+    state["questions_error"] = None
+    state["questions_ran"] = False
     state["tuning_results"] = None
     state["engagement_scores"] = None
     state["engagement_sys_prompt"] = ""
+    state["engagement_rubric"] = ""
+    state["engagement_schema"] = ""
+    state["clips_data"] = None
+    state["clips_prompt_sections"] = {}
+    state["clips_token_limit"] = 30000
     # Reset prompts so they reload from files
     state["labeling_sys_prompt"] = ""
     state["labeling_user_prompt"] = ""
@@ -162,12 +266,29 @@ def _reset_downstream():
     state["main_summary_user_prompt"] = ""
     state["chapter_sys_prompt"] = ""
     state["chapter_user_prompt"] = ""
+    state["questions_sys_prompt"] = ""
+    state["questions_user_prompt"] = ""
+    state["questions_rewrite_sys_prompt"] = ""
+    state["questions_rewrite_user_prompt"] = ""
+    state["questions_context_max_rows"] = 14
+    state["questions_context_before_chars"] = 220
+    state["questions_context_after_chars"] = 140
     state["eval_sys_prompt"] = ""
     state["eval_user_prompt"] = ""
     state["revision_sys_prompt"] = ""
     state["revision_user_prompt"] = ""
     # Reset processor so it reinits with the current API key and block size
     state["processor"] = None
+
+
+def _reset_after_summary_changes():
+    """Reset dependent outputs when summary/chapter content changes."""
+    state["questions_rows"] = None
+    state["questions_stats"] = None
+    state["questions_error"] = None
+    state["questions_ran"] = False
+    state["tuning_results"] = None
+    state["engagement_scores"] = None
 
 
 def get_ctx():
@@ -235,7 +356,15 @@ def upload_run():
     block_size = int(request.form.get('block_size', 23))
 
     # Read module toggles
+    state["steps_enabled"]["questions"] = request.form.get('enable_questions') == 'on'
+    state["question_placement"] = "after_summary"
     state["steps_enabled"]["engagement"] = request.form.get('enable_engagement') == 'on'
+    state["steps_enabled"]["clips"] = request.form.get('enable_clips') == 'on'
+
+    # Optional YouTube video link
+    yt_url = request.form.get('youtube_url', '').strip()
+    state["youtube_url"] = yt_url
+    state["youtube_video_id"] = extract_youtube_id(yt_url)
 
     # Reset all downstream state from previous runs
     _reset_downstream()
@@ -440,6 +569,7 @@ def summarization_run_main():
         user_prompt=state["main_summary_user_prompt"]
     )
     state["main_summary"] = main_summary
+    _reset_after_summary_changes()
 
     return render_template('summarization.html', state=state, ran_main=True)
 
@@ -463,16 +593,128 @@ def summarization_run_chapters():
         user_prompt=state["chapter_user_prompt"]
     )
     state["chapters"] = chapters
+    _reset_after_summary_changes()
 
     return render_template('summarization.html', state=state, ran_chapters=True)
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  STEP 6 — TUNING (scoring / regeneration)
+#  STEP 6 — QUESTIONS
+# ══════════════════════════════════════════════════════════════════════
+
+@app.route('/questions', methods=['GET'])
+def questions_page():
+    if not state["steps_enabled"].get("questions", True):
+        return redirect(url_for('tuning_page'))
+
+    if not state["main_summary"] and not state["chapters"]:
+        return redirect(url_for('summarization_page'))
+
+    if not state["questions_sys_prompt"]:
+        state["questions_sys_prompt"] = load_prompt_file('generate_questions_system.txt')
+    if not state["questions_user_prompt"]:
+        state["questions_user_prompt"] = load_prompt_file('generate_questions_user.txt')
+    if not state["questions_rewrite_sys_prompt"]:
+        state["questions_rewrite_sys_prompt"] = load_prompt_file('rewrite_questions_system.txt')
+    if not state["questions_rewrite_user_prompt"]:
+        state["questions_rewrite_user_prompt"] = load_prompt_file('rewrite_questions_user.txt')
+
+    state.setdefault("questions_context_max_rows", 14)
+    state.setdefault("questions_context_before_chars", 220)
+    state.setdefault("questions_context_after_chars", 140)
+
+    return render_template('questions.html', state=state)
+
+
+@app.route('/questions/run', methods=['POST'])
+def questions_run():
+    if not state["steps_enabled"].get("questions", True):
+        return redirect(url_for('tuning_page'))
+
+    state["questions_sys_prompt"] = request.form.get('questions_sys_prompt', '')
+    state["questions_user_prompt"] = request.form.get('questions_user_prompt', '')
+    state["questions_rewrite_sys_prompt"] = request.form.get('questions_rewrite_sys_prompt', '')
+    state["questions_rewrite_user_prompt"] = request.form.get('questions_rewrite_user_prompt', '')
+
+    try:
+        state["questions_context_max_rows"] = max(0, min(40, int(request.form.get('questions_context_max_rows', state.get("questions_context_max_rows", 14)))))
+    except (TypeError, ValueError):
+        state["questions_context_max_rows"] = int(state.get("questions_context_max_rows", 14))
+
+    try:
+        state["questions_context_before_chars"] = max(0, min(600, int(request.form.get('questions_context_before_chars', state.get("questions_context_before_chars", 220)))))
+    except (TypeError, ValueError):
+        state["questions_context_before_chars"] = int(state.get("questions_context_before_chars", 220))
+
+    try:
+        state["questions_context_after_chars"] = max(0, min(600, int(request.form.get('questions_context_after_chars', state.get("questions_context_after_chars", 140)))))
+    except (TypeError, ValueError):
+        state["questions_context_after_chars"] = int(state.get("questions_context_after_chars", 140))
+
+    segments = state.get("segments")
+    if not segments:
+        return redirect(url_for('upload_page'))
+
+    try:
+        ctx = get_ctx()
+        interview_name = os.path.basename(state.get("srt_path") or "unknown")
+        rows = generate_questions(
+            ctx=ctx,
+            segments=segments,
+            plaintext_transcript=state.get("plaintext_transcript") or "",
+            main_summary=state.get("main_summary") or {},
+            chapters=state.get("chapters") or [],
+            interview_name=interview_name,
+            system_prompt=state["questions_sys_prompt"],
+            user_prompt=state["questions_user_prompt"],
+            rewrite_system_prompt=state["questions_rewrite_sys_prompt"],
+            rewrite_user_prompt=state["questions_rewrite_user_prompt"],
+            rewrite_context_max_rows=state["questions_context_max_rows"],
+            rewrite_context_before_chars=state["questions_context_before_chars"],
+            rewrite_context_after_chars=state["questions_context_after_chars"],
+        )
+        rows = normalize_question_rows(rows)
+    except Exception as e:
+        state["questions_error"] = f"Question detection failed: {e}"
+        state["questions_rows"] = []
+        state["questions_stats"] = compute_question_stats([])
+        state["questions_ran"] = True
+        return render_template('questions.html', state=state)
+
+    state["questions_rows"] = rows
+    state["questions_stats"] = compute_question_stats(rows)
+    state["questions_error"] = None
+    state["questions_ran"] = True
+
+    return render_template('questions.html', state=state, questions_message=f"Generated {len(rows)} questions.")
+
+
+@app.route('/questions/update', methods=['POST'])
+def questions_update():
+    edited = request.form.get('edited_output', '[]')
+    try:
+        rows = json.loads(edited)
+    except json.JSONDecodeError:
+        rows = []
+
+    rows = normalize_question_rows(rows)
+    state["questions_rows"] = rows
+    state["questions_stats"] = compute_question_stats(rows)
+    state["questions_error"] = None
+    state["questions_ran"] = True
+
+    return render_template('questions.html', state=state, questions_message="Saved question edits.")
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  STEP 7 — TUNING (scoring / regeneration)
 # ══════════════════════════════════════════════════════════════════════
 
 @app.route('/tuning', methods=['GET'])
 def tuning_page():
+    if state["steps_enabled"].get("questions", True) and state.get("question_placement") == "after_summary" and not state.get("questions_ran", False):
+        return redirect(url_for('questions_page'))
+
     if not state["eval_sys_prompt"]:
         state["eval_sys_prompt"] = load_prompt_file('score_summary_system.txt')
     if not state["eval_user_prompt"]:
@@ -488,6 +730,9 @@ def tuning_page():
 @app.route('/tuning/run', methods=['POST'])
 def tuning_run():
     """Run scoring and regeneration loop with user-set thresholds."""
+    if state["steps_enabled"].get("questions", True) and state.get("question_placement") == "after_summary" and not state.get("questions_ran", False):
+        return redirect(url_for('questions_page'))
+
     state["quality_threshold"] = int(request.form.get('quality_threshold', 80))
     state["accuracy_threshold"] = int(request.form.get('accuracy_threshold', 80))
     state["max_retries"] = int(request.form.get('max_retries', 3))
@@ -559,6 +804,10 @@ def engagement_page():
 
     if not state["engagement_sys_prompt"]:
         state["engagement_sys_prompt"] = load_prompt_file('engagement_system.txt')
+    if not state["engagement_rubric"]:
+        state["engagement_rubric"] = load_prompt_file('engagement_rubric.txt')
+    if not state["engagement_schema"]:
+        state["engagement_schema"] = load_prompt_file('engagement_schema.txt')
 
     return render_template('engagement.html', state=state)
 
@@ -567,6 +816,8 @@ def engagement_page():
 def engagement_run():
     """Run engagement scoring on the current interview."""
     state["engagement_sys_prompt"] = request.form.get('sys_prompt', '')
+    state["engagement_rubric"] = request.form.get('rubric', '')
+    state["engagement_schema"] = request.form.get('schema', '')
 
     ctx = get_ctx()
 
@@ -592,6 +843,8 @@ def engagement_run():
         scores = run_engagement_scoring(
             ctx, srt_content, pipeline_data,
             system_prompt=state["engagement_sys_prompt"],
+            rubric=state["engagement_rubric"] or None,
+            schema_json_text=state["engagement_schema"] or None,
         )
     except Exception as e:
         return render_template('engagement.html', state=state,
@@ -601,8 +854,108 @@ def engagement_run():
         return render_template('engagement.html', state=state,
                                engagement_error=f"API error: {scores['error']}")
 
+    # Validate that the scores have the expected structure before the template tries to render them
+    if not isinstance(scores, dict) or "overall_score" not in scores:
+        return render_template('engagement.html', state=state,
+                               engagement_error="Engagement scoring returned an unexpected format. The API may have returned incomplete data.")
+    os_obj = scores.get("overall_score", {})
+    if not isinstance(os_obj, dict) or "total" not in os_obj:
+        return render_template('engagement.html', state=state,
+                               engagement_error="Engagement scoring returned incomplete results (missing overall_score.total). This can happen when the API is rate-limited or returns partial data.")
+
     state["engagement_scores"] = scores
     return render_template('engagement.html', state=state, just_ran=True)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  STEP 8 — CLIP EXTRACTION
+# ══════════════════════════════════════════════════════════════════════
+
+def _load_clips_prompt_sections():
+    """Load each clip prompt section file into a dict keyed by section id."""
+    from processor.clips import PROMPT_SECTIONS
+    sections = {}
+    for section_id, label, filename in PROMPT_SECTIONS:
+        try:
+            sections[section_id] = load_prompt_file(filename)
+        except Exception:
+            sections[section_id] = ""
+    return sections
+
+
+def _assemble_clips_prompt(sections):
+    """Join section contents in canonical order with --- separators."""
+    from processor.clips import PROMPT_SECTIONS
+    parts = [sections.get(sid, "").strip() for sid, _, _ in PROMPT_SECTIONS]
+    return "\n\n---\n\n".join(p for p in parts if p)
+
+
+@app.route('/clips', methods=['GET'])
+def clips_page():
+    if not state["steps_enabled"].get("clips", True):
+        return redirect(url_for('results_page'))
+
+    if not state["clips_prompt_sections"]:
+        state["clips_prompt_sections"] = _load_clips_prompt_sections()
+
+    from processor.clips import PROMPT_SECTIONS
+    return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS)
+
+
+@app.route('/clips/run', methods=['POST'])
+def clips_run():
+    """Run clip extraction on the current interview."""
+    from processor.clips import PROMPT_SECTIONS, run_clip_extraction
+    sections = {}
+    for section_id, label, filename in PROMPT_SECTIONS:
+        sections[section_id] = request.form.get(f'prompt_section_{section_id}', '')
+    state["clips_prompt_sections"] = sections
+    state["clips_token_limit"] = int(request.form.get('token_limit', 30000))
+
+    combined_prompt = _assemble_clips_prompt(state["clips_prompt_sections"])
+    ctx = get_ctx()
+
+    srt_path = state["srt_path"]
+    if not srt_path or not os.path.exists(srt_path):
+        from processor.clips import PROMPT_SECTIONS as PS
+        return render_template('clips.html', state=state, prompt_sections=PS,
+                               clips_error="No SRT file found. Go back to Upload.")
+
+    with open(srt_path, 'r', encoding='utf-8') as f:
+        srt_content = f.read()
+
+    interview_name = os.path.basename(srt_path or "unknown").replace('.srt', '')
+
+    pipeline_data = {
+        "segments": state["segments"],
+        "plaintext_transcript": state["plaintext_transcript"],
+        "chapter_breaks_preview": state["chapter_breaks_preview"],
+        "main_summary": state["main_summary"],
+        "toc_bundle": state["toc_bundle"],
+        "interview_name": interview_name,
+    }
+
+    try:
+        clips_data = run_clip_extraction(
+            ctx, srt_content, pipeline_data,
+            system_prompt=combined_prompt,
+            token_limit=state["clips_token_limit"],
+        )
+    except Exception as e:
+        traceback.print_exc()   # full stack trace in Flask console
+        return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
+                               clips_error=f"Clip extraction failed: {e}")
+
+    if isinstance(clips_data, dict) and "error" in clips_data and len(clips_data) <= 2:
+        return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
+                               clips_error=f"API error: {clips_data['error']}")
+
+    if not isinstance(clips_data, dict) or "clips" not in clips_data:
+        return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
+                               clips_error="Clip extraction returned an unexpected format.")
+
+    state["clips_data"] = clips_data
+    return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS, just_ran=True)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -627,8 +980,11 @@ def results_download():
         "chapter_breaks_preview": state["chapter_breaks_preview"],
         "main_summary": state["main_summary"],
         "chapters": state["chapters"],
+        "questions": state["questions_rows"],
+        "questions_stats": state["questions_stats"],
         "tuning_results": state["tuning_results"],
         "engagement_scores": state["engagement_scores"],
+        "clips_data": state["clips_data"],
     }
 
     payload = json.dumps(result, indent=2, ensure_ascii=False, default=str).encode('utf-8')
@@ -688,6 +1044,14 @@ def _capture_batch_params():
         "main_summary_user_prompt":  state["main_summary_user_prompt"],
         "chapter_sys_prompt":        state["chapter_sys_prompt"],
         "chapter_user_prompt":       state["chapter_user_prompt"],
+        "questions_sys_prompt":      state["questions_sys_prompt"],
+        "questions_user_prompt":     state["questions_user_prompt"],
+        "questions_rewrite_sys_prompt": state["questions_rewrite_sys_prompt"],
+        "questions_rewrite_user_prompt": state["questions_rewrite_user_prompt"],
+        "questions_context_max_rows": state.get("questions_context_max_rows", 14),
+        "questions_context_before_chars": state.get("questions_context_before_chars", 220),
+        "questions_context_after_chars": state.get("questions_context_after_chars", 140),
+        "question_placement":        state["question_placement"],
         "eval_sys_prompt":           state["eval_sys_prompt"],
         "eval_user_prompt":          state["eval_user_prompt"],
         "revision_sys_prompt":       state["revision_sys_prompt"],
@@ -696,14 +1060,18 @@ def _capture_batch_params():
         "accuracy_threshold":        state["accuracy_threshold"],
         "max_retries":               state["max_retries"],
         "engagement_sys_prompt":     state["engagement_sys_prompt"],
+        "engagement_rubric":         state["engagement_rubric"] or None,
+        "engagement_schema":         state["engagement_schema"] or None,
+        "clips_combined_prompt":     _assemble_clips_prompt(state["clips_prompt_sections"]),
+        "clips_token_limit":         state["clips_token_limit"],
         "steps_enabled":             dict(state["steps_enabled"]),
         "api_key":                   current_api_key(),
     }
 
 
-def _process_single_interview(srt_path, interview_name, params, progress_fn):
+def _process_single_interview(srt_path, interview_name, params, progress_fn, youtube_video_id=None):
     """
-    Run the full pipeline (steps 1-6) on a single SRT file.
+    Run the full pipeline on a single SRT file.
     Returns a dict with all pipeline outputs.
     progress_fn(step_name) is called before each step.
     """
@@ -715,6 +1083,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn):
     from processor.chapterization import detect_topic_transitions, build_chapter_preview
     from processor.summarization import generate_main_summary, generate_chapters
     from processor.tuning import run_tuning_loop, score_chapter
+    from processor.questions import compute_question_stats, generate_questions, normalize_question_rows
 
     # Create a fresh ProcessorContext for this interview
     ctx = ProcessorContext(
@@ -725,7 +1094,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn):
         rubric_path=_find_path('StandardizedRubric_1.md') or 'StandardizedRubric_1.md',
     )
 
-    result = {"interview_name": interview_name, "error": None}
+    result = {"interview_name": interview_name, "error": None, "youtube_video_id": youtube_video_id}
 
     # Step 1 — Parse & Block
     progress_fn("Parsing SRT")
@@ -776,7 +1145,36 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn):
     )
     result["chapters"] = chapters
 
-    # Step 6 — Tuning
+    # Step 6 — Questions (if enabled)
+    if params.get("steps_enabled", {}).get("questions", True) and params.get("question_placement", "after_summary") == "after_summary":
+        progress_fn("Question detection")
+        try:
+            question_rows = generate_questions(
+                ctx=ctx,
+                segments=segments,
+                plaintext_transcript=plaintext,
+                main_summary=result.get("main_summary") or {},
+                chapters=chapters or [],
+                interview_name=interview_name,
+                system_prompt=params.get("questions_sys_prompt") or "",
+                user_prompt=params.get("questions_user_prompt") or "",
+                rewrite_system_prompt=params.get("questions_rewrite_sys_prompt") or "",
+                rewrite_user_prompt=params.get("questions_rewrite_user_prompt") or "",
+                rewrite_context_max_rows=int(params.get("questions_context_max_rows", 14) or 14),
+                rewrite_context_before_chars=int(params.get("questions_context_before_chars", 220) or 220),
+                rewrite_context_after_chars=int(params.get("questions_context_after_chars", 140) or 140),
+            )
+            question_rows = normalize_question_rows(question_rows)
+            result["questions"] = question_rows
+            result["questions_stats"] = compute_question_stats(question_rows)
+        except Exception as e:
+            result["questions"] = []
+            result["questions_stats"] = {"error": str(e)}
+    else:
+        result["questions"] = None
+        result["questions_stats"] = None
+
+    # Step 7 — Tuning
     progress_fn("Tuning main summary")
     tuning_results = {"main_summary": None, "chapters": []}
     if main_summary:
@@ -810,13 +1208,14 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn):
 
     result["tuning_results"] = tuning_results
 
-    # Step 7 — Engagement Scoring (if enabled)
+    # Step 8 — Engagement Scoring (if enabled)
+    with open(srt_path, 'r', encoding='utf-8') as f:
+        srt_content = f.read()
+
     if params.get("steps_enabled", {}).get("engagement", True):
         progress_fn("Engagement scoring")
         try:
             from processor.engagement import run_engagement_scoring
-            with open(srt_path, 'r', encoding='utf-8') as f:
-                srt_content = f.read()
             pipeline_data = {
                 "segments": segments,
                 "plaintext_transcript": plaintext,
@@ -826,6 +1225,8 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn):
             engagement_scores = run_engagement_scoring(
                 ctx, srt_content, pipeline_data,
                 system_prompt=params.get("engagement_sys_prompt"),
+                rubric=params.get("engagement_rubric"),
+                schema_json_text=params.get("engagement_schema"),
             )
             result["engagement_scores"] = engagement_scores
         except Exception as e:
@@ -833,6 +1234,31 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn):
             result["engagement_scores"] = {"error": str(e)}
     else:
         result["engagement_scores"] = None
+
+    # Step 9 — Clip Extraction (if enabled)
+    if params.get("steps_enabled", {}).get("clips", True):
+        progress_fn("Clip extraction")
+        try:
+            from processor.clips import run_clip_extraction
+            clips_pipeline_data = {
+                "segments": segments,
+                "plaintext_transcript": plaintext,
+                "chapter_breaks_preview": result.get("chapter_breaks_preview", []),
+                "main_summary": result.get("main_summary"),
+                "toc_bundle": result.get("toc_bundle"),
+                "interview_name": interview_name,
+            }
+            clips_data = run_clip_extraction(
+                ctx, srt_content, clips_pipeline_data,
+                system_prompt=params.get("clips_combined_prompt"),
+                token_limit=params.get("clips_token_limit", 30000),
+            )
+            result["clips_data"] = clips_data
+        except Exception as e:
+            print(f"Clip extraction failed: {e}")
+            result["clips_data"] = {"error": str(e)}
+    else:
+        result["clips_data"] = None
 
     return result
 
@@ -857,13 +1283,17 @@ def _run_batch(sid, srt_files, params):
                 job["progress"]["current_step"] = step_name
 
         try:
-            result = _process_single_interview(path, name, params, update_step)
+            srt_basename = os.path.basename(path)
+            yt_id = params.get("video_links_map", {}).get(srt_basename)
+            result = _process_single_interview(path, name, params, update_step, youtube_video_id=yt_id)
             with _BATCH_LOCK:
                 job["results"][name] = result
+                job["progress"]["completed"] = list(job["results"].keys())
         except Exception as e:
             traceback.print_exc()
             with _BATCH_LOCK:
                 job["results"][name] = {"interview_name": name, "error": str(e)}
+                job["progress"]["completed"] = list(job["results"].keys())
 
     with _BATCH_LOCK:
         job["progress"]["current"] = total
@@ -928,6 +1358,21 @@ def batch_start():
 
     params = _capture_batch_params()
 
+    # Optional: parse video links JSON and build a basename → video_id lookup
+    video_links_file = request.files.get('video_links_json')
+    video_links_map = {}
+    if video_links_file and video_links_file.filename:
+        try:
+            entries = json.loads(video_links_file.read().decode('utf-8'))
+            for entry in entries:
+                tf = entry.get('transcript_file', '')
+                url = entry.get('videoEmbedLink', '')
+                if tf and url:
+                    video_links_map[secure_filename(os.path.basename(tf))] = extract_youtube_id(url)
+        except Exception:
+            pass  # silently ignore malformed JSON
+    params["video_links_map"] = video_links_map
+
     # Initialize job
     with _BATCH_LOCK:
         _BATCH_JOBS[sid] = {
@@ -962,6 +1407,7 @@ def batch_status():
         return jsonify({
             "running": job["running"],
             "progress": job["progress"],
+            "interview_order": job.get("interview_order", []),
         })
 
 
@@ -985,6 +1431,7 @@ def batch_results():
         results=job["results"],
         selected=selected,
         selected_result=selected_result,
+        is_running=job.get("running", False),
     )
 
 

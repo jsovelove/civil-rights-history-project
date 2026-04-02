@@ -1,0 +1,16 @@
+Interview: {interview_name}
+
+Main summary context:
+{main_summary}
+
+Chapter context:
+{chapter_outline}
+
+Questions to rewrite (JSON):
+{question_json}
+
+Task:
+1. Rewrite each question to read clearly for reviewers.
+2. Preserve semantics exactly while improving fluency and punctuation.
+3. Some rows include local transcript context fields. Use that context only for resolving ambiguous references.
+4. Return one rewrite object per input question id.

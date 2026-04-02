@@ -1,0 +1,141 @@
+## OUTPUT FORMAT
+
+Return structured JSON with ALL viable clips:
+
+```json
+{
+  "interview_metadata": {
+    "interviewee_name": "string",
+    "interview_date": "YYYY-MM-DD",
+    "total_duration": "HH:MM:SS",
+    "total_segments": 0,
+    "total_words": 0
+  },
+
+  "extraction_summary": {
+    "total_clips_extracted": 0,
+    "total_clips_duration": "HH:MM:SS",
+    "average_clip_score": 0.0,
+    "score_distribution": {
+      "90-100": 0,
+      "80-89": 0,
+      "70-79": 0,
+      "60-69": 0,
+      "50-59": 0
+    },
+    "topic_coverage": {
+      "Voting & Legal Rights": 0,
+      "Organizations & Movement Networks": 0,
+      "Violence, Intimidation & State Repression": 0,
+      "Integration, Education & Everyday Segregation": 0,
+      "Historical Figures & Turning Points": 0
+    },
+    "event_coverage": {
+      "The Murder of Medgar Evers": 2,
+      "Freedom Summer": 1
+    }
+  },
+
+  "clips": [
+    {
+      "clip_id": "unique_identifier",
+      "clip_title": "Descriptive 5-8 word title",
+      "duration": "MM:SS",
+      "timestamp_start": "HH:MM:SS,mmm",
+      "timestamp_end": "HH:MM:SS,mmm",
+      "segment_start": 0,
+      "segment_end": 0,
+
+      "scores": {
+        "total_score": 0,
+        "topic_event_coverage": {
+          "topic_relevance": 0,
+          "event_specificity": 0,
+          "total": 0
+        },
+        "engagement_quality": {
+          "narrative_power": 0,
+          "emotional_resonance": 0,
+          "accessibility": 0,
+          "total": 0
+        }
+      },
+
+      "thematic_tags": {
+        "main_topics": [
+          "Organizations & Movement Networks"
+        ],
+        "key_events": [
+          "The Murder of Medgar Evers"
+        ],
+        "additional_keywords": [
+          "NAACP",
+          "Medgar Evers",
+          "youth organizing",
+          "Mississippi",
+          "Jackson"
+        ]
+      },
+
+      "content_summary": {
+        "clip_type": "personal_narrative",
+        "primary_focus": "Brief 1-2 sentence description",
+        "key_details": [
+          "Specific name, date, place, or fact 1",
+          "Specific name, date, place, or fact 2",
+          "Specific name, date, place, or fact 3"
+        ],
+        "why_valuable": "1-2 sentences explaining unique contribution"
+      },
+
+      "engagement_assessment": {
+        "narrative_structure": "beginning/middle/end description",
+        "emotional_tone": "inspiring/tragic/defiant/reflective/etc",
+        "standout_moment": {
+          "description": "Most powerful line or moment",
+          "timestamp": "HH:MM:SS,mmm",
+          "segment": 0
+        }
+      },
+
+      "transcript_excerpts": {
+        "opening_lines": {
+          "text": "First 20-30 seconds verbatim",
+          "segment": 0,
+          "timestamp": "HH:MM:SS,mmm"
+        },
+        "key_moment": {
+          "text": "Most important/powerful section",
+          "segment": 0,
+          "timestamp": "HH:MM:SS,mmm"
+        },
+        "closing_lines": {
+          "text": "Final 15-20 seconds verbatim",
+          "segment": 0,
+          "timestamp": "HH:MM:SS,mmm"
+        }
+      },
+
+      "technical_notes": {
+        "content_warnings": [],
+        "editorial_notes": "Any needed intro/context/editing",
+        "standalone_quality": "excellent/good/requires_context"
+      }
+    }
+  ],
+
+  "extraction_notes": {
+    "interview_strengths": "What this interview offers for clip database",
+    "coverage_gaps": "Topics/events not well covered in this interview",
+    "highest_scoring_clips": [
+      "clip_id_1",
+      "clip_id_2",
+      "clip_id_3"
+    ],
+    "recommended_for_topics": {
+      "Voting & Legal Rights": ["clip_id_x", "clip_id_y"],
+      "Organizations & Movement Networks": ["clip_id_a", "clip_id_b"]
+    }
+  }
+}
+```

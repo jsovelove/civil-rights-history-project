@@ -1,0 +1,19 @@
+Interview: {interview_name}
+Maximum questions to return: {max_questions}
+
+Main summary context:
+{main_summary}
+
+Chapter context:
+{chapter_outline}
+
+Question-like candidate utterances (JSON):
+{candidate_json}
+
+Task:
+1. Select candidate utterances that are most likely interviewer questions.
+2. Remove false positives (rhetorical, quoted, fragmentary, or clearly not interviewer prompts).
+3. Return clean, high-quality question_text values with timestamps.
+4. If uncertain, keep confidence lower instead of forcing certainty.
+
+Remember: output must be strict JSON with the required schema only.

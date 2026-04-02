@@ -173,6 +173,19 @@ register_step(PipelineStep(
 ))
 
 register_step(PipelineStep(
+    id="clips",
+    display_name="Clips",
+    order=75,
+    requires=["segments", "plaintext_transcript"],
+    produces=["clips_data"],
+    default_enabled=True,
+    disable_warning=None,
+    route_name="clips_page",
+    nav_done_key="clips_data",
+    nav_ready_key="text_blocks",
+))
+
+register_step(PipelineStep(
     id="results",
     display_name="Results",
     order=100,
