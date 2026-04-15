@@ -84,6 +84,8 @@
                 statusIcon = '<span class="queue-spinner"></span>';
                 statusLabel = '<span class="queue-status-text queue-status-text--active">'
                     + escapeHtml(currentStep) + '</span>';
+                extraHtml = '<a href="' + resultsBaseUrl + '?i=' + encodeURIComponent(name)
+                    + '&from=progress" class="queue-view-btn" style="opacity: 0.7;">View Progress →</a>';
 
             } else {
                 statusClass = 'queue-item--queued';

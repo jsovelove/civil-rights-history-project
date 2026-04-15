@@ -57,3 +57,15 @@
 - Vague, general statements without specifics
 - Rambling without clear point or structure
 - Emotionally flat recitations of facts
+
+### Execution Rules
+
+- **ENSURE DIVERSITY** — Extract different types of clips (narrative, documentary, reflective)
+- **MARK BOUNDARIES** — Start/end timestamps should be natural breaking points
+- **GENERATE UNIQUE IDs** — Each clip needs a unique identifier for the database
+
+#### Clip ID Format
+```
+{interview_code}_{clip_number}
+Example: "BROWN_001", "BROWN_002", etc.
+```

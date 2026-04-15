@@ -8,7 +8,10 @@ import json
 import os
 import re
 import shutil
+import time
 import traceback
+import zipfile
+import threading
 from io import BytesIO
 from threading import Lock
 from uuid import uuid4
@@ -57,6 +60,21 @@ def _load_engagement_maxes() -> dict:
 
 
 app.jinja_env.globals['get_engagement_maxes'] = _load_engagement_maxes
+
+
+@app.template_filter('fmt_duration')
+def fmt_duration_filter(seconds: float) -> str:
+    """Format a float number of seconds as a human-readable duration."""
+    if seconds is None:
+        return '—'
+    s = float(seconds)
+    if s < 60:
+        return f"{s:.1f}s"
+    m, rem = divmod(s, 60)
+    if m < 60:
+        return f"{int(m)}m {rem:.1f}s"
+    h, m = divmod(m, 60)
+    return f"{int(h)}h {int(m)}m {int(rem)}s"
 
 
 @app.template_filter('to_seconds')
@@ -177,6 +195,12 @@ def _new_state():
 
         # processor instance
         "processor": None,
+
+        # per-step metrics  [{step, elapsed_s, tokens, cumulative_s, cumulative_tokens}]
+        "step_metrics": [],
+        
+        # pending batch files from zip upload (list of (name, path) tuples)
+        "pending_batch_files": None,
     }
 
 
@@ -279,6 +303,7 @@ def _reset_downstream():
     state["revision_user_prompt"] = ""
     # Reset processor so it reinits with the current API key and block size
     state["processor"] = None
+    state["step_metrics"] = []
 
 
 def _reset_after_summary_changes():
@@ -308,6 +333,20 @@ def get_ctx():
             rubric_path=rubric_path or 'StandardizedRubric_1.md',
         )
     return state["processor"]
+
+
+def _record_step_metric(step_name: str, elapsed_s: float, tokens_used: int):
+    """Append a per-step timing/token record and update cumulative totals."""
+    metrics = state.setdefault("step_metrics", [])
+    prev_cum_s = metrics[-1]["cumulative_s"] if metrics else 0.0
+    prev_cum_tok = metrics[-1]["cumulative_tokens"] if metrics else 0
+    metrics.append({
+        "step": step_name,
+        "elapsed_s": round(elapsed_s, 2),
+        "tokens": tokens_used,
+        "cumulative_s": round(prev_cum_s + elapsed_s, 2),
+        "cumulative_tokens": prev_cum_tok + tokens_used,
+    })
 
 
 def _find_path(name):
@@ -352,8 +391,65 @@ def upload_run():
     uploaded_file = request.files.get('srt_file')
     if not use_sample and (not uploaded_file or not uploaded_file.filename):
         return _render_upload('Select an .srt file or use the bundled sample interview.')
-
+    
     block_size = int(request.form.get('block_size', 23))
+    
+    # Handle zip upload: extract all SRTs, load first one, queue the rest
+    if not use_sample and uploaded_file.filename.lower().endswith('.zip'):
+        session_dir = _session_upload_dir(reset=True)
+        zip_path = os.path.join(session_dir, secure_filename(uploaded_file.filename))
+        uploaded_file.save(zip_path)
+        
+        srt_files = []
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                for member in zf.namelist():
+                    if member.lower().endswith('.srt') and not member.startswith('__MACOSX'):
+                        basename = os.path.basename(member)
+                        if not basename:
+                            continue
+                        dest = os.path.join(session_dir, secure_filename(basename))
+                        with zf.open(member) as src, open(dest, 'wb') as dst:
+                            dst.write(src.read())
+                        srt_files.append((basename.replace('.srt', ''), dest))
+        except zipfile.BadZipFile:
+            return _render_upload('Invalid zip file.')
+        
+        if not srt_files:
+            return _render_upload('No .srt files found in the zip.')
+        
+        srt_files.sort(key=lambda x: x[0])
+        
+        # Load first file into the interactive pipeline
+        first_name, first_path = srt_files[0]
+        state["pending_batch_files"] = srt_files[1:] if len(srt_files) > 1 else None
+        
+        # Continue with first file as if it was uploaded directly
+        uploaded_file = None  # Clear so we use first_path below
+        filepath = first_path
+        _reset_downstream()
+        state["using_sample"] = False
+        
+        from srt_parser import parse_srt_file
+        segments = parse_srt_file(filepath)
+        plaintext = ' '.join([s.text for s in segments])
+        
+        state["srt_path"] = filepath
+        state["block_size"] = block_size
+        state["segments"] = segments
+        state["plaintext_transcript"] = plaintext
+        
+        ctx = get_ctx()
+        ctx.chapter_block_size = block_size
+        
+        from processor.blocking import build_text_blocks
+        text_blocks = build_text_blocks(ctx, segments, plaintext)
+        state["text_blocks"] = text_blocks
+        
+        return redirect(url_for('blocking_output'))
+
+    if not use_sample and not uploaded_file.filename.lower().endswith('.srt'):
+        return _render_upload('Please upload an .srt or .zip file.')
 
     # Read module toggles
     state["steps_enabled"]["questions"] = request.form.get('enable_questions') == 'on'
@@ -434,11 +530,14 @@ def labeling_run():
     try:
         ctx = get_ctx()
         from processor.labeling import label_text_blocks
+        _t0 = time.time()
+        _tok0 = ctx.total_tokens_used
         block_topics = label_text_blocks(
             ctx, text_blocks,
             system_prompt=state["labeling_sys_prompt"],
             user_prompt=state["labeling_user_prompt"]
         )
+        _record_step_metric("Labeling", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
         state["block_topics"] = None
         return render_template(
@@ -519,11 +618,14 @@ def chapterization_run():
         return redirect(url_for('upload_page'))
 
     from processor.chapterization import detect_topic_transitions, build_chapter_preview
+    _t0 = time.time()
+    _tok0 = ctx.total_tokens_used
     chapter_breaks = detect_topic_transitions(
         ctx, text_blocks, block_topics,
         system_prompt=state["chapterization_sys_prompt"],
         user_prompt=state["chapterization_user_prompt"]
     )
+    _record_step_metric("Chapterization", time.time() - _t0, ctx.total_tokens_used - _tok0)
     state["chapter_breaks"] = chapter_breaks
 
     preview = build_chapter_preview(
@@ -563,11 +665,14 @@ def summarization_run_main():
     interview_name = os.path.basename(state["srt_path"] or "unknown")
 
     from processor.summarization import generate_main_summary
+    _t0 = time.time()
+    _tok0 = ctx.total_tokens_used
     main_summary = generate_main_summary(
         ctx, transcript, interview_name,
         system_prompt=state["main_summary_sys_prompt"],
         user_prompt=state["main_summary_user_prompt"]
     )
+    _record_step_metric("Main Summary", time.time() - _t0, ctx.total_tokens_used - _tok0)
     state["main_summary"] = main_summary
     _reset_after_summary_changes()
 
@@ -587,11 +692,14 @@ def summarization_run_chapters():
     chapter_breaks = state["chapter_breaks"]
 
     from processor.summarization import generate_chapters
+    _t0 = time.time()
+    _tok0 = ctx.total_tokens_used
     chapters = generate_chapters(
         ctx, segments, interview_name, plaintext, chapter_breaks,
         system_prompt=state["chapter_sys_prompt"],
         user_prompt=state["chapter_user_prompt"]
     )
+    _record_step_metric("Chapter Summaries", time.time() - _t0, ctx.total_tokens_used - _tok0)
     state["chapters"] = chapters
     _reset_after_summary_changes()
 
@@ -658,6 +766,8 @@ def questions_run():
     try:
         ctx = get_ctx()
         interview_name = os.path.basename(state.get("srt_path") or "unknown")
+        _t0 = time.time()
+        _tok0 = ctx.total_tokens_used
         rows = generate_questions(
             ctx=ctx,
             segments=segments,
@@ -674,6 +784,7 @@ def questions_run():
             rewrite_context_after_chars=state["questions_context_after_chars"],
         )
         rows = normalize_question_rows(rows)
+        _record_step_metric("Questions", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
         state["questions_error"] = f"Question detection failed: {e}"
         state["questions_rows"] = []
@@ -748,6 +859,8 @@ def tuning_run():
     from processor.blocking import extract_plaintext_section
 
     tuning_results = {"main_summary": None, "chapters": []}
+    _t0 = time.time()
+    _tok0 = ctx.total_tokens_used
 
     # Score and regenerate main summary
     if state["main_summary"]:
@@ -788,6 +901,8 @@ def tuning_run():
                 "chapter": chapter,
                 "scores": scores
             })
+
+    _record_step_metric("Tuning", time.time() - _t0, ctx.total_tokens_used - _tok0)
 
     state["tuning_results"] = tuning_results
     return render_template('tuning.html', state=state, just_ran=True)
@@ -840,12 +955,15 @@ def engagement_run():
 
     from processor.engagement import run_engagement_scoring
     try:
+        _t0 = time.time()
+        _tok0 = ctx.total_tokens_used
         scores = run_engagement_scoring(
             ctx, srt_content, pipeline_data,
             system_prompt=state["engagement_sys_prompt"],
             rubric=state["engagement_rubric"] or None,
             schema_json_text=state["engagement_schema"] or None,
         )
+        _record_step_metric("Engagement Scoring", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
         return render_template('engagement.html', state=state,
                                engagement_error=f"Engagement scoring failed: {e}")
@@ -936,11 +1054,14 @@ def clips_run():
     }
 
     try:
+        _t0 = time.time()
+        _tok0 = ctx.total_tokens_used
         clips_data = run_clip_extraction(
             ctx, srt_content, pipeline_data,
             system_prompt=combined_prompt,
             token_limit=state["clips_token_limit"],
         )
+        _record_step_metric("Clip Extraction", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
         traceback.print_exc()   # full stack trace in Flask console
         return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
@@ -964,7 +1085,8 @@ def clips_run():
 
 @app.route('/results', methods=['GET'])
 def results_page():
-    return render_template('results.html', state=state)
+    pending = state.get("pending_batch_files")
+    return render_template('results.html', state=state, pending_batch_count=len(pending) if pending else 0)
 
 
 @app.route('/results/download', methods=['GET'])
@@ -996,6 +1118,55 @@ def results_download():
     )
 
 
+@app.route('/results/continue_batch', methods=['POST'])
+def results_continue_batch():
+    """Use current config to process remaining files from zip upload."""
+    pending = state.get("pending_batch_files")
+    if not pending:
+        return redirect(url_for('results_page'))
+    
+    sid = _get_session_id()
+    params = _capture_batch_params()
+    params["video_links_map"] = {}
+    
+    # Include the first (already processed) interview in results
+    first_result = {
+        "interview_name": os.path.basename(state["srt_path"] or "unknown").replace('.srt', ''),
+        "text_blocks": state["text_blocks"],
+        "block_topics": state["block_topics"],
+        "toc_bundle": state["toc_bundle"],
+        "chapter_breaks": state["chapter_breaks"],
+        "chapter_breaks_preview": state["chapter_breaks_preview"],
+        "main_summary": state["main_summary"],
+        "chapters": state["chapters"],
+        "questions": state["questions_rows"],
+        "questions_stats": state["questions_stats"],
+        "tuning_results": state["tuning_results"],
+        "engagement_scores": state["engagement_scores"],
+        "clips_data": state["clips_data"],
+        "error": None,
+    }
+    first_name = first_result["interview_name"]
+    
+    # Initialize job with first result already done
+    with _BATCH_LOCK:
+        _BATCH_JOBS[sid] = {
+            "running": True,
+            "progress": {"current": 0, "total": len(pending), "current_name": "", "current_step": "Starting", "completed": [first_name]},
+            "results": {first_name: first_result},
+            "interview_order": [first_name] + [name for name, _ in pending],
+        }
+    
+    # Clear pending so we don't re-trigger
+    state["pending_batch_files"] = None
+    
+    # Start background thread for remaining files
+    thread = threading.Thread(target=_run_batch, args=(sid, pending, params), daemon=True)
+    thread.start()
+    
+    return redirect(url_for('batch_progress'))
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  API ENDPOINTS (for async JS calls if needed later)
 # ══════════════════════════════════════════════════════════════════════
@@ -1023,10 +1194,6 @@ def api_state():
 # ══════════════════════════════════════════════════════════════════════
 #  BATCH PROCESSING
 # ══════════════════════════════════════════════════════════════════════
-
-import zipfile
-import threading
-import traceback
 
 _BATCH_LOCK = Lock()
 _BATCH_JOBS = {}   # sid -> job dict
@@ -1069,7 +1236,7 @@ def _capture_batch_params():
     }
 
 
-def _process_single_interview(srt_path, interview_name, params, progress_fn, youtube_video_id=None):
+def _process_single_interview(srt_path, interview_name, params, progress_fn, youtube_video_id=None, partial_result=None, save_partial_fn=None):
     """
     Run the full pipeline on a single SRT file.
     Returns a dict with all pipeline outputs.
@@ -1094,7 +1261,14 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         rubric_path=_find_path('StandardizedRubric_1.md') or 'StandardizedRubric_1.md',
     )
 
-    result = {"interview_name": interview_name, "error": None, "youtube_video_id": youtube_video_id}
+    result = partial_result if partial_result else {"interview_name": interview_name, "error": None}
+    result["interview_name"] = interview_name
+    result["error"] = None
+    result["youtube_video_id"] = youtube_video_id
+    
+    def _save():
+        if save_partial_fn:
+            save_partial_fn(result)
 
     # Step 1 — Parse & Block
     progress_fn("Parsing SRT")
@@ -1102,6 +1276,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
     plaintext = ' '.join([s.text for s in segments])
     text_blocks = build_text_blocks(ctx, segments, plaintext)
     result["text_blocks"] = text_blocks
+    _save()
 
     # Step 2 — Labeling
     progress_fn("Labeling")
@@ -1111,11 +1286,13 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         user_prompt=params["labeling_user_prompt"],
     )
     result["block_topics"] = block_topics
+    _save()
 
     # Step 3 — TOC
     progress_fn("Building TOC")
     toc_bundle = build_hierarchical_toc(text_blocks, block_topics)
     result["toc_bundle"] = toc_bundle
+    _save()
 
     # Step 4 — Chapterization
     progress_fn("Chapterization")
@@ -1127,6 +1304,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
     chapter_breaks_preview = build_chapter_preview(chapter_breaks, segments, plaintext)
     result["chapter_breaks"] = chapter_breaks
     result["chapter_breaks_preview"] = chapter_breaks_preview
+    _save()
 
     # Step 5 — Summarization
     progress_fn("Main summary")
@@ -1136,6 +1314,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         user_prompt=params["main_summary_user_prompt"],
     )
     result["main_summary"] = main_summary
+    _save()
 
     progress_fn("Chapter summaries")
     chapters = generate_chapters(
@@ -1144,6 +1323,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         user_prompt=params["chapter_user_prompt"],
     )
     result["chapters"] = chapters
+    _save()
 
     # Step 6 — Questions (if enabled)
     if params.get("steps_enabled", {}).get("questions", True) and params.get("question_placement", "after_summary") == "after_summary":
@@ -1170,6 +1350,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         except Exception as e:
             result["questions"] = []
             result["questions_stats"] = {"error": str(e)}
+        _save()
     else:
         result["questions"] = None
         result["questions_stats"] = None
@@ -1207,6 +1388,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
             tuning_results["chapters"].append({"chapter": chapter, "scores": scores})
 
     result["tuning_results"] = tuning_results
+    _save()
 
     # Step 8 — Engagement Scoring (if enabled)
     with open(srt_path, 'r', encoding='utf-8') as f:
@@ -1232,6 +1414,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         except Exception as e:
             print(f"Engagement scoring failed: {e}")
             result["engagement_scores"] = {"error": str(e)}
+        _save()
     else:
         result["engagement_scores"] = None
 
@@ -1257,6 +1440,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         except Exception as e:
             print(f"Clip extraction failed: {e}")
             result["clips_data"] = {"error": str(e)}
+        _save()
     else:
         result["clips_data"] = None
 
@@ -1269,31 +1453,49 @@ def _run_batch(sid, srt_files, params):
     total = len(srt_files)
 
     for i, (name, path) in enumerate(srt_files):
+        # Initialize partial result for this interview
+        partial_result = {"interview_name": name, "error": None, "_processing": True, "_current_step": "Starting"}
+        
         with _BATCH_LOCK:
+            job["results"][name] = partial_result
             job["progress"] = {
                 "current": i,
                 "total": total,
                 "current_name": name,
                 "current_step": "Starting",
-                "completed": list(job["results"].keys()),
+                "completed": [n for n, r in job["results"].items() if not r.get("_processing")],
             }
 
-        def update_step(step_name, _name=name, _i=i):
+        def update_step(step_name, _name=name):
             with _BATCH_LOCK:
                 job["progress"]["current_step"] = step_name
+                if _name in job["results"]:
+                    job["results"][_name]["_current_step"] = step_name
+
+        def save_partial(result_dict, _name=name):
+            with _BATCH_LOCK:
+                job["results"][_name] = result_dict
 
         try:
             srt_basename = os.path.basename(path)
             yt_id = params.get("video_links_map", {}).get(srt_basename)
-            result = _process_single_interview(path, name, params, update_step, youtube_video_id=yt_id)
+            result = _process_single_interview(
+                path, name, params, update_step, 
+                youtube_video_id=yt_id,
+                partial_result=partial_result,
+                save_partial_fn=save_partial
+            )
+            # Mark as complete
+            result.pop("_processing", None)
+            result.pop("_current_step", None)
             with _BATCH_LOCK:
                 job["results"][name] = result
-                job["progress"]["completed"] = list(job["results"].keys())
+                job["progress"]["completed"] = [n for n, r in job["results"].items() if not r.get("_processing")]
         except Exception as e:
             traceback.print_exc()
             with _BATCH_LOCK:
                 job["results"][name] = {"interview_name": name, "error": str(e)}
-                job["progress"]["completed"] = list(job["results"].keys())
+                job["progress"]["completed"] = [n for n, r in job["results"].items() if not r.get("_processing")]
 
     with _BATCH_LOCK:
         job["progress"]["current"] = total

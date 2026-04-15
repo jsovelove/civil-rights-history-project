@@ -65,6 +65,24 @@
     }
   },
 
+  "transcript_excerpts": {
+    "opening_lines": {
+      "text": "My sister Gloria introduced me to Medgar Evers. He was the NAACP field secretary for Mississippi...",
+      "segment": 243,
+      "timestamp": "00:33:08,000"
+    },
+    "key_moment": {
+      "text": "My mother said, 'If that's what you want to do, go ahead. I'm with you.'",
+      "segment": 256,
+      "timestamp": "00:34:29,000"
+    },
+    "closing_lines": {
+      "text": "We'd dress as sharecroppers, drive out to the Delta, hold the meetings in the fields after dark.",
+      "segment": 267,
+      "timestamp": "00:36:40,000"
+    }
+  },
+
   "technical_notes": {
     "content_warnings": [],
     "editorial_notes": "Could add brief 5-second intro identifying Medgar Evers for younger audiences",

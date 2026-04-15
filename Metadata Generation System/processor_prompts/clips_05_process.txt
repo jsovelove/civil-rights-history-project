@@ -11,18 +11,26 @@
 - Find high-engagement moments (drama, emotion, insight)
 - Aim for **15-25 clips per 2-hour interview**
 
-### STEP 3: Score Each Clip
-- Topic/Event Coverage (0-50)
-- Engagement Quality (0-50)
-- Total: 0-100
+### Strategy: Expected Clip Count by Chapter (2-Hour Interview)
 
-### STEP 4: Tag Each Clip
-- Main Topics (1-3 from standardized list)
-- Key Events (0-5 from standardized list)
-- Additional Keywords (3-7 specific terms)
+**Chapter 1-2 (0-20 min):** 2-4 clips
+- Opening stories, family background
+- Early experiences, formative moments
 
-### STEP 5: Extract Metadata
-- Exact timestamps (start/end)
-- Segment numbers (start/end)
-- Duration
-- Transcript excerpts (opening/key moment/closing)
+**Chapter 3-5 (20-60 min):** 5-8 clips
+- Peak activism period
+- Key events and organizing work
+- Interactions with leaders
+
+**Chapter 6-8 (60-100 min):** 5-8 clips
+- Specific campaigns and events
+- Dramatic incidents
+- Organizational strategy
+
+**Chapter 9-10 (100-120 min):** 3-5 clips
+- Reflections on impact
+- Contemporary connections
+- Legacy and lessons
+
+**If finding 25+ viable clips:** You're probably being too lenient on "standalone quality"
+**If finding <10 viable clips:** You're probably being too strict - look for more moments

@@ -4,10 +4,44 @@
 {% block title %}Batch Results — Pipeline Demo{% endblock %}
 
 {% block content %}
+<style>
+.section-pending {
+    opacity: 0.4;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-size: 13px;
+    border: 1px dashed #333;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+.processing-banner {
+    background: #1a2a3a;
+    border: 1px solid #2d5a8e;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.processing-banner .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #2d5a8e;
+    border-top-color: #8ad;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
 <div class="step-header">
     <h1>Batch Results</h1>
     {% if is_running %}
-    <p>{{ results|length }} of {{ interview_order|length }} interviews completed so far. Batch is still running.</p>
+    <p>{{ results|length }} of {{ interview_order|length }} interviews started. Batch is still running.</p>
     {% else %}
     <p>{{ results|length }} interviews processed. Select a tab to view results for each interview.</p>
     {% endif %}
@@ -27,10 +61,12 @@
     {% for name in interview_order %}
     {% set r = results.get(name, {}) %}
     {% set has_result = name in results %}
+    {% set is_processing = r.get('_processing', false) %}
     {% if has_result %}
     <a href="{% if is_running %}{{ url_for('batch_results', i=name) }}&from=progress{% else %}{{ url_for('batch_results', i=name) }}{% endif %}"
-       class="batch-tab {% if name == selected %}active{% endif %} {% if r.get('error') %}tab-error{% endif %}">
+       class="batch-tab {% if name == selected %}active{% endif %} {% if r.get('error') %}tab-error{% endif %} {% if is_processing %}tab-processing{% endif %}">
         {{ name }}
+        {% if is_processing %}<span class="tab-spinner"></span>{% endif %}
     </a>
     {% else %}
     <span class="batch-tab batch-tab--disabled">{{ name }}</span>
@@ -41,6 +77,16 @@
 <!-- Selected Interview Results -->
 {% if selected_result %}
 <div class="batch-result-content">
+
+    {% if selected_result._processing %}
+    <div class="processing-banner">
+        <div class="spinner"></div>
+        <div>
+            <div style="color: #8ad; font-weight: 600;">Currently Processing</div>
+            <div style="color: #888; font-size: 13px;">Step: {{ selected_result._current_step or 'Starting' }}</div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if selected_result.error %}
     <div class="panel" style="border-left: 3px solid #b42318;">
@@ -84,6 +130,8 @@
         </div>
         {% endif %}
     </div>
+    {% elif selected_result._processing %}
+    <div class="panel section-pending">Main Summary — waiting...</div>
     {% endif %}
 
     <!-- Chapters -->
@@ -152,6 +200,8 @@
         </div>
         {% endfor %}
     </div>
+    {% elif selected_result._processing and selected_result.main_summary %}
+    <div class="panel section-pending">Chapters — waiting...</div>
     {% endif %}
 
     {% if selected_result.questions %}
@@ -174,6 +224,8 @@
         {% endif %}
         {% endfor %}
     </div>
+    {% elif selected_result._processing and selected_result.chapters %}
+    <div class="panel section-pending">Questions — waiting...</div>
     {% endif %}
 
     <!-- TOC -->
@@ -208,6 +260,8 @@
         </div>
         {% endfor %}
     </div>
+    {% elif selected_result._processing and selected_result.block_topics %}
+    <div class="panel section-pending">Table of Contents — waiting...</div>
     {% endif %}
 
     <!-- Chapter Breaks -->
@@ -236,6 +290,8 @@
         </div>
         {% endfor %}
     </div>
+    {% elif selected_result._processing and selected_result.toc_bundle %}
+    <div class="panel section-pending">Chapter Breaks — waiting...</div>
     {% endif %}
 
     <!-- Block Topics -->
@@ -248,6 +304,8 @@
         </div>
         {% endfor %}
     </div>
+    {% elif selected_result._processing and selected_result.text_blocks %}
+    <div class="panel section-pending">Block Topics — waiting...</div>
     {% endif %}
 
     <!-- Tuning Results -->
@@ -274,6 +332,8 @@
         {% endfor %}
         {% endif %}
     </div>
+    {% elif selected_result._processing and selected_result.chapters %}
+    <div class="panel section-pending">Tuning Results — waiting...</div>
     {% endif %}
 
     <!-- Engagement Scores -->
@@ -356,6 +416,8 @@
         {% endfor %}
         {% endif %}
     </div>
+    {% elif selected_result._processing and selected_result.tuning_results %}
+    <div class="panel section-pending">Engagement Scoring — waiting...</div>
     {% endif %}
 
     <!-- Clips -->
@@ -424,6 +486,8 @@
         </div>
         {% endfor %}
     </div>
+    {% elif selected_result._processing and selected_result.engagement_scores %}
+    <div class="panel section-pending">Clips — waiting...</div>
     {% endif %}
 
     <!-- Raw JSON -->
@@ -436,6 +500,15 @@
 
     {% endif %}
 </div>
+{% endif %}
+
+{% if is_running and selected_result and selected_result._processing %}
+<script>
+    // Auto-refresh page every 3 seconds while viewing a processing interview
+    setTimeout(function() {
+        location.reload();
+    }, 3000);
+</script>
 {% endif %}
 {% endblock %}
 

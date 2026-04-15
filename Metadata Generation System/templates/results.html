@@ -11,7 +11,15 @@
 
 <div class="btn-row" style="margin-bottom: 24px;">
     <a href="{{ url_for('results_download') }}" class="btn btn-success">Download results.json</a>
+    {% if pending_batch_count > 0 %}
+    <form method="POST" action="{{ url_for('results_continue_batch') }}" style="display: inline;">
+        <button type="submit" class="btn btn-primary">
+            Process Remaining {{ pending_batch_count }} Interview{{ 's' if pending_batch_count != 1 else '' }} →
+        </button>
+    </form>
+    {% else %}
     <a href="{{ url_for('batch_page') }}" class="btn btn-primary">Run Batch with These Settings →</a>
+    {% endif %}
     <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
 </div>
 

@@ -46,6 +46,47 @@
         </div>
     </nav>
 
+    {% if state and state.step_metrics %}
+    <div class="metrics-bar">
+        <details class="metrics-details">
+            <summary class="metrics-summary">
+                <span class="metrics-summary-left">
+                    Pipeline metrics &mdash;
+                    total time: <strong>{{ state.step_metrics[-1].cumulative_s | fmt_duration }}</strong>
+                    &nbsp;|&nbsp;
+                    total tokens: <strong>{{ "{:,}".format(state.step_metrics[-1].cumulative_tokens) }}</strong>
+                </span>
+                <span class="metrics-toggle">Details &#9660;</span>
+            </summary>
+            <table class="metrics-table">
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Step time</th>
+                        <th>Step tokens</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in state.step_metrics %}
+                    <tr>
+                        <td>{{ m.step }}</td>
+                        <td>{{ m.elapsed_s | fmt_duration }}</td>
+                        <td>{{ "{:,}".format(m.tokens) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="metrics-total">
+                        <td>Total</td>
+                        <td><strong>{{ state.step_metrics[-1].cumulative_s | fmt_duration }}</strong></td>
+                        <td><strong>{{ "{:,}".format(state.step_metrics[-1].cumulative_tokens) }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </details>
+    </div>
+    {% endif %}
+
     <main class="container">
         {% block content %}{% endblock %}
     </main>
@@ -55,6 +96,15 @@
         document.querySelectorAll('.nav-step.disabled').forEach(el => {
             el.addEventListener('click', e => e.preventDefault());
         });
+
+        // Flip the metrics toggle arrow when opened/closed
+        const metricsDetails = document.querySelector('.metrics-details');
+        if (metricsDetails) {
+            const toggle = metricsDetails.querySelector('.metrics-toggle');
+            metricsDetails.addEventListener('toggle', () => {
+                toggle.textContent = metricsDetails.open ? 'Details \u25b2' : 'Details \u25bc';
+            });
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>

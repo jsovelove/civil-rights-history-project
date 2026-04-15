@@ -43,3 +43,11 @@ Score each clip on TWO dimensions (0-100 total):
 - 0-3: Cannot stand alone, confusing without context
 
 **TOTAL SCORE: 0-100 points**
+
+### Calibration
+
+A high-scoring engagement clip (40-50 pts) sounds like: *"I remember the smell of tear gas, the sound of dogs barking..."* — vivid sensory detail, complete arc (setup → confrontation → resolution), emotionally relatable, no background needed.
+
+A high-scoring topic/event clip (40-50 pts) discusses a Key Event with firsthand specifics: dates, locations, tactics, or names — not a general reference.
+
+Score honestly across the full 0-100 range. Avoid clustering around 70-80.

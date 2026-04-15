@@ -47,10 +47,7 @@ PROMPT_SECTIONS = [
     ("criteria",      "Identification Criteria", "clips_04_criteria.txt"),
     ("process",       "Extraction Process",      "clips_05_process.txt"),
     ("output_format", "Output Format",           "clips_06_output_format.txt"),
-    ("calibration",   "Calibration Guide",       "clips_07_calibration.txt"),
-    ("instructions",  "Critical Instructions",   "clips_08_instructions.txt"),
-    ("strategy",      "Strategy",                "clips_09_strategy.txt"),
-    ("outro",         "Example & Outro",         "clips_10_outro.txt"),
+    ("outro",         "Example & Outro",         "clips_07_outro.txt"),
 ]
 
 

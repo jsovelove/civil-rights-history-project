@@ -625,3 +625,86 @@ input[type="number"]:focus {
     cursor: not-allowed;
     pointer-events: none;
 }
+/* ── Pipeline metrics bar ───────────────────────────────────────── */
+
+.metrics-bar {
+    background: #0d1a2e;
+    border-bottom: 1px solid #1e3a5a;
+    padding: 0 16px;
+    font-size: 0.8rem;
+    color: #8ab4d4;
+}
+
+.metrics-details {
+    width: 100%;
+}
+
+.metrics-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.metrics-summary::-webkit-details-marker { display: none; }
+
+.metrics-summary strong {
+    color: #c8e6ff;
+}
+
+.metrics-toggle {
+    font-size: 0.72rem;
+    color: #4a7aaa;
+    white-space: nowrap;
+    margin-left: 16px;
+    transition: color 0.15s;
+}
+
+.metrics-summary:hover .metrics-toggle {
+    color: #7ab0e0;
+}
+
+details[open] .metrics-toggle {
+    color: #7ab0e0;
+}
+
+.metrics-details[open] .metrics-table {
+    margin-bottom: 8px;
+}
+
+.metrics-table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 680px;
+    font-size: 0.78rem;
+}
+
+.metrics-table th,
+.metrics-table td {
+    padding: 3px 14px 3px 0;
+    text-align: right;
+    border-bottom: 1px solid #1a2e48;
+    white-space: nowrap;
+}
+
+.metrics-table th:first-child,
+.metrics-table td:first-child {
+    text-align: left;
+    padding-right: 16px;
+    color: #a0c8e8;
+}
+
+.metrics-table th {
+    color: #5a8ab4;
+    font-weight: 600;
+}
+
+.metrics-total td {
+    border-top: 1px solid #2a4a6a;
+    border-bottom: none;
+    padding-top: 5px;
+    color: #c8e6ff;
+}

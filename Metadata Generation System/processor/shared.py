@@ -87,6 +87,9 @@ class ProcessorContext:
             except Exception as e:
                 print(f"Could not load rubric: {e}")
 
+        # Token usage counter (accumulated across all API calls)
+        self.total_tokens_used: int = 0
+
         # Keywords
         self.standard_keywords: List[str] = []
         self.keyword_definitions: Dict[str, str] = {}
@@ -176,6 +179,8 @@ def call_openai_json(
             )
 
             content = response.choices[0].message.content
+            if hasattr(response, 'usage') and response.usage:
+                ctx.total_tokens_used += (response.usage.total_tokens or 0)
             try:
                 parsed = json.loads(content)
                 return clean_markdown_from_dict(parsed)
