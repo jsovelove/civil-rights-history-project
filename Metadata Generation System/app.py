@@ -93,6 +93,143 @@ def to_seconds_filter(time_str):
         pass
     return 0
 
+
+_PIPELINE_STEP_DEFS = [
+    {"id": "upload", "label": "Upload", "endpoint": "upload_page", "description": "Interview source and settings"},
+    {"id": "labeling", "label": "Labeling", "endpoint": "labeling_page", "description": "Topic labeling"},
+    {"id": "toc", "label": "TOC", "endpoint": "toc_page", "description": "Table of contents"},
+    {"id": "chapterization", "label": "Chapters", "endpoint": "chapterization_page", "description": "Topic transitions"},
+    {"id": "summarization", "label": "Summary", "endpoint": "summarization_page", "description": "Interview and chapter summaries"},
+    {"id": "questions", "label": "Questions", "endpoint": "questions_page", "description": "Interviewer question detection"},
+    {"id": "tuning", "label": "Tuning", "endpoint": "tuning_page", "description": "Scoring and regeneration"},
+    {"id": "engagement", "label": "Engagement", "endpoint": "engagement_page", "description": "Audience scoring"},
+    {"id": "clips", "label": "Clips", "endpoint": "clips_page", "description": "Clip extraction"},
+    {"id": "results", "label": "Results", "endpoint": "results_page", "description": "Final outputs"},
+    {"id": "batch", "label": "Batch", "endpoint": "batch_page", "description": "Multi-interview processing"},
+]
+
+
+def _step_complete(step_id: str, state_obj: dict) -> bool:
+    if step_id == "upload":
+        return bool(state_obj.get("text_blocks"))
+    if step_id == "labeling":
+        return bool(state_obj.get("block_topics"))
+    if step_id == "toc":
+        return bool(state_obj.get("toc_bundle"))
+    if step_id == "chapterization":
+        return bool(state_obj.get("chapter_breaks_preview"))
+    if step_id == "summarization":
+        return bool(state_obj.get("main_summary") or state_obj.get("chapters"))
+    if step_id == "questions":
+        return bool(state_obj.get("questions_ran"))
+    if step_id == "tuning":
+        return bool(state_obj.get("tuning_results"))
+    if step_id == "engagement":
+        scores = state_obj.get("engagement_scores")
+        return bool(isinstance(scores, dict) and scores.get("overall_score"))
+    if step_id == "clips":
+        clips_data = state_obj.get("clips_data")
+        return bool(isinstance(clips_data, dict) and clips_data.get("clips") is not None)
+    if step_id == "results":
+        return bool(state_obj.get("main_summary") or state_obj.get("chapters") or state_obj.get("toc_bundle"))
+    if step_id == "batch":
+        return bool(state_obj.get("pending_batch_files") or state_obj.get("main_summary"))
+    return False
+
+
+def _step_enabled(step_id: str, state_obj: dict) -> bool:
+    steps_enabled = state_obj.get("steps_enabled", {})
+    if step_id == "upload":
+        return True
+    if step_id == "labeling":
+        return bool(state_obj.get("text_blocks"))
+    if step_id in {"toc", "chapterization"}:
+        return bool(state_obj.get("block_topics"))
+    if step_id == "summarization":
+        return bool(state_obj.get("chapter_breaks"))
+    if step_id == "questions":
+        return bool(steps_enabled.get("questions") and (state_obj.get("main_summary") or state_obj.get("chapters")))
+    if step_id == "tuning":
+        if not state_obj.get("main_summary"):
+            return False
+        return not (
+            steps_enabled.get("questions")
+            and state_obj.get("question_placement") == "after_summary"
+            and not state_obj.get("questions_ran")
+        )
+    if step_id == "engagement":
+        return bool(state_obj.get("text_blocks") and steps_enabled.get("engagement"))
+    if step_id == "clips":
+        return bool(state_obj.get("text_blocks") and steps_enabled.get("clips"))
+    if step_id in {"results", "batch"}:
+        return bool(state_obj.get("main_summary"))
+    return False
+
+
+def _step_issue(step_id: str, state_obj: dict):
+    if step_id == "questions" and state_obj.get("questions_error"):
+        return "warning"
+    if step_id == "engagement":
+        scores = state_obj.get("engagement_scores")
+        if isinstance(scores, dict) and scores.get("error"):
+            return "danger"
+    if step_id == "clips":
+        clips_data = state_obj.get("clips_data")
+        if isinstance(clips_data, dict) and clips_data.get("error"):
+            return "danger"
+    return None
+
+
+def get_pipeline_steps(state_obj: dict, active_step: str = ""):
+    items = []
+    for index, step_def in enumerate(_PIPELINE_STEP_DEFS, start=1):
+        step_id = step_def["id"]
+        issue = _step_issue(step_id, state_obj)
+        is_current = active_step == step_id
+        is_complete = _step_complete(step_id, state_obj)
+        is_enabled = _step_enabled(step_id, state_obj) or is_current or is_complete
+        if issue == "danger":
+            status = "danger"
+        elif issue == "warning":
+            status = "warning"
+        elif is_current:
+            status = "current"
+        elif is_complete:
+            status = "success"
+        elif is_enabled:
+            status = "info"
+        else:
+            status = "pending"
+        items.append({
+            **step_def,
+            "number": index,
+            "is_current": is_current,
+            "is_complete": is_complete,
+            "is_enabled": is_enabled,
+            "status": status,
+        })
+    return items
+
+
+def get_metrics_summary(state_obj: dict):
+    metrics = state_obj.get("step_metrics") or []
+    if not metrics:
+        return None
+    final_metric = metrics[-1]
+    return {
+        "total_time": final_metric.get("cumulative_s"),
+        "total_tokens": final_metric.get("cumulative_tokens", 0),
+        "rows": metrics,
+    }
+
+
+@app.context_processor
+def inject_template_helpers():
+    return {
+        "get_pipeline_steps": get_pipeline_steps,
+        "get_metrics_summary": get_metrics_summary,
+    }
+
 # ── YouTube helpers ────────────────────────────────────────────────────
 _YT_ID_RE = re.compile(
     r'(?:youtube\.com/watch\?(?:.*&)?v=|youtu\.be/|youtube\.com/embed/)'

@@ -1,136 +1,146 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'upload' %}
 
 {% block title %}1. Upload — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 1 — Upload & Blocking</h1>
-    <p>Upload a ZIP interview package or run the bundled sample interview.</p>
-    <p style="color: #555; font-size: 15px; line-height: 1.6; margin-top: 6px;">This pipeline simplifies the process of turning an interview into usable metadata for your archive or web application, providing focused chapters, high quality summaries, a table of contents with labeled clips and timestamps, and associated keywords with individual chapters and interviews.</p>
+{{ ui.page_header("Step 1 — Upload and Blocking", "Start with one interview ZIP or use the bundled sample. This demo explains the workflow clearly for first-time viewers while still exposing advanced controls for operators.", "Pipeline entry") }}
+
+<div class="app-grid-2">
+    {{ ui.status_card("Current session", "Configure the interview source, choose optional modules, and load an API key for this browser session.", [
+        ("Loaded file", "Bundled sample interview" if state.using_sample else (state.srt_path.rsplit('\\', 1)[-1] if state.srt_path else "None")),
+        ("Block size", state.block_size),
+        ("Questions", "Enabled" if state.steps_enabled.questions else "Disabled"),
+        ("Engagement", "Enabled" if state.steps_enabled.engagement else "Disabled"),
+        ("Clips", "Enabled" if state.steps_enabled.clips else "Disabled"),
+    ]) }}
+
+    <section class="pf-v6-c-card">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-title pf-m-lg">How this works</h2>
+        </div>
+        <div class="pf-v6-c-card__body pf-v6-c-content">
+            <p>The pipeline turns a transcript into structured metadata for archives, web applications, and demos. It builds text blocks, labels topics, generates chapters and summaries, then optionally scores engagement and extracts clips.</p>
+            <p class="app-muted">Batch processing uses the same configuration, so a clean first run here becomes the source of truth for the rest of the demo.</p>
+        </div>
+    </section>
 </div>
 
-<form action="{{ url_for('upload_run') }}" method="post" enctype="multipart/form-data" id="upload-form">
-    <div class="panel">
-        <div class="panel-label">OpenAI API Key</div>
-        <label style="display:block;">
-            <input
-                type="password"
-                name="api_key"
-                placeholder="Paste an OpenAI API key"
-                autocomplete="off"
-                {% if not api_key_present %}required{% endif %}
-                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #d0d7de; margin-top: 8px;"
-            >
-        </label>
-        <p style="margin: 10px 0 0; font-size: 14px; color: #555;">
-            {% if api_key_present %}
-                Current browser-session key: {{ api_key_masked }}. Leave this blank to keep using it, or paste a new one. Your API key is used only for your current session and is not shared with other users.
-            {% else %}
-                Your API key is used only for your current session and is not shared with other users.
-            {% endif %}
-        </p>
-        <div class="output-block" style="margin-top: 12px; font-size: 14px; line-height: 1.6;">
-            <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" rel="noopener noreferrer" style="color: #0550ae;">Get an OpenAI API key</a><br>
-            <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key" target="_blank" rel="noopener noreferrer" style="color: #0550ae;">Where to find your API key</a>
+{% if api_key_error %}
+{% call ui.alert("API key required", "danger") %}
+<p>{{ api_key_error }}</p>
+{% endcall %}
+{% endif %}
+
+<form action="{{ url_for('upload_run') }}" method="post" enctype="multipart/form-data" id="upload-form" class="app-stack">
+    <section class="pf-v6-c-card">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-title pf-m-lg">Interview source</h2>
         </div>
-        {% if api_key_error %}
-        <div class="output-block" style="margin-top: 12px; color: #b42318;">{{ api_key_error }}</div>
-        {% endif %}
-    </div>
+        <div class="pf-v6-c-card__body app-stack">
+            <div class="app-grid-2">
+                <div class="app-field">
+                    <label for="api-key-input">OpenAI API key</label>
+                    <input
+                        id="api-key-input"
+                        type="password"
+                        name="api_key"
+                        placeholder="Paste an OpenAI API key"
+                        autocomplete="off"
+                        {% if not api_key_present %}required{% endif %}
+                    >
+                    <p class="app-muted">
+                        {% if api_key_present %}
+                        Current session key: {{ api_key_masked }}. Leave blank to keep using it.
+                        {% else %}
+                        Used only for this browser session.
+                        {% endif %}
+                    </p>
+                    <div class="app-actions">
+                        <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Get API key</a>
+                        <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Where to find it</a>
+                    </div>
+                </div>
 
-    <div class="panel">
-        <div class="panel-label">Interview Source</div>
-        <label style="display:flex; align-items:center; gap:10px; margin-bottom: 14px; cursor:pointer;">
-            <input type="checkbox" name="use_sample" id="use-sample-checkbox">
-            <span>Use sample interview of Amos C. Brown</span>
-        </label>
+                <div class="app-field">
+                    <label for="youtube-url">Video preview URL</label>
+                    <input id="youtube-url" type="url" name="youtube_url" value="{{ state.youtube_url }}" placeholder="https://www.youtube.com/watch?v=...">
+                    <p class="app-muted">Optional. When present, TOC, chapter, summary, and clip screens can show contextual video embeds.</p>
+                </div>
+            </div>
 
-        <div
-            class="upload-zone"
-            id="upload-zone"
-            onclick="if (!document.getElementById('use-sample-checkbox').checked) document.getElementById('srt-input').click()"
-            style="transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;"
-        >
-            <input type="file" name="srt_file" id="srt-input" accept=".zip" required>
-            <div class="upload-label" id="file-label">
-                <strong>Click or drag and drop</strong> a .zip file
+            <label style="display:flex; align-items:center; gap:0.6rem;">
+                <input type="checkbox" name="use_sample" id="use-sample-checkbox">
+                <span>Use the bundled Amos C. Brown sample interview instead of uploading a ZIP.</span>
+            </label>
+
+            <div class="pf-v6-c-file-upload" id="upload-zone">
+                <div class="pf-v6-c-file-upload__file-select">
+                    <input type="file" name="srt_file" id="srt-input" accept=".zip" required>
+                    <div class="upload-zone">
+                        <div class="upload-label" id="file-label"><strong>Click or drag and drop</strong> a ZIP file containing transcript data</div>
+                    </div>
+                </div>
+                <div class="pf-v6-c-file-upload__helper-text">
+                    Upload one ZIP for a single run or a ZIP of multiple `.srt` files to stage the remaining interviews for batch processing.
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="panel">
-        <div class="panel-label">Block Size</div>
-        <div class="slider-group">
-            <label>
-                Number of SRT segments per block:
-                <span class="slider-value" id="block-size-val">{{ state.block_size }}</span>
-            </label>
-            <input type="range" name="block_size" min="10" max="80" value="{{ state.block_size }}"
-                   oninput="document.getElementById('block-size-val').textContent = this.value">
+    <section class="pf-v6-c-card">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-title pf-m-lg">Processing controls</h2>
         </div>
-    </div>
+        <div class="pf-v6-c-card__body app-stack">
+            <div class="slider-group">
+                <label for="block-size">Number of SRT segments per block <span class="app-masthead-value" id="block-size-val">{{ state.block_size }}</span></label>
+                <input id="block-size" type="range" name="block_size" min="10" max="80" value="{{ state.block_size }}"
+                       oninput="document.getElementById('block-size-val').textContent = this.value">
+            </div>
 
-    <div class="panel">
-        <div class="panel-label">Optional Modules</div>
+            <div class="app-grid-3">
+                <label class="chapter-card" style="display:block;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                        <input type="checkbox" name="enable_questions" {% if state.steps_enabled.questions %}checked{% endif %}>
+                        <strong>Question Detection</strong>
+                    </div>
+                    <div class="app-muted">Identifies interviewer questions and places that review step after summary generation.</div>
+                </label>
 
-        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 6px;">
-            <input type="checkbox" name="enable_questions" {% if state.steps_enabled.questions %}checked{% endif %}>
-            <span>Question Detection</span>
-        </label>
-        <p style="margin: 0 0 10px 28px; font-size: 12px; color: #666;">
-            Detects likely interviewer questions and places the Questions tab after the Summary step.
-        </p>
+                <label class="chapter-card" style="display:block;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                        <input type="checkbox" name="enable_engagement" {% if state.steps_enabled.engagement %}checked{% endif %}>
+                        <strong>Engagement Scoring</strong>
+                    </div>
+                    <div class="app-muted">Adds narrative, historical, emotional, and accessibility scoring with extra API usage.</div>
+                </label>
 
-        <input type="hidden" name="question_placement" value="after_summary">
+                <label class="chapter-card" style="display:block;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                        <input type="checkbox" name="enable_clips" {% if state.steps_enabled.clips %}checked{% endif %}>
+                        <strong>Clip Extraction</strong>
+                    </div>
+                    <div class="app-muted">Finds and scores viable clips for playlists, exhibits, and educational use.</div>
+                </label>
+            </div>
+            <input type="hidden" name="question_placement" value="after_summary">
+        </div>
+    </section>
 
-        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-            <input type="checkbox" name="enable_engagement" {% if state.steps_enabled.engagement %}checked{% endif %}>
-            <span>Engagement Scoring</span>
-        </label>
-        <p style="margin: 6px 0 0 28px; font-size: 12px; color: #666;">
-            Scores the interview across Narrative Quality, Historical Value, Emotional Resonance, and Accessibility (uses an additional API call).
-        </p>
-        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 12px;">
-            <input type="checkbox" name="enable_clips" {% if state.steps_enabled.clips %}checked{% endif %}>
-            <span>Clip Extraction</span>
-        </label>
-        <p style="margin: 6px 0 0 28px; font-size: 12px; color: #666;">
-            Identifies all viable clips scored on Topic/Event Coverage and Engagement Quality, for use in thematic playlists and educational databases (uses an additional API call).
-        </p>
-    </div>
-
-    <div class="panel">
-        <div class="panel-label">Video Preview (optional)</div>
-        <label style="display:block;">
-            <input
-                type="url"
-                name="youtube_url"
-                value="{{ state.youtube_url }}"
-                placeholder="https://www.youtube.com/watch?v=..."
-                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1d21; color: #ccc; font-size: 14px; margin-top: 6px; box-sizing: border-box;"
-            >
-        </label>
-        <p style="margin: 6px 0 0; font-size: 12px; color: #666;">
-            Paste a YouTube link to enable in-context video previews on the TOC, Chapters, Summaries and Clips pages. Leave blank to skip.
-        </p>
-    </div>
-
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run Blocking</button>
+    <div class="app-actions">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run blocking</button>
     </div>
 </form>
 
 {% if state.srt_path %}
-<div class="panel" style="margin-top: 24px;">
-    <div class="panel-label">Current File</div>
-    <div class="output-block">
-        <pre>{% if state.using_sample %}Source: Bundled sample interview (interview.srt){% else %}File: {{ state.srt_path }}{% endif %}
-Segments: {{ state.segments|length if state.segments else 'N/A' }}
-Block size: {{ state.block_size }}
-Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre>
-    </div>
-</div>
+{{ ui.status_card("Loaded transcript", "The current transcript is ready for downstream processing.", [
+    ("Source", "Bundled sample interview" if state.using_sample else state.srt_path),
+    ("Segments", state.segments|length if state.segments else "N/A"),
+    ("Text blocks", state.text_blocks|length if state.text_blocks else "N/A"),
+    ("Block size", state.block_size),
+]) }}
 {% endif %}
 {% endblock %}
 
@@ -143,42 +153,38 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
 
     function setZoneActive(isActive) {
         if (sampleCheckbox.checked) return;
-        uploadZone.style.borderColor = isActive ? '#0550ae' : '';
-        uploadZone.style.backgroundColor = isActive ? 'rgba(5, 80, 174, 0.06)' : '';
-        uploadZone.style.transform = isActive ? 'scale(1.01)' : '';
+        const zone = uploadZone.querySelector('.upload-zone');
+        zone.style.borderColor = isActive ? 'var(--pf-t--global--color--brand--default)' : '';
+        zone.style.backgroundColor = isActive ? 'var(--pf-t--global--background--color--secondary--hover)' : '';
     }
 
     function showDefaultLabel() {
-        fileLabel.innerHTML = '<strong>Click or drag and drop</strong> a .zip file';
+        fileLabel.innerHTML = '<strong>Click or drag and drop</strong> a ZIP file containing transcript data';
     }
 
     function applySelectedFile(file) {
         if (!file) return;
-
         const isZip = file.name.toLowerCase().endsWith('.zip');
         if (!isZip) {
             fileInput.value = '';
-            fileLabel.innerHTML = '<strong>Invalid file.</strong> Please use a .zip file';
+            fileLabel.innerHTML = '<strong>Invalid file.</strong> Please use a ZIP file';
             return;
         }
-
         fileLabel.innerHTML = '<strong>' + file.name + '</strong>';
     }
 
     function updateSourceMode() {
+        const zone = uploadZone.querySelector('.upload-zone');
         if (sampleCheckbox.checked) {
             fileInput.required = false;
             fileInput.value = '';
-            uploadZone.style.opacity = '0.65';
-            uploadZone.style.cursor = 'default';
-            uploadZone.style.borderColor = '';
-            uploadZone.style.backgroundColor = '';
-            uploadZone.style.transform = '';
+            zone.style.opacity = '0.65';
+            zone.style.cursor = 'default';
             fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
         } else {
             fileInput.required = true;
-            uploadZone.style.opacity = '1';
-            uploadZone.style.cursor = 'pointer';
+            zone.style.opacity = '1';
+            zone.style.cursor = 'pointer';
             showDefaultLabel();
         }
     }
@@ -213,7 +219,6 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
         setZoneActive(false);
 
         if (sampleCheckbox.checked) return;
-
         const files = event.dataTransfer.files;
         if (!files || files.length === 0) return;
 
@@ -228,7 +233,7 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
     updateSourceMode();
 
     document.getElementById('upload-form').addEventListener('submit', function() {
-        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Processing...';
+        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running blocking...';
         document.getElementById('run-btn').disabled = true;
     });
 </script>

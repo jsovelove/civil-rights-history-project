@@ -1,320 +1,121 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'results' %}
 
 {% block title %}10. Results — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 10 — Final Results</h1>
-    <p>This is every pipeline output in one view, including chapters, summaries, TOC, questions, and optional engagement scores and clips. You can download the results as JSON.</p>
-</div>
+{{ ui.page_header("Step 10 — Final Results", "Review the complete interview output in a concise executive layout, then open the detailed artifacts only when needed.", "Final deliverable") }}
 
-<div class="btn-row" style="margin-bottom: 24px;">
-    <a href="{{ url_for('results_download') }}" class="btn btn-success">Download results.json</a>
+<div class="app-actions">
+    <a href="{{ url_for('results_download') }}" class="btn btn-primary">Download results.json</a>
     {% if pending_batch_count > 0 %}
-    <form method="POST" action="{{ url_for('results_continue_batch') }}" style="display: inline;">
-        <button type="submit" class="btn btn-primary">
-            Process Remaining {{ pending_batch_count }} Interview{{ 's' if pending_batch_count != 1 else '' }} →
-        </button>
+    <form method="POST" action="{{ url_for('results_continue_batch') }}" style="display:inline;">
+        <button type="submit" class="btn btn-secondary">Process remaining {{ pending_batch_count }} interview{{ 's' if pending_batch_count != 1 else '' }}</button>
     </form>
     {% else %}
-    <a href="{{ url_for('batch_page') }}" class="btn btn-primary">Run Batch with These Settings →</a>
+    <a href="{{ url_for('batch_page') }}" class="btn btn-secondary">Run batch with these settings</a>
     {% endif %}
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start over</a>
 </div>
 
-<!-- Main Summary -->
+<div class="app-summary-grid">
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Main summary</div>
+        <div class="app-summary-stat-value">{{ 'Ready' if state.main_summary else '—' }}</div>
+    </div>
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Chapters</div>
+        <div class="app-summary-stat-value">{{ state.chapters|length if state.chapters else 0 }}</div>
+    </div>
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Questions</div>
+        <div class="app-summary-stat-value">{{ state.questions_rows|length if state.questions_rows else 0 }}</div>
+    </div>
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Clips</div>
+        <div class="app-summary-stat-value">{{ state.clips_data.clips|length if state.clips_data and state.clips_data.clips is defined else 0 }}</div>
+    </div>
+</div>
+
 {% if state.main_summary %}
-<div class="panel">
-    <div class="panel-label">Main Summary</div>
-    <div class="output-block">
-        <pre>{{ state.main_summary.get('summary', '') }}</pre>
-    </div>
-    {% if state.main_summary.key_themes %}
-    <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
-        <strong>Key Themes:</strong> {{ state.main_summary.key_themes | join(', ') }}
-    </div>
-    {% endif %}
-    {% if state.main_summary.historical_significance %}
-    <div style="margin-top: 6px; font-size: 13px; color: #aaa;">
-        <strong>Historical Significance:</strong> {{ state.main_summary.historical_significance }}
-    </div>
-    {% endif %}
-    {% if state.main_summary.quality_metrics %}
-    <div style="margin-top: 8px;">
-        {% if state.main_summary.quality_metrics.accuracy_score is defined and state.main_summary.quality_metrics.quality_score is defined %}
-        <span class="score-badge {% if state.main_summary.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-            Accuracy: {{ state.main_summary.quality_metrics.accuracy_score }}
-        </span>
-        <span class="score-badge {% if state.main_summary.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-            Quality: {{ state.main_summary.quality_metrics.quality_score }}
-        </span>
-        {% elif state.main_summary.quality_metrics.error is defined %}
-        <span class="score-badge score-fail">Scoring failed: {{ state.main_summary.quality_metrics.error }}</span>
-        {% else %}
-        <span class="score-badge score-fail">Scores unavailable</span>
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Executive summary</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        <div class="output-block"><pre>{{ state.main_summary.get('summary', '') }}</pre></div>
+        {% if state.main_summary.key_themes %}
+        <div><strong>Key themes:</strong> {{ state.main_summary.key_themes | join(', ') }}</div>
+        {% endif %}
+        {% if state.main_summary.historical_significance %}
+        <div><strong>Historical significance:</strong> {{ state.main_summary.historical_significance }}</div>
         {% endif %}
     </div>
-    {% endif %}
-</div>
+</section>
 {% endif %}
 
-<!-- Chapters -->
 {% if state.chapters %}
-<div class="panel">
-    <div class="panel-label">Chapters ({{ state.chapters|length }})</div>
-    {% for ch in state.chapters %}
-    <div class="chapter-card">
-        <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-        <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-        {% if ch.main_topic_category %}
-        <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
-        {% endif %}
-        <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
-        {% if ch.keywords %}
-        <div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>
-        {% endif %}
-        {% if ch.related_events %}
-        <div style="margin-top: 4px; font-size: 12px; color: #666;">Events: {{ ch.related_events | join(', ') }}</div>
-        {% endif %}
-        {% if ch.quality_metrics %}
-        <div style="margin-top: 6px;">
-            {% if ch.quality_metrics.accuracy_score is defined and ch.quality_metrics.quality_score is defined %}
-            <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Acc: {{ ch.quality_metrics.accuracy_score }}
-            </span>
-            <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Qual: {{ ch.quality_metrics.quality_score }}
-            </span>
-            {% elif ch.quality_metrics.error is defined %}
-            <span class="score-badge score-fail">Scoring failed: {{ ch.quality_metrics.error }}</span>
-            {% else %}
-            <span class="score-badge score-fail">Scores unavailable</span>
-            {% endif %}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Chapters</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for ch in state.chapters %}
+        <div class="chapter-card">
+            <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+            <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+            <div style="margin-top:0.5rem;">{{ ch.summary }}</div>
         </div>
-        {% if ch.quality_metrics.errors is defined and ch.quality_metrics.errors %}
-        <div style="margin-top: 6px; font-size: 12px; color: #e88;">
-            {% for err in ch.quality_metrics.errors %}
-            <div>• {{ err }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% if ch.quality_metrics.improvements %}
-        <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
-            {% for imp in ch.quality_metrics.improvements %}
-            <div>↳ {{ imp }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endif %}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-{% if state.questions_rows %}
-<div class="panel">
-    <div class="panel-label">Interviewer Questions ({{ state.questions_rows|length }})</div>
-    {% if state.questions_stats %}
-    <div style="font-size: 12px; color: #888; margin-bottom: 10px;">
-        High: {{ state.questions_stats.confidence.high }} |
-        Medium: {{ state.questions_stats.confidence.medium }} |
-        Low: {{ state.questions_stats.confidence.low }} |
-        Verified: {{ state.questions_stats.status.verified }} |
-        Needs review: {{ state.questions_stats.status.needs_review }}
-    </div>
-    {% endif %}
-    {% for q in state.questions_rows %}
-    {% if q.status != 'rejected' %}
-    <div class="chapter-card">
-        <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
-        <div style="font-size: 13px; color: #bbb; margin-top: 6px;">{{ q.question_text }}</div>
-        <div style="margin-top: 6px; font-size: 12px; color: #777;">
-            Confidence: {{ q.confidence }} ({{ q.confidence_band }})
-        </div>
-        {% if q.notes %}
-        <div style="margin-top: 4px; font-size: 12px; color: #888;">Notes: {{ q.notes }}</div>
-        {% endif %}
-    </div>
-    {% endif %}
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- TOC -->
-{% if state.toc_bundle and state.toc_bundle.toc %}
-<div class="panel">
-    <div class="panel-label">Table of Contents</div>
-    {% for entry in state.toc_bundle.toc %}
-    <div class="chapter-card">
-        <div class="chapter-num">{{ entry.topic }}</div>
-        <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
-        {% for sub in entry.subtopics %}
-        <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }}</div>
         {% endfor %}
     </div>
-    {% endfor %}
-</div>
+</section>
 {% endif %}
 
-<!-- Chapter Breaks -->
-{% if state.chapter_breaks_preview %}
-<div class="panel">
-    <div class="panel-label">Chapter Breaks</div>
-    {% for ch in state.chapter_breaks_preview %}
-    <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
-        Ch {{ ch.chapter }}: {{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- Block Topics -->
-{% if state.block_topics %}
-<div class="panel">
-    <div class="panel-label">Block Topics ({{ state.block_topics|length }})</div>
-    {% for bt in state.block_topics %}
-    <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
-        B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- Engagement Scores -->
 {% if state.engagement_scores and state.engagement_scores.overall_score is defined %}
-{% set ev = state.engagement_scores %}
-<div class="panel">
-    <div class="panel-label">Engagement Score</div>
-    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px;">
-        <span style="font-size: 28px; font-weight: 700; color: {% if ev.overall_score.total >= 80 %}#8e8{% elif ev.overall_score.total >= 60 %}#ee8{% else %}#e88{% endif %};">
-            {{ ev.overall_score.total }}/100
-        </span>
-        <span style="font-size: 14px; color: #aaa;">{{ ev.overall_score.category }}</span>
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Engagement summary</h2></div>
+    <div class="pf-v6-c-card__body">
+        <div class="app-masthead-value">{{ state.engagement_scores.overall_score.total }}/100</div>
+        <div class="app-muted">{{ state.engagement_scores.overall_score.category }}</div>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px;">
-        <div>
-            <span style="color: #666;">Narrative Quality:</span>
-            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.narrative_quality.total if ev.dimension_scores.narrative_quality is defined else 'N/A' }}/30</span>
-        </div>
-        <div>
-            <span style="color: #666;">Historical Value:</span>
-            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.historical_value.total if ev.dimension_scores.historical_value is defined else 'N/A' }}/25</span>
-        </div>
-        <div>
-            <span style="color: #666;">Emotional Resonance:</span>
-            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.emotional_resonance.total if ev.dimension_scores.emotional_resonance is defined else 'N/A' }}/25</span>
-        </div>
-        <div>
-            <span style="color: #666;">Accessibility:</span>
-            <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.accessibility.total if ev.dimension_scores.accessibility is defined else 'N/A' }}/20</span>
-        </div>
-    </div>
-    {% if ev.overall_assessment %}
-    <div style="margin-top: 10px; font-size: 13px; color: #999;">{{ ev.overall_assessment }}</div>
-    {% endif %}
-</div>
+</section>
 {% endif %}
 
-<!-- Clips -->
 {% if state.clips_data and state.clips_data.clips is defined %}
-{% set cd = state.clips_data %}
-<div class="panel">
-    <div class="panel-label">Clip Extraction</div>
-
-    {% if cd.extraction_summary is defined %}
-    {% set es = cd.extraction_summary %}
-    <div style="display: flex; gap: 20px; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap;">
-        <div>
-            <span style="font-size: 24px; font-weight: 700; color: #8ad;">{{ es.total_clips_extracted | default(0) }}</span>
-            <span style="font-size: 13px; color: #666; margin-left: 4px;">clips extracted</span>
-        </div>
-        {% if es.average_clip_score is defined %}
-        <div>
-            <span style="font-size: 18px; font-weight: 600; color: {% if es.average_clip_score >= 80 %}#8e8{% elif es.average_clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ "%.1f"|format(es.average_clip_score) }}</span>
-            <span style="font-size: 13px; color: #666; margin-left: 4px;">avg score</span>
-        </div>
-        {% endif %}
-        {% if es.total_clips_duration %}
-        <div>
-            <span style="font-size: 16px; color: #ccc;">{{ es.total_clips_duration }}</span>
-            <span style="font-size: 13px; color: #666; margin-left: 4px;">total duration</span>
-        </div>
-        {% endif %}
-    </div>
-
-    {% if es.score_distribution is defined %}
-    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;">
-        {% for range_label, count in es.score_distribution.items() %}
-        {% if count > 0 %}
-        <span class="score-badge {% if range_label.startswith('9') or range_label.startswith('8') %}score-pass{% else %}score-fail{% endif %}" style="font-size: 12px;">{{ range_label }}: {{ count }}</span>
-        {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if es.topic_coverage is defined %}
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px;">
-        {% for topic, count in es.topic_coverage.items() %}
-        {% if count > 0 %}
-        <div>
-            <span style="color: #555;">{{ topic }}:</span>
-            <span style="color: #8ad; font-weight: 600; margin-left: 4px;">{{ count }}</span>
-        </div>
-        {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
-    {% endif %}
-
-    {% if cd.clips %}
-    <div style="margin-top: 12px; border-top: 1px solid #2a2d31; padding-top: 10px;">
-        {% for clip in cd.clips %}
-        {% set clip_score = clip.scores.total_score | default(0) %}
-        <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; margin-bottom: 5px; gap: 8px;">
-            <span style="color: #666; flex-shrink: 0;">{{ clip.clip_id }}</span>
-            <span style="color: #bbb; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clip.clip_title }}</span>
-            <span style="color: #888; flex-shrink: 0;">{{ clip.timestamp_start | replace(',000','') }} → {{ clip.timestamp_end | replace(',000','') }}</span>
-            <span style="font-weight: 600; flex-shrink: 0; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ clip_score }}</span>
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Clip highlights</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for clip in state.clips_data.clips[:8] %}
+        <div class="chapter-card">
+            <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
+            <div class="chapter-time">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}</div>
         </div>
         {% endfor %}
     </div>
-    {% endif %}
-
-    {% if cd.extraction_notes is defined and cd.extraction_notes.highest_scoring_clips %}
-    <div style="margin-top: 10px; font-size: 12px; color: #666;">
-        Top clips: <span style="color: #8e8;">{{ cd.extraction_notes.highest_scoring_clips | join(', ') }}</span>
-    </div>
-    {% endif %}
-</div>
+</section>
 {% endif %}
 
-<!-- Raw JSON -->
-<div class="panel">
-    <div class="panel-label">Full JSON Output</div>
-    <div class="output-block" style="max-height: 500px; overflow-y: auto;">
-        <pre id="full-json"></pre>
-    </div>
+{% call ui.advanced_section("Full JSON output", False, "Expand to inspect or copy the full export payload.") %}
+<div class="output-block" style="max-height:32rem; overflow-y:auto;">
+    <pre id="full-json"></pre>
 </div>
-
-<div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('results_download') }}" class="btn btn-success">Download results.json</a>
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Build full JSON preview
     const fullData = {
         main_summary: {{ state.main_summary | tojson if state.main_summary else 'null' }},
         chapters: {{ state.chapters | tojson if state.chapters else '[]' }},
         toc: {{ state.toc_bundle | tojson if state.toc_bundle else 'null' }},
         chapter_breaks: {{ state.chapter_breaks | tojson if state.chapter_breaks else '[]' }},
         block_topics: {{ state.block_topics | tojson if state.block_topics else '[]' }},
+        questions: {{ state.questions_rows | tojson if state.questions_rows else '[]' }},
+        questions_stats: {{ state.questions_stats | tojson if state.questions_stats else 'null' }},
+        tuning_results: {{ state.tuning_results | tojson if state.tuning_results else 'null' }},
         engagement_scores: {{ state.engagement_scores | tojson if state.engagement_scores else 'null' }},
         clips_data: {{ state.clips_data | tojson if state.clips_data else 'null' }}
     };
-    document.getElementById('full-json').textContent = JSON.stringify(fullData, null, 2);
+    const output = document.getElementById('full-json');
+    if (output) {
+        output.textContent = JSON.stringify(fullData, null, 2);
+    }
 </script>
 {% endblock %}

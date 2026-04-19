@@ -1,420 +1,159 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'clips' %}
 
 {% block title %}9. Clip Extraction — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 9 — Clip Extraction</h1>
-    <p>Identify all viable clips from the interview for thematic playlists, educational materials, and museum exhibits. Each clip is scored on Topic/Event Coverage and Engagement Quality.</p>
-</div>
+{{ ui.page_header("Step 9 — Clip Extraction", "Identify and score viable clips for playlists, educational materials, and museum exhibits. Summary stats stay prominent; the long prompt stack stays tucked away.", "Pipeline step") }}
 
-<form action="{{ url_for('clips_run') }}" method="post" id="clips-form">
-    <div class="panel">
-        <div class="panel-label">Settings</div>
-        <div style="display: flex; align-items: center; gap: 16px; font-size: 13px;">
-            <label for="token_limit" style="color: #aaa;">Token limit per batch:</label>
-            <input type="number" id="token_limit" name="token_limit" value="{{ state.clips_token_limit | default(30000) }}" min="4000" max="200000" step="1000"
-                style="width: 120px; background: #1a1d21; border: 1px solid #333; color: #eee; padding: 4px 8px; border-radius: 4px; font-size: 13px;">
-            <span style="color: #555; font-size: 12px;">(batches sized by chapter word counts)</span>
-        </div>
+{% if clips_error %}
+{% call ui.alert("Clip extraction failed", "danger") %}
+<p>{{ clips_error }}</p>
+{% endcall %}
+{% endif %}
+
+{{ ui.status_card("Clip extraction status", "Run extraction after engagement scoring to evaluate clip quality and topic coverage across the interview.", [
+    ("Token limit", state.clips_token_limit | default(30000)),
+    ("Clips extracted", state.clips_data.clips|length if state.clips_data and state.clips_data.clips is defined else 0),
+]) }}
+
+<form action="{{ url_for('clips_run') }}" method="post" id="clips-form" class="app-stack">
+    {% call ui.advanced_section("Advanced extraction settings", not state.clips_data, "Token limit plus prompt sections for clip extraction.") %}
+    <div class="app-grid-3">
+        <label class="app-field">
+            Token limit per batch
+            <input type="number" id="token_limit" name="token_limit" value="{{ state.clips_token_limit | default(30000) }}" min="4000" max="200000" step="1000">
+        </label>
     </div>
-
-    <div class="panel">
-        <div class="panel-label">System Prompt Sections</div>
-
-        {# Tab bar #}
-        <div class="prompt-tab-bar" style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #2a2d31; padding-bottom: 8px;">
+    <div class="app-tab-nav">
+        <ul class="app-tab-list">
             {% for section_id, label, filename in prompt_sections %}
-            <button type="button"
-                class="prompt-tab-btn{% if loop.first %} active{% endif %}"
-                onclick="showPromptTab('{{ section_id }}')"
-                data-section="{{ section_id }}"
-                style="padding: 4px 12px; font-size: 12px; background: {% if loop.first %}#2d5a8e{% else %}#1a1d21{% endif %}; color: {% if loop.first %}#eee{% else %}#777{% endif %}; border: 1px solid #333; border-radius: 4px; cursor: pointer;">
-                {{ label }}
-            </button>
+            <li><button type="button" class="btn btn-secondary prompt-tab-btn{% if loop.first %} is-active{% endif %}" onclick="showPromptTab('{{ section_id }}')" data-section="{{ section_id }}">{{ label }}</button></li>
             {% endfor %}
-        </div>
-
-        {# Tab panes #}
-        {% for section_id, label, filename in prompt_sections %}
-        <div id="prompt-tab-{{ section_id }}" class="prompt-tab-pane" style="display: {% if loop.first %}block{% else %}none{% endif %};">
-            <textarea name="prompt_section_{{ section_id }}" class="prompt-box" style="min-height: 400px;">{{ state.clips_prompt_sections.get(section_id, '') }}</textarea>
-        </div>
-        {% endfor %}
+        </ul>
     </div>
+    {% for section_id, label, filename in prompt_sections %}
+    <div id="prompt-tab-{{ section_id }}" class="prompt-tab-pane{% if not loop.first %} app-hidden{% endif %}">
+        <textarea name="prompt_section_{{ section_id }}" class="prompt-box" style="min-height:24rem;">{{ state.clips_prompt_sections.get(section_id, '') }}</textarea>
+    </div>
+    {% endfor %}
+    {% endcall %}
 
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run Clip Extraction</button>
-        <a href="{{ url_for('engagement_page') }}" class="btn btn-secondary">← Back</a>
+    <div class="app-actions">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run clip extraction</button>
+        <a href="{{ url_for('engagement_page') }}" class="btn btn-secondary">Back</a>
     </div>
 </form>
 
-{% if clips_error %}
-<div class="panel" style="margin-top: 24px; border-color: #b42318;">
-    <div class="panel-label" style="color: #f04438;">Extraction Error</div>
-    <div class="output-block" style="color: #f5f5f5;">{{ clips_error }}</div>
-</div>
-{% endif %}
-
 {% if state.clips_data and state.clips_data.clips is defined %}
 {% set cd = state.clips_data %}
-
-{# ── SECTION 1: Summary ── #}
-<div class="panel" style="margin-top: 24px;">
-    <div class="panel-label">Extraction Summary</div>
-
-    {# Interview metadata row #}
-    {% if cd.interview_metadata is defined %}
-    {% set im = cd.interview_metadata %}
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; font-size: 13px;">
-        {% if im.interviewee_name %}
-        <div><span style="color: #666;">Interviewee:</span> <span style="color: #ccc;">{{ im.interviewee_name }}</span></div>
-        {% endif %}
-        {% if im.interview_date %}
-        <div><span style="color: #666;">Date:</span> <span style="color: #ccc;">{{ im.interview_date }}</span></div>
-        {% endif %}
-        {% if im.total_duration %}
-        <div><span style="color: #666;">Duration:</span> <span style="color: #ccc;">{{ im.total_duration }}</span></div>
-        {% endif %}
-        {% if im.total_segments %}
-        <div><span style="color: #666;">Segments:</span> <span style="color: #ccc;">{{ im.total_segments }}</span></div>
-        {% endif %}
-        {% if im.total_words %}
-        <div><span style="color: #666;">Words:</span> <span style="color: #ccc;">{{ im.total_words }}</span></div>
-        {% endif %}
+{% if cd.extraction_summary is defined %}
+{% set es = cd.extraction_summary %}
+<div class="app-summary-grid">
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Total clips</div>
+        <div class="app-summary-stat-value">{{ es.total_clips_extracted | default(es.total_clips | default(0)) }}</div>
     </div>
-    {% endif %}
-
-    {# Key extraction stats #}
-    {% if cd.extraction_summary is defined %}
-    {% set es = cd.extraction_summary %}
-    <div style="display: flex; gap: 24px; align-items: baseline; margin-bottom: 16px; flex-wrap: wrap;">
-        <div>
-            <span style="font-size: 32px; font-weight: 700; color: #8ad;">{{ es.total_clips_extracted | default(0) }}</span>
-            <span style="font-size: 13px; color: #666; margin-left: 4px;">clips</span>
-        </div>
-        {% if es.average_clip_score is defined %}
-        <div>
-            <span style="font-size: 24px; font-weight: 600; color:
-                {% if es.average_clip_score >= 80 %}#8e8
-                {% elif es.average_clip_score >= 60 %}#ee8
-                {% else %}#e88{% endif %};">
-                {{ "%.1f"|format(es.average_clip_score) }}
-            </span>
-            <span style="font-size: 13px; color: #666; margin-left: 4px;">avg score</span>
-        </div>
-        {% endif %}
-        {% if es.total_clips_duration %}
-        <div>
-            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration }}</span>
-            <span style="font-size: 13px; color: #666; margin-left: 4px;">total duration</span>
-        </div>
-        {% endif %}
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Average score</div>
+        <div class="app-summary-stat-value">{{ "%.1f"|format(es.average_clip_score) if es.average_clip_score is defined else '—' }}</div>
     </div>
-
-    {# Score distribution #}
-    {% if es.score_distribution is defined %}
-    <div style="margin-bottom: 16px;">
-        <div style="font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Score Distribution</div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            {% for range_label, count in es.score_distribution.items() %}
-            {% if count > 0 %}
-            <span class="score-badge {% if range_label.startswith('9') or range_label.startswith('8') %}score-pass{% else %}score-fail{% endif %}" style="font-size: 12px;">
-                {{ range_label }}: {{ count }}
-            </span>
-            {% endif %}
-            {% endfor %}
-        </div>
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Total duration</div>
+        <div class="app-summary-stat-value">{{ es.total_clips_duration if es.total_clips_duration else '—' }}</div>
     </div>
-    {% endif %}
-
-    {# Topic coverage #}
-    {% if es.topic_coverage is defined %}
-    <div style="margin-bottom: 8px;">
-        <div style="font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Topic Coverage</div>
-        <div style="display: grid; gap: 6px;">
-            {% for topic, count in es.topic_coverage.items() %}
-            {% if count > 0 %}
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 12px; color: #aaa; min-width: 280px;">{{ topic }}</span>
-                <div style="flex: 1; height: 6px; background: #1a1d21; border-radius: 3px; overflow: hidden; max-width: 200px;">
-                    <div style="height: 100%; width: {{ [count * 15, 100] | min }}%; background: #2d5a8e; border-radius: 3px;"></div>
-                </div>
-                <span style="font-size: 12px; color: #666;">{{ count }}</span>
-            </div>
-            {% endif %}
-            {% endfor %}
-        </div>
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Topic coverage</div>
+        <div class="app-summary-stat-value">{{ es.topic_coverage|length if es.topic_coverage is defined else 0 }}</div>
     </div>
-    {% endif %}
-
-    {# Event coverage #}
-    {% if es.event_coverage is defined and es.event_coverage %}
-    <div>
-        <div style="font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Key Events Covered</div>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            {% for event, count in es.event_coverage.items() %}
-            {% if count > 0 %}
-            <span style="font-size: 12px; color: #8ad; background: #1a2a3a; padding: 3px 8px; border-radius: 4px;">{{ event }} ({{ count }})</span>
-            {% endif %}
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    {% endif %}
-</div>
-
-{# ── SECTION 2: Individual Clips ── #}
-{% if cd.clips %}
-<div class="panel">
-    <div class="panel-label">Clips ({{ cd.clips | length }})</div>
-
-    {% for clip in cd.clips %}
-    {% set clip_score = clip.scores.total_score | default(0) %}
-    <div class="chapter-card" style="margin-bottom: 16px; border-left: 3px solid
-        {% if clip_score >= 80 %}#2d6a2d
-        {% elif clip_score >= 60 %}#6a6a2d
-        {% else %}#3a3a4a{% endif %};">
-        <div style="display: flex; gap: 16px; align-items: flex-start;">
-        <div style="flex: 1; min-width: 0;">
-
-        {# Clip header #}
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
-            <div>
-                <div class="chapter-num" style="font-size: 14px;">
-                    {{ clip.clip_id }} — {{ clip.clip_title }}
-                </div>
-                <div class="chapter-time" style="margin-top: 2px;">
-                    {{ clip.timestamp_start }} → {{ clip.timestamp_end }}
-                    {% if clip.duration %} · {{ clip.duration }}{% endif %}
-                    {% if clip.segment_start is defined %} · seg {{ clip.segment_start }}–{{ clip.segment_end }}{% endif %}
-                </div>
-            </div>
-            <div style="text-align: right; flex-shrink: 0;">
-                <span style="font-size: 22px; font-weight: 700; color:
-                    {% if clip_score >= 80 %}#8e8
-                    {% elif clip_score >= 60 %}#ee8
-                    {% else %}#e88{% endif %};">
-                    {{ clip_score }}/100
-                </span>
-            </div>
-        </div>
-
-        {# Score breakdown #}
-        {% if clip.scores is defined %}
-        <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: #777; flex-wrap: wrap;">
-            {% if clip.scores.topic_event_coverage is defined %}
-            {% set tec = clip.scores.topic_event_coverage %}
-            <div>
-                <span style="color: #555;">Topic/Event:</span>
-                <span style="color: #aaa; font-weight: 600;">{{ tec.total }}/50</span>
-                <span style="color: #444;"> (relevance {{ tec.topic_relevance }}/25, specificity {{ tec.event_specificity }}/25)</span>
-            </div>
-            {% endif %}
-            {% if clip.scores.engagement_quality is defined %}
-            {% set eq = clip.scores.engagement_quality %}
-            <div>
-                <span style="color: #555;">Engagement:</span>
-                <span style="color: #aaa; font-weight: 600;">{{ eq.total }}/50</span>
-                <span style="color: #444;"> (narrative {{ eq.narrative_power }}/20, emotion {{ eq.emotional_resonance }}/15, access {{ eq.accessibility }}/15)</span>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {# Thematic tags #}
-        {% if clip.thematic_tags is defined %}
-        <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-            {% for topic in clip.thematic_tags.main_topics | default([]) %}
-            <span style="font-size: 11px; background: #1a2a3a; color: #8ad; padding: 2px 7px; border-radius: 3px;">{{ topic }}</span>
-            {% endfor %}
-            {% for event in clip.thematic_tags.key_events | default([]) %}
-            <span style="font-size: 11px; background: #2a1a1a; color: #e88; padding: 2px 7px; border-radius: 3px;">{{ event }}</span>
-            {% endfor %}
-            {% for kw in clip.thematic_tags.additional_keywords | default([]) %}
-            <span style="font-size: 11px; background: #1a1d21; color: #666; padding: 2px 7px; border-radius: 3px;">{{ kw }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {# Content summary #}
-        {% if clip.content_summary is defined %}
-        {% set cs = clip.content_summary %}
-        <div style="margin-top: 10px; font-size: 13px; color: #bbb;">
-            {% if cs.primary_focus %}<p style="margin: 0 0 6px;">{{ cs.primary_focus }}</p>{% endif %}
-            {% if cs.why_valuable %}<p style="margin: 0; color: #888; font-style: italic;">{{ cs.why_valuable }}</p>{% endif %}
-        </div>
-        {% if cs.key_details %}
-        <ul style="margin: 8px 0 0; padding-left: 16px; font-size: 12px; color: #777;">
-            {% for detail in cs.key_details %}
-            <li style="margin-bottom: 2px;">{{ detail }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-        {% endif %}
-
-        {# Transcript excerpts #}
-        {% if clip.transcript_excerpts is defined %}
-        {% set te = clip.transcript_excerpts %}
-        <div style="margin-top: 10px; display: grid; gap: 6px;">
-            {% if te.opening_lines is defined and te.opening_lines.text %}
-            <div style="font-size: 12px;">
-                <span style="color: #555; text-transform: uppercase; letter-spacing: 0.04em;">Opening</span>
-                <span style="color: #666; margin-left: 6px;">{{ te.opening_lines.timestamp }}</span>
-                <div style="color: #bbb; font-style: italic; margin-top: 2px; padding-left: 8px; border-left: 2px solid #2a2d31;">"{{ te.opening_lines.text[:200] }}{% if te.opening_lines.text|length > 200 %}…{% endif %}"</div>
-            </div>
-            {% endif %}
-            {% if te.key_moment is defined and te.key_moment.text %}
-            <div style="font-size: 12px;">
-                <span style="color: #555; text-transform: uppercase; letter-spacing: 0.04em;">Key Moment</span>
-                <span style="color: #666; margin-left: 6px;">{{ te.key_moment.timestamp }}</span>
-                <div style="color: #ccc; font-style: italic; margin-top: 2px; padding-left: 8px; border-left: 2px solid #4a5a2a;">"{{ te.key_moment.text[:200] }}{% if te.key_moment.text|length > 200 %}…{% endif %}"</div>
-            </div>
-            {% endif %}
-            {% if te.closing_lines is defined and te.closing_lines.text %}
-            <div style="font-size: 12px;">
-                <span style="color: #555; text-transform: uppercase; letter-spacing: 0.04em;">Closing</span>
-                <span style="color: #666; margin-left: 6px;">{{ te.closing_lines.timestamp }}</span>
-                <div style="color: #aaa; font-style: italic; margin-top: 2px; padding-left: 8px; border-left: 2px solid #2a2d31;">"{{ te.closing_lines.text[:200] }}{% if te.closing_lines.text|length > 200 %}…{% endif %}"</div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {# Standout moment #}
-        {% if clip.engagement_assessment is defined and clip.engagement_assessment.standout_moment is defined %}
-        {% set sm = clip.engagement_assessment.standout_moment %}
-        {% if sm.description %}
-        <div style="margin-top: 8px; font-size: 12px; color: #8ad; background: #0d1a28; padding: 6px 10px; border-radius: 4px;">
-            ★ <strong>Standout:</strong> {{ sm.description }}
-            {% if sm.timestamp %}<span style="color: #555; margin-left: 6px;">{{ sm.timestamp }}</span>{% endif %}
-        </div>
-        {% endif %}
-        {% endif %}
-
-        {# Technical notes #}
-        {% if clip.technical_notes is defined %}
-        {% set tn = clip.technical_notes %}
-        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            {% if tn.standalone_quality %}
-            <span style="font-size: 11px; color: #666;">
-                Standalone: <span style="color: {% if tn.standalone_quality == 'excellent' %}#8e8{% elif tn.standalone_quality == 'good' %}#ee8{% else %}#e88{% endif %};">{{ tn.standalone_quality }}</span>
-            </span>
-            {% endif %}
-            {% if tn.content_warnings %}
-            {% for w in tn.content_warnings %}
-            <span style="font-size: 11px; background: #3a1a1a; color: #e88; padding: 2px 6px; border-radius: 3px;">⚠ {{ w }}</span>
-            {% endfor %}
-            {% endif %}
-            {% if tn.editorial_notes %}
-            <span style="font-size: 11px; color: #555; font-style: italic;">{{ tn.editorial_notes }}</span>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        </div>{# /flex: 1 content column #}
-        {% if state.youtube_video_id %}
-        <div style="flex-shrink: 0; padding-top: 4px;">
-            <iframe width="280" height="158"
-                src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ clip.timestamp_start | to_seconds }}&end={{ clip.timestamp_end | to_seconds }}"
-                frameborder="0"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-                style="border-radius: 6px; display: block;">
-            </iframe>
-        </div>
-        {% endif %}
-        </div>{# /flex wrapper #}
-
-    </div>
-    {% endfor %}
 </div>
 {% endif %}
 
-{# ── SECTION 3: Extraction Notes (final section) ── #}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Clips</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for clip in cd.clips %}
+        {% set clip_score = clip.scores.total_score | default(0) %}
+        <div class="chapter-card">
+            <div style="display:flex; gap:1rem; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                        <div>
+                            <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
+                            <div class="chapter-time">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}{% if clip.duration %} · {{ clip.duration }}{% endif %}</div>
+                        </div>
+                        <div class="app-masthead-value">{{ clip_score }}/100</div>
+                    </div>
+                    {% if clip.thematic_tags is defined %}
+                    <div class="app-inline-list" style="margin-top:0.5rem;">
+                        {% for topic in clip.thematic_tags.main_topics | default([]) %}
+                        <span class="score-badge score-pass">{{ topic }}</span>
+                        {% endfor %}
+                        {% for event in clip.thematic_tags.key_events | default([]) %}
+                        <span class="score-badge score-fail">{{ event }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if clip.content_summary is defined and clip.content_summary.primary_focus %}
+                    <div style="margin-top:0.75rem;">{{ clip.content_summary.primary_focus }}</div>
+                    {% endif %}
+                </div>
+                {% if state.youtube_video_id %}
+                <div style="flex-shrink:0;">
+                    <iframe class="app-video-frame"
+                        src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ clip.timestamp_start | to_seconds }}&end={{ clip.timestamp_end | to_seconds }}"
+                        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen></iframe>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
 {% if cd.extraction_notes is defined %}
-{% set en = cd.extraction_notes %}
-<div class="panel">
-    <div class="panel-label">Extraction Notes</div>
-
-    {% if en.interview_strengths %}
-    <div style="margin-bottom: 12px;">
-        <div style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Interview Strengths</div>
-        <div style="font-size: 13px; color: #bbb;">{{ en.interview_strengths }}</div>
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Extraction notes</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% if cd.extraction_notes.interview_strengths %}
+        <div><strong>Interview strengths:</strong> {{ cd.extraction_notes.interview_strengths }}</div>
+        {% endif %}
+        {% if cd.extraction_notes.coverage_gaps %}
+        <div><strong>Coverage gaps:</strong> {{ cd.extraction_notes.coverage_gaps }}</div>
+        {% endif %}
     </div>
-    {% endif %}
-
-    {% if en.coverage_gaps %}
-    <div style="margin-bottom: 12px;">
-        <div style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Coverage Gaps</div>
-        <div style="font-size: 13px; color: #888;">{{ en.coverage_gaps }}</div>
-    </div>
-    {% endif %}
-
-    {% if en.highest_scoring_clips %}
-    <div style="margin-bottom: 12px;">
-        <div style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Highest Scoring Clips</div>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            {% for clip_id in en.highest_scoring_clips %}
-            <span style="font-size: 12px; background: #1a2a1a; color: #8e8; padding: 3px 8px; border-radius: 4px; font-weight: 600;">{{ clip_id }}</span>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if en.recommended_for_topics is defined %}
-    <div>
-        <div style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Recommended by Topic</div>
-        <div style="display: grid; gap: 6px;">
-            {% for topic, clip_ids in en.recommended_for_topics.items() %}
-            {% if clip_ids %}
-            <div style="font-size: 12px;">
-                <span style="color: #8ad;">{{ topic }}:</span>
-                <span style="color: #666; margin-left: 6px;">{{ clip_ids | join(', ') }}</span>
-            </div>
-            {% endif %}
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-</div>
+</section>
 {% endif %}
 
-<div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('results_page') }}" class="btn btn-primary">Continue to Results →</a>
-    <button type="button" class="btn btn-secondary" onclick="document.getElementById('clips-form').submit()">Re-run Extraction</button>
+<div class="app-actions">
+    <a href="{{ url_for('results_page') }}" class="btn btn-primary">Continue to results</a>
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('clips-form').submit()">Re-run extraction</button>
 </div>
-
+{% else %}
+{{ ui.empty_state("No clips yet", "Run clip extraction to identify candidate clips and score their quality.") }}
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
     document.getElementById('clips-form').addEventListener('submit', function() {
-        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Extracting clips (this may take 2-4 minutes)...';
+        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Extracting clips...';
         document.getElementById('run-btn').disabled = true;
     });
 
     function showPromptTab(sectionId) {
-        // Hide all panes
-        document.querySelectorAll('.prompt-tab-pane').forEach(function(el) {
-            el.style.display = 'none';
+        document.querySelectorAll('[id^="prompt-tab-"]').forEach(function(el) {
+            el.classList.add('app-hidden');
         });
-        // Deactivate all buttons
         document.querySelectorAll('.prompt-tab-btn').forEach(function(btn) {
-            btn.style.background = '#1a1d21';
-            btn.style.color = '#777';
+            btn.classList.remove('is-active');
         });
-        // Show selected pane
-        var pane = document.getElementById('prompt-tab-' + sectionId);
-        if (pane) pane.style.display = 'block';
-        // Activate selected button
-        var activeBtn = document.querySelector('.prompt-tab-btn[data-section="' + sectionId + '"]');
-        if (activeBtn) {
-            activeBtn.style.background = '#2d5a8e';
-            activeBtn.style.color = '#eee';
-        }
+        const pane = document.getElementById('prompt-tab-' + sectionId);
+        if (pane) pane.classList.remove('app-hidden');
+        const activeBtn = document.querySelector('.prompt-tab-btn[data-section="' + sectionId + '"]');
+        if (activeBtn) activeBtn.classList.add('is-active');
     }
 </script>
 {% endblock %}

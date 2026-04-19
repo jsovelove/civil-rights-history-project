@@ -1,71 +1,75 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'labeling' %}
 
 {% block title %}2. Labeling — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 2 — Topic Labeling</h1>
-    <p>Label each text block with a main topic category and subtopics. You can edit the prompts used to label below.</p>
-</div>
+{{ ui.page_header("Step 2 — Topic Labeling", "Label each text block with a main topic and subtopics. Results stay primary; prompt tuning stays available in an advanced section.", "Pipeline step") }}
 
-<!-- Prompts -->
-<form action="{{ url_for('labeling_run') }}" method="post" id="labeling-form">
+{% if labeling_error %}
+{% call ui.alert("Labeling failed", "danger") %}
+<p>{{ labeling_error }}</p>
+{% endcall %}
+{% endif %}
+
+{{ ui.status_card("Labeling status", "Run labeling to classify the text blocks before building the table of contents.", [
+    ("Text blocks available", state.text_blocks|length if state.text_blocks else 0),
+    ("Labeled blocks", state.block_topics|length if state.block_topics else 0),
+]) }}
+
+<form action="{{ url_for('labeling_run') }}" method="post" id="labeling-form" class="app-stack">
+    {% call ui.advanced_section("Advanced prompt controls", not state.block_topics, "Edit the system and user prompts used for labeling.") %}
     <div class="prompt-grid">
         <div class="panel">
-            <div class="panel-label">System Prompt</div>
+            <div class="panel-label">System prompt</div>
             <textarea name="sys_prompt" class="prompt-box">{{ state.labeling_sys_prompt }}</textarea>
         </div>
         <div class="panel">
-            <div class="panel-label">User Prompt</div>
+            <div class="panel-label">User prompt</div>
             <textarea name="user_prompt" class="prompt-box">{{ state.labeling_user_prompt }}</textarea>
         </div>
     </div>
+    {% endcall %}
 
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run Labeling</button>
-        <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">← Back</a>
+    <div class="app-actions">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run labeling</button>
+        <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Back</a>
     </div>
 </form>
 
-{% if labeling_error %}
-<div class="panel" style="margin-top: 24px; border-color: #b42318;">
-    <div class="panel-label" style="color: #f04438;">Labeling Error</div>
-    <div class="output-block" style="color: #f5f5f5;">{{ labeling_error }}</div>
-</div>
-{% endif %}
-
-<!-- Output -->
 {% if state.block_topics %}
-<div class="panel" style="margin-top: 24px;">
-    <div class="panel-label">Labeling Output ({{ state.block_topics|length }} blocks labeled)</div>
-    
-    <form action="{{ url_for('labeling_update_output') }}" method="post">
-        <textarea name="edited_output" class="output-box">{{ state.block_topics | tojson(indent=2) }}</textarea>
-
-        <div class="btn-row">
-            <button type="submit" class="btn btn-primary">Continue to TOC →</button>
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('labeling-form').submit()">Restart Step</button>
-        </div>
-    </form>
-</div>
-
-<!-- Visual preview -->
-<div class="panel">
-    <div class="panel-label">Preview</div>
-    {% for bt in state.block_topics %}
-    <div class="chapter-card">
-        <div class="chapter-num">Block {{ bt.block_number }}</div>
-        <div style="color: #aaa; font-size: 13px;">
-            <strong>{{ bt.main_topic_category }}</strong>
-            — {{ bt.subtopics | join(', ') }}
-        </div>
-        <div style="font-size: 12px; color: #555; margin-top: 4px;">
-            Confidence: {{ bt.confidence }}
-        </div>
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-title pf-m-lg">Labeling output</h2>
     </div>
-    {% endfor %}
-</div>
+    <div class="pf-v6-c-card__body app-stack">
+        <form action="{{ url_for('labeling_update_output') }}" method="post">
+            <textarea name="edited_output" class="output-box">{{ state.block_topics | tojson(indent=2) }}</textarea>
+            <div class="app-actions">
+                <button type="submit" class="btn btn-primary">Continue to TOC</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('labeling-form').submit()">Restart step</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-title pf-m-lg">Preview</h2>
+    </div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for bt in state.block_topics %}
+        <div class="chapter-card">
+            <div class="chapter-num">Block {{ bt.block_number }}</div>
+            <div><strong>{{ bt.main_topic_category }}</strong> — {{ bt.subtopics | join(', ') }}</div>
+            <div class="chapter-time" style="margin-top:0.35rem;">Confidence: {{ bt.confidence }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% else %}
+{{ ui.empty_state("No labels yet", "Run topic labeling to generate block categories and subtopics for the TOC stage.") }}
 {% endif %}
 {% endblock %}
 

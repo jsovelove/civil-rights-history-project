@@ -1,111 +1,156 @@
+{% set metrics = get_metrics_summary(state) %}
+{% set pipeline_steps = get_pipeline_steps(state, active_step | default('')) %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Civil Rights History - Pipeline Demo{% endblock %}</title>
+    <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.4.0/patternfly.css">
+    <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.4.0/patternfly-addons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <nav class="pipeline-nav">
-        <div class="nav-title">CR History Pipeline</div>
-        <div class="nav-steps">
-            <a href="{{ url_for('upload_page') }}" class="nav-step {% if active_step == 'upload' %}active{% endif %} {% if state.segments %}done{% endif %}">
-                1. Upload
-            </a>
-            <a href="{{ url_for('labeling_page') }}" class="nav-step {% if active_step == 'labeling' %}active{% endif %} {% if state.block_topics %}done{% endif %} {% if not state.text_blocks %}disabled{% endif %}">
-                2. Labeling
-            </a>
-            <a href="{{ url_for('toc_page') }}" class="nav-step {% if active_step == 'toc' %}active{% endif %} {% if state.toc_bundle %}done{% endif %} {% if not state.block_topics %}disabled{% endif %}">
-                3. TOC
-            </a>
-            <a href="{{ url_for('chapterization_page') }}" class="nav-step {% if active_step == 'chapterization' %}active{% endif %} {% if state.chapter_breaks %}done{% endif %} {% if not state.block_topics %}disabled{% endif %}">
-                4. Chapters
-            </a>
-            <a href="{{ url_for('summarization_page') }}" class="nav-step {% if active_step == 'summarization' %}active{% endif %} {% if state.chapters %}done{% endif %} {% if not state.chapter_breaks %}disabled{% endif %}">
-                5. Summary
-            </a>
-            <a href="{{ url_for('questions_page') }}" class="nav-step {% if active_step == 'questions' %}active{% endif %} {% if state.questions_ran %}done{% endif %} {% if not state.steps_enabled.questions or not (state.main_summary or state.chapters) %}disabled{% endif %}">
-                6. Questions
-            </a>
-            <a href="{{ url_for('tuning_page') }}" class="nav-step {% if active_step == 'tuning' %}active{% endif %} {% if state.tuning_results %}done{% endif %} {% if not state.main_summary or (state.steps_enabled.questions and state.question_placement == 'after_summary' and not state.questions_ran) %}disabled{% endif %}">
-                7. Tuning
-            </a>
-            <a href="{{ url_for('engagement_page') }}" class="nav-step {% if active_step == 'engagement' %}active{% endif %} {% if state.engagement_scores %}done{% endif %} {% if not state.text_blocks or not state.steps_enabled.engagement %}disabled{% endif %}">
-                8. Engagement
-            </a>
-            <a href="{{ url_for('clips_page') }}" class="nav-step {% if active_step == 'clips' %}active{% endif %} {% if state.clips_data %}done{% endif %} {% if not state.text_blocks or not state.steps_enabled.clips %}disabled{% endif %}">
-                9. Clips
-            </a>
-            <a href="{{ url_for('results_page') }}" class="nav-step {% if active_step == 'results' %}active{% endif %} {% if not state.main_summary %}disabled{% endif %}">
-                10. Results
-            </a>
-            <a href="{{ url_for('batch_page') }}" class="nav-step {% if active_step == 'batch' %}active{% endif %} {% if not state.main_summary %}disabled{% endif %}">
-                11. Batch
-            </a>
-        </div>
-    </nav>
+    <a class="pf-v6-c-button pf-m-primary pf-v6-u-screen-reader" href="#main-content">Skip to content</a>
 
-    {% if state and state.step_metrics %}
-    <div class="metrics-bar">
-        <details class="metrics-details">
-            <summary class="metrics-summary">
-                <span class="metrics-summary-left">
-                    Pipeline metrics &mdash;
-                    total time: <strong>{{ state.step_metrics[-1].cumulative_s | fmt_duration }}</strong>
-                    &nbsp;|&nbsp;
-                    total tokens: <strong>{{ "{:,}".format(state.step_metrics[-1].cumulative_tokens) }}</strong>
-                </span>
-                <span class="metrics-toggle">Details &#9660;</span>
-            </summary>
-            <table class="metrics-table">
-                <thead>
-                    <tr>
-                        <th>Step</th>
-                        <th>Step time</th>
-                        <th>Step tokens</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in state.step_metrics %}
-                    <tr>
-                        <td>{{ m.step }}</td>
-                        <td>{{ m.elapsed_s | fmt_duration }}</td>
-                        <td>{{ "{:,}".format(m.tokens) }}</td>
-                    </tr>
+    <div class="pf-v6-c-page app-page-shell">
+        <header class="pf-v6-c-masthead">
+            <div class="pf-v6-c-masthead__main">
+                <div class="pf-v6-c-masthead__brand app-brand-block">
+                    <span class="pf-v6-c-title pf-m-xl">Metadata Generation System</span>
+                    <span class="app-brand-subtitle">Civil Rights History Project</span>
+                </div>
+            </div>
+            <div class="pf-v6-c-masthead__content">
+                <div class="pf-v6-l-flex pf-m-space-items-md pf-m-align-items-center">
+                    <div class="app-masthead-context">
+                        <div class="pf-v6-c-content">
+                            <p class="app-masthead-label">Current interview</p>
+                            <p class="app-masthead-value">
+                                {% if state.using_sample %}
+                                Bundled sample interview
+                                {% elif state.srt_path %}
+                                {{ state.srt_path.rsplit('\\', 1)[-1] }}
+                                {% else %}
+                                No file loaded
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="pf-v6-c-label-group app-module-chips">
+                        <span class="pf-v6-c-label {% if state.steps_enabled.questions %}pf-m-blue{% endif %}">
+                            <span class="pf-v6-c-label__content">Questions {{ 'on' if state.steps_enabled.questions else 'off' }}</span>
+                        </span>
+                        <span class="pf-v6-c-label {% if state.steps_enabled.engagement %}pf-m-green{% endif %}">
+                            <span class="pf-v6-c-label__content">Engagement {{ 'on' if state.steps_enabled.engagement else 'off' }}</span>
+                        </span>
+                        <span class="pf-v6-c-label {% if state.steps_enabled.clips %}pf-m-gold{% endif %}">
+                            <span class="pf-v6-c-label__content">Clips {{ 'on' if state.steps_enabled.clips else 'off' }}</span>
+                        </span>
+                    </div>
+                    <details class="app-metrics-popover">
+                        <summary class="pf-v6-c-button pf-m-secondary pf-m-small">
+                            Pipeline metrics
+                            {% if metrics %}
+                            <span class="app-metrics-summary">{{ metrics.total_time | fmt_duration }} · {{ "{:,}".format(metrics.total_tokens) }} tokens</span>
+                            {% else %}
+                            <span class="app-metrics-summary">No runs yet</span>
+                            {% endif %}
+                        </summary>
+                        <div class="pf-v6-c-card app-metrics-card">
+                            <div class="pf-v6-c-card__body">
+                                {% if metrics %}
+                                <dl class="pf-v6-c-description-list pf-m-horizontal-on-md app-meta-list">
+                                    <div class="pf-v6-c-description-list__group">
+                                        <dt class="pf-v6-c-description-list__term">Total time</dt>
+                                        <dd class="pf-v6-c-description-list__description">{{ metrics.total_time | fmt_duration }}</dd>
+                                    </div>
+                                    <div class="pf-v6-c-description-list__group">
+                                        <dt class="pf-v6-c-description-list__term">Total tokens</dt>
+                                        <dd class="pf-v6-c-description-list__description">{{ "{:,}".format(metrics.total_tokens) }}</dd>
+                                    </div>
+                                </dl>
+                                <table class="pf-v6-c-table pf-m-compact app-metrics-table" role="grid" aria-label="Pipeline metrics">
+                                    <thead>
+                                        <tr>
+                                            <th>Step</th>
+                                            <th>Elapsed</th>
+                                            <th>Tokens</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in metrics.rows %}
+                                        <tr>
+                                            <td>{{ item.step }}</td>
+                                            <td>{{ item.elapsed_s | fmt_duration }}</td>
+                                            <td>{{ "{:,}".format(item.tokens) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <p class="pf-v6-u-color-200">Run a pipeline step to populate timing and token usage.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </header>
+
+        <div class="pf-v6-c-page__sidebar pf-m-light">
+            <div class="pf-v6-c-page__sidebar-body app-sidebar">
+                <div class="pf-v6-c-content app-sidebar-header">
+                    <h2>Pipeline</h2>
+                    <p>Follow each stage from transcript upload to downloadable metadata.</p>
+                </div>
+                <ol class="pf-v6-c-progress-stepper pf-m-vertical app-stepper" aria-label="Pipeline steps">
+                    {% for step in pipeline_steps %}
+                    <li class="pf-v6-c-progress-stepper__step {% if step.status == 'success' %}pf-m-success{% elif step.status == 'warning' %}pf-m-warning{% elif step.status == 'danger' %}pf-m-danger{% elif step.is_current %}pf-m-current{% elif step.status == 'pending' %}pf-m-pending{% else %}pf-m-info{% endif %}"
+                        aria-label="{{ step.label }} {{ step.status }}">
+                        <div class="pf-v6-c-progress-stepper__step-connector">
+                            <span class="pf-v6-c-progress-stepper__step-icon" aria-hidden="true">
+                                {% if step.status == 'success' %}
+                                <i class="fas fa-check" aria-label="Complete"></i>
+                                {% elif step.status == 'warning' %}
+                                <i class="fas fa-exclamation" aria-label="Warning"></i>
+                                {% elif step.status == 'danger' %}
+                                <i class="fas fa-times" aria-label="Error"></i>
+                                {% elif step.is_current %}
+                                <i class="fas fa-spinner fa-spin" aria-label="In progress"></i>
+                                {% else %}
+                                {{ step.number }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="pf-v6-c-progress-stepper__step-main">
+                            {% if step.is_enabled %}
+                            <a href="{{ url_for(step.endpoint) }}" class="pf-v6-c-progress-stepper__step-title app-step-link" {% if step.is_current %}aria-current="step"{% endif %}>
+                                {{ step.number }}. {{ step.label }}
+                            </a>
+                            {% else %}
+                            <div class="pf-v6-c-progress-stepper__step-title app-step-link app-step-link--disabled">
+                                {{ step.number }}. {{ step.label }}
+                            </div>
+                            {% endif %}
+                            <div class="pf-v6-c-progress-stepper__step-description">{{ step.description }}</div>
+                        </div>
+                    </li>
                     {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr class="metrics-total">
-                        <td>Total</td>
-                        <td><strong>{{ state.step_metrics[-1].cumulative_s | fmt_duration }}</strong></td>
-                        <td><strong>{{ "{:,}".format(state.step_metrics[-1].cumulative_tokens) }}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </details>
+                </ol>
+            </div>
+        </div>
+
+        <main class="pf-v6-c-page__main" id="main-content" tabindex="-1">
+            <section class="pf-v6-c-page__main-section pf-m-light">
+                <div class="pf-v6-c-page__main-body app-main-body">
+                    {% block content %}{% endblock %}
+                </div>
+            </section>
+        </main>
     </div>
-    {% endif %}
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
-
-    <script>
-        // Disable nav links that aren't ready yet
-        document.querySelectorAll('.nav-step.disabled').forEach(el => {
-            el.addEventListener('click', e => e.preventDefault());
-        });
-
-        // Flip the metrics toggle arrow when opened/closed
-        const metricsDetails = document.querySelector('.metrics-details');
-        if (metricsDetails) {
-            const toggle = metricsDetails.querySelector('.metrics-toggle');
-            metricsDetails.addEventListener('toggle', () => {
-                toggle.textContent = metricsDetails.open ? 'Details \u25b2' : 'Details \u25bc';
-            });
-        }
-    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

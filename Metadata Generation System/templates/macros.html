@@ -1,0 +1,86 @@
+{% macro page_header(title, description, eyebrow=None) -%}
+<header class="app-page-header">
+    {% if eyebrow %}
+    <div class="pf-v6-c-label-group">
+        <span class="pf-v6-c-label pf-m-blue">
+            <span class="pf-v6-c-label__content">{{ eyebrow }}</span>
+        </span>
+    </div>
+    {% endif %}
+    <div class="pf-v6-c-content">
+        <h1>{{ title }}</h1>
+        <p>{{ description }}</p>
+    </div>
+</header>
+{%- endmacro %}
+
+{% macro alert(title, variant='info') -%}
+<div class="pf-v6-c-alert pf-m-inline pf-m-{{ variant }} app-alert" aria-label="{{ variant }} alert">
+    <div class="pf-v6-c-alert__title">
+        <h4>{{ title }}</h4>
+    </div>
+    {% if caller %}
+    <div class="pf-v6-c-alert__description">
+        {{ caller() }}
+    </div>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro empty_state(title, body, action_href=None, action_label=None, variant='default') -%}
+<div class="pf-v6-c-empty-state pf-m-lg app-empty-state">
+    <div class="pf-v6-c-empty-state__content">
+        <div class="pf-v6-c-empty-state__header">
+            <div class="pf-v6-c-empty-state__title">
+                <h2 class="pf-v6-c-title pf-m-lg">{{ title }}</h2>
+            </div>
+        </div>
+        <div class="pf-v6-c-empty-state__body">
+            {{ body }}
+        </div>
+        {% if action_href and action_label %}
+        <div class="pf-v6-c-empty-state__footer">
+            <a href="{{ action_href }}" class="pf-v6-c-button pf-m-primary">{{ action_label }}</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro advanced_section(title, open=False, description=None) -%}
+<details class="pf-v6-c-card app-advanced-section" {% if open %}open{% endif %}>
+    <summary class="app-advanced-toggle">
+        <span>
+            <strong>{{ title }}</strong>
+            {% if description %}
+            <span class="app-advanced-summary">{{ description }}</span>
+            {% endif %}
+        </span>
+        <span class="app-advanced-chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="pf-v6-c-card__body">
+        {{ caller() }}
+    </div>
+</details>
+{%- endmacro %}
+
+{% macro status_card(title, summary, meta_items=[]) -%}
+<section class="pf-v6-c-card app-status-card">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-title pf-m-lg">{{ title }}</h2>
+    </div>
+    <div class="pf-v6-c-card__body">
+        <p class="app-status-summary">{{ summary }}</p>
+        {% if meta_items %}
+        <dl class="pf-v6-c-description-list pf-m-horizontal-on-md app-meta-list">
+            {% for label, value in meta_items %}
+            <div class="pf-v6-c-description-list__group">
+                <dt class="pf-v6-c-description-list__term">{{ label }}</dt>
+                <dd class="pf-v6-c-description-list__description">{{ value }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+        {% endif %}
+    </div>
+</section>
+{%- endmacro %}

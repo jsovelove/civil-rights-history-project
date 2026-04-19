@@ -1,514 +1,152 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'batch' %}
 
 {% block title %}Batch Results — Pipeline Demo{% endblock %}
 
 {% block content %}
-<style>
-.section-pending {
-    opacity: 0.4;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #555;
-    font-size: 13px;
-    border: 1px dashed #333;
-    border-radius: 6px;
-    margin-bottom: 12px;
-}
-.processing-banner {
-    background: #1a2a3a;
-    border: 1px solid #2d5a8e;
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.processing-banner .spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #2d5a8e;
-    border-top-color: #8ad;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
+{{ ui.page_header("Batch Results", "Review interview results while the batch is still running. The selected interview stays readable, and unfinished sections fall back to loading placeholders.", "Batch review") }}
 
-<div class="step-header">
-    <h1>Batch Results</h1>
+{% if is_running %}
+{% call ui.alert("Batch still processing", "info") %}
+<p>{{ results|length }} of {{ interview_order|length }} interviews have started. You can inspect finished and partial results now.</p>
+{% endcall %}
+{% endif %}
+
+<div class="app-actions">
     {% if is_running %}
-    <p>{{ results|length }} of {{ interview_order|length }} interviews started. Batch is still running.</p>
-    {% else %}
-    <p>{{ results|length }} interviews processed. Select a tab to view results for each interview.</p>
+    <a href="{{ url_for('batch_progress') }}" class="btn btn-secondary">Back to progress</a>
     {% endif %}
+    <a href="{{ url_for('batch_download') }}" class="btn btn-primary">Download ZIP</a>
+    <a href="{{ url_for('batch_page') }}" class="btn btn-secondary">Run another batch</a>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start over</a>
 </div>
 
-<div class="btn-row" style="margin-bottom: 16px;">
-    {% if is_running %}
-    <a href="{{ url_for('batch_progress') }}" class="btn btn-primary">← Back to Progress</a>
-    {% endif %}
-    <a href="{{ url_for('batch_download') }}" class="btn btn-success">Download All (ZIP)</a>
-    <a href="{{ url_for('batch_page') }}" class="btn btn-secondary">Run Another Batch</a>
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
-</div>
+<nav class="app-tab-nav" aria-label="Interview results tabs">
+    <ul class="app-tab-list">
+        {% for name in interview_order %}
+        {% set r = results.get(name, {}) %}
+        {% set has_result = name in results %}
+        {% if has_result %}
+        <li>
+            <a href="{% if is_running %}{{ url_for('batch_results', i=name) }}&from=progress{% else %}{{ url_for('batch_results', i=name) }}{% endif %}"
+               class="app-tab-link {% if name == selected %}is-active{% endif %}">
+                {{ name }}{% if r.get('_processing', false) %} · loading{% elif r.get('error') %} · error{% endif %}
+            </a>
+        </li>
+        {% else %}
+        <li><span class="app-tab-link is-disabled">{{ name }}</span></li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</nav>
 
-<!-- Interview Tabs -->
-<div class="batch-tabs">
-    {% for name in interview_order %}
-    {% set r = results.get(name, {}) %}
-    {% set has_result = name in results %}
-    {% set is_processing = r.get('_processing', false) %}
-    {% if has_result %}
-    <a href="{% if is_running %}{{ url_for('batch_results', i=name) }}&from=progress{% else %}{{ url_for('batch_results', i=name) }}{% endif %}"
-       class="batch-tab {% if name == selected %}active{% endif %} {% if r.get('error') %}tab-error{% endif %} {% if is_processing %}tab-processing{% endif %}">
-        {{ name }}
-        {% if is_processing %}<span class="tab-spinner"></span>{% endif %}
-    </a>
-    {% else %}
-    <span class="batch-tab batch-tab--disabled">{{ name }}</span>
-    {% endif %}
-    {% endfor %}
-</div>
-
-<!-- Selected Interview Results -->
 {% if selected_result %}
-<div class="batch-result-content">
-
-    {% if selected_result._processing %}
-    <div class="processing-banner">
-        <div class="spinner"></div>
-        <div>
-            <div style="color: #8ad; font-weight: 600;">Currently Processing</div>
-            <div style="color: #888; font-size: 13px;">Step: {{ selected_result._current_step or 'Starting' }}</div>
-        </div>
+<div class="app-summary-grid">
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Summary</div>
+        <div class="app-summary-stat-value">{{ 'Ready' if selected_result.main_summary else 'Pending' }}</div>
     </div>
-    {% endif %}
-
-    {% if selected_result.error %}
-    <div class="panel" style="border-left: 3px solid #b42318;">
-        <div class="panel-label" style="color: #b42318;">Error</div>
-        <pre style="color: #e88; font-size: 13px;">{{ selected_result.error }}</pre>
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Chapters</div>
+        <div class="app-summary-stat-value">{{ selected_result.chapters|length if selected_result.chapters else 0 }}</div>
     </div>
-
-    {% else %}
-
-    <!-- Main Summary -->
-    {% if selected_result.main_summary %}
-    <div class="panel">
-        <div class="panel-label">Main Summary</div>
-        <div class="output-block">
-            <pre>{{ selected_result.main_summary.get('summary', '') if selected_result.main_summary is mapping else selected_result.main_summary }}</pre>
-        </div>
-        {% if selected_result.main_summary is mapping and selected_result.main_summary.key_themes %}
-        <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
-            <strong>Key Themes:</strong> {{ selected_result.main_summary.key_themes | join(', ') }}
-        </div>
-        {% endif %}
-        {% if selected_result.main_summary is mapping and selected_result.main_summary.historical_significance %}
-        <div style="margin-top: 6px; font-size: 13px; color: #aaa;">
-            <strong>Historical Significance:</strong> {{ selected_result.main_summary.historical_significance }}
-        </div>
-        {% endif %}
-        {% if selected_result.main_summary is mapping and selected_result.main_summary.quality_metrics %}
-        <div style="margin-top: 8px;">
-            {% if selected_result.main_summary.quality_metrics.accuracy_score is defined and selected_result.main_summary.quality_metrics.quality_score is defined %}
-            <span class="score-badge {% if selected_result.main_summary.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Accuracy: {{ selected_result.main_summary.quality_metrics.accuracy_score }}
-            </span>
-            <span class="score-badge {% if selected_result.main_summary.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Quality: {{ selected_result.main_summary.quality_metrics.quality_score }}
-            </span>
-            {% elif selected_result.main_summary.quality_metrics.error is defined %}
-            <span class="score-badge score-fail">Scoring failed: {{ selected_result.main_summary.quality_metrics.error }}</span>
-            {% else %}
-            <span class="score-badge score-fail">Scores unavailable</span>
-            {% endif %}
-        </div>
-        {% endif %}
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Questions</div>
+        <div class="app-summary-stat-value">{{ selected_result.questions|length if selected_result.questions else 0 }}</div>
     </div>
-    {% elif selected_result._processing %}
-    <div class="panel section-pending">Main Summary — waiting...</div>
-    {% endif %}
-
-    <!-- Chapters -->
-    {% if selected_result.chapters %}
-    <div class="panel">
-        <div class="panel-label">Chapters ({{ selected_result.chapters|length }})</div>
-        {% for ch in selected_result.chapters %}
-        <div class="chapter-card">
-            <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-                <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-                {% if ch.main_topic_category %}
-                <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
-                {% endif %}
-                <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
-                {% if ch.keywords %}
-                <div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>
-                {% endif %}
-                {% if ch.related_events %}
-                <div style="margin-top: 4px; font-size: 12px; color: #666;">Events: {{ ch.related_events | join(', ') }}</div>
-                {% endif %}
-                {% if ch.quality_metrics %}
-                <div style="margin-top: 6px;">
-                    {% if ch.quality_metrics.accuracy_score is defined and ch.quality_metrics.quality_score is defined %}
-                    <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                        Acc: {{ ch.quality_metrics.accuracy_score }}
-                    </span>
-                    <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                        Qual: {{ ch.quality_metrics.quality_score }}
-                    </span>
-                    {% elif ch.quality_metrics.error is defined %}
-                    <span class="score-badge score-fail">Scoring failed: {{ ch.quality_metrics.error }}</span>
-                    {% else %}
-                    <span class="score-badge score-fail">Scores unavailable</span>
-                    {% endif %}
-                </div>
-                {% if ch.quality_metrics.errors is defined and ch.quality_metrics.errors %}
-                <div style="margin-top: 6px; font-size: 12px; color: #e88;">
-                    {% for err in ch.quality_metrics.errors %}
-                    <div>• {{ err }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% if ch.quality_metrics.improvements %}
-                <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
-                    {% for imp in ch.quality_metrics.improvements %}
-                    <div>↳ {{ imp }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% endif %}
-            </div>
-            {% if selected_result.youtube_video_id %}
-            <div style="flex-shrink: 0;">
-                <iframe width="280" height="158"
-                    src="https://www.youtube.com/embed/{{ selected_result.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
-                    frameborder="0"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                    style="border-radius: 6px; display: block;">
-                </iframe>
-            </div>
-            {% endif %}
-            </div>
-        </div>
-        {% endfor %}
+    <div class="app-summary-stat">
+        <div class="app-summary-stat-label">Clips</div>
+        <div class="app-summary-stat-value">{{ selected_result.clips_data.clips|length if selected_result.clips_data and selected_result.clips_data.clips is defined else 0 }}</div>
     </div>
-    {% elif selected_result._processing and selected_result.main_summary %}
-    <div class="panel section-pending">Chapters — waiting...</div>
-    {% endif %}
+</div>
 
-    {% if selected_result.questions %}
-    <div class="panel">
-        <div class="panel-label">Interviewer Questions ({{ selected_result.questions|length }})</div>
-        {% if selected_result.questions_stats and selected_result.questions_stats.confidence is defined %}
-        <div style="font-size: 12px; color: #888; margin-bottom: 10px;">
-            High: {{ selected_result.questions_stats.confidence.high }} |
-            Medium: {{ selected_result.questions_stats.confidence.medium }} |
-            Low: {{ selected_result.questions_stats.confidence.low }}
-        </div>
-        {% endif %}
-        {% for q in selected_result.questions %}
-        {% if q.status != 'rejected' %}
-        <div class="chapter-card">
-            <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
-            <div style="font-size: 13px; color: #bbb; margin-top: 6px;">{{ q.question_text }}</div>
-            <div style="margin-top: 6px; font-size: 12px; color: #777;">Confidence: {{ q.confidence }} ({{ q.confidence_band }})</div>
-        </div>
-        {% endif %}
-        {% endfor %}
+{% if selected_result._processing %}
+{% call ui.alert("Currently processing", "info") %}
+<p>Current step: {{ selected_result._current_step or 'Starting' }}</p>
+{% endcall %}
+{% endif %}
+
+{% if selected_result.error %}
+{% call ui.alert("Interview failed", "danger") %}
+<p>{{ selected_result.error }}</p>
+{% endcall %}
+{% else %}
+{% if selected_result.main_summary %}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Main summary</h2></div>
+    <div class="pf-v6-c-card__body">
+        <div class="output-block"><pre>{{ selected_result.main_summary.get('summary', '') if selected_result.main_summary is mapping else selected_result.main_summary }}</pre></div>
     </div>
-    {% elif selected_result._processing and selected_result.chapters %}
-    <div class="panel section-pending">Questions — waiting...</div>
-    {% endif %}
-
-    <!-- TOC -->
-    {% if selected_result.toc_bundle and selected_result.toc_bundle.toc %}
-    <div class="panel">
-        <div class="panel-label">Table of Contents</div>
-        {% for entry in selected_result.toc_bundle.toc %}
-        <div class="chapter-card">
-            <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-                <div class="chapter-num">{{ entry.topic }}</div>
-                <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
-                {% if entry.subtopics %}
-                <div style="margin-top: 6px;">
-                    {% for sub in entry.subtopics %}
-                    <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            {% if selected_result.youtube_video_id %}
-            <div style="flex-shrink: 0;">
-                <iframe width="280" height="158"
-                    src="https://www.youtube.com/embed/{{ selected_result.youtube_video_id }}?start={{ entry.start_time | to_seconds }}&end={{ entry.end_time | to_seconds }}"
-                    frameborder="0"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen style="border-radius: 6px; display: block;">
-                </iframe>
-            </div>
-            {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% elif selected_result._processing and selected_result.block_topics %}
-    <div class="panel section-pending">Table of Contents — waiting...</div>
-    {% endif %}
-
-    <!-- Chapter Breaks -->
-    {% if selected_result.chapter_breaks_preview %}
-    <div class="panel">
-        <div class="panel-label">Chapter Breaks ({{ selected_result.chapter_breaks_preview|length }})</div>
-        {% for ch in selected_result.chapter_breaks_preview %}
-        <div class="chapter-card">
-            <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-                <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words</div>
-                {% if ch.snippet %}<div class="chapter-snippet">{{ ch.snippet }}</div>{% endif %}
-            </div>
-            {% if selected_result.youtube_video_id %}
-            <div style="flex-shrink: 0;">
-                <iframe width="280" height="158"
-                    src="https://www.youtube.com/embed/{{ selected_result.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
-                    frameborder="0"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen style="border-radius: 6px; display: block;">
-                </iframe>
-            </div>
-            {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% elif selected_result._processing and selected_result.toc_bundle %}
-    <div class="panel section-pending">Chapter Breaks — waiting...</div>
-    {% endif %}
-
-    <!-- Block Topics -->
-    {% if selected_result.block_topics %}
-    <div class="panel">
-        <div class="panel-label">Block Topics ({{ selected_result.block_topics|length }})</div>
-        {% for bt in selected_result.block_topics %}
-        <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
-            B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}
-        </div>
-        {% endfor %}
-    </div>
-    {% elif selected_result._processing and selected_result.text_blocks %}
-    <div class="panel section-pending">Block Topics — waiting...</div>
-    {% endif %}
-
-    <!-- Tuning Results -->
-    {% if selected_result.tuning_results %}
-    <div class="panel">
-        <div class="panel-label">Tuning Results</div>
-        {% if selected_result.tuning_results.main_summary %}
-        {% set ms = selected_result.tuning_results.main_summary %}
-        <div style="font-size: 13px; color: #888; margin-bottom: 8px;">
-            Main summary:
-            {% if ms.scores %}
-            Accuracy {{ ms.scores.get('accuracy_score', 'N/A') }} · Quality {{ ms.scores.get('quality_score', 'N/A') }}
-            {% endif %}
-            {% if ms.regenerated %} · Regenerated ({{ ms.retries }} retries){% endif %}
-        </div>
-        {% endif %}
-        {% if selected_result.tuning_results.chapters %}
-        {% for item in selected_result.tuning_results.chapters %}
-        <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
-            Ch {{ loop.index }}:
-            Accuracy {{ item.scores.get('accuracy_score', 'N/A') }} ·
-            Quality {{ item.scores.get('quality_score', 'N/A') }}
-        </div>
-        {% endfor %}
-        {% endif %}
-    </div>
-    {% elif selected_result._processing and selected_result.chapters %}
-    <div class="panel section-pending">Tuning Results — waiting...</div>
-    {% endif %}
-
-    <!-- Engagement Scores -->
-    {% if selected_result.engagement_scores and selected_result.engagement_scores.overall_score is defined %}
-    {% set ev = selected_result.engagement_scores %}
-    {% set maxes = get_engagement_maxes() %}
-    <div class="panel">
-        <div class="panel-label">Engagement Scoring</div>
-
-        {# Overall score #}
-        <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px;">
-            <span style="font-size: 36px; font-weight: 700; color: {% if ev.overall_score.total >= 80 %}#8e8{% elif ev.overall_score.total >= 60 %}#ee8{% else %}#e88{% endif %};">
-                {{ ev.overall_score.total }}/100
-            </span>
-            <span style="font-size: 16px; color: #aaa;">{{ ev.overall_score.category }}</span>
-        </div>
-
-        {# Dimension bars #}
-        {% if ev.dimension_scores is defined %}
-        {% set ds = ev.dimension_scores %}
-        {% set dims = [
-            ("Narrative Quality",   ds.narrative_quality.total   if ds.narrative_quality   is defined else 0, 30),
-            ("Historical Value",    ds.historical_value.total    if ds.historical_value    is defined else 0, 25),
-            ("Emotional Resonance", ds.emotional_resonance.total if ds.emotional_resonance is defined else 0, 25),
-            ("Accessibility",       ds.accessibility.total       if ds.accessibility       is defined else 0, 20),
-        ] %}
-        <div style="display: grid; gap: 10px; margin-bottom: 16px;">
-            {% for dim_name, dim_score, dim_max in dims %}
-            <div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
-                    <span style="color: #ccc;">{{ dim_name }}</span>
-                    <span style="color: {% if dim_score / dim_max >= 0.8 %}#8e8{% elif dim_score / dim_max >= 0.6 %}#ee8{% else %}#e88{% endif %}; font-weight: 700;">{{ dim_score }}/{{ dim_max }}</span>
-                </div>
-                <div style="height: 8px; background: #1a1d21; border-radius: 4px; overflow: hidden;">
-                    <div style="height: 100%; width: {{ (dim_score / dim_max * 100) | round }}%; background: {% if dim_score / dim_max >= 0.8 %}#2d6a2d{% elif dim_score / dim_max >= 0.6 %}#6a6a2d{% else %}#6a2d2d{% endif %}; border-radius: 4px;"></div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        {# Sub-dimension detail #}
-        {% for dim_label, dim_key, subs in [
-            ("Narrative Quality",   "narrative_quality",   [("Story Structure & Coherence","story_structure_coherence"),("Vivid Details & Examples","vivid_details_examples"),("Emotional Authenticity","emotional_authenticity")]),
-            ("Historical Value",    "historical_value",    [("Unique Firsthand Perspective","unique_firsthand_perspective"),("Specificity of Details","specificity_of_details"),("Fills Historical Gaps","fills_historical_gaps")]),
-            ("Emotional Resonance", "emotional_resonance", [("Transformation & Growth","transformation_growth"),("Tension, Conflict & Triumph","tension_conflict_triumph"),("Relatable Experiences","relatable_experiences")]),
-            ("Accessibility",       "accessibility",       [("Language Clarity","language_clarity"),("Narrative Flow","narrative_flow"),("Broader Themes Connection","broader_themes_connection")]),
-        ] %}
-        {% if ds[dim_key] is defined %}
-        {% set dim = ds[dim_key] %}
-        <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">{{ dim_label }}</div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                {% for sub_name, sub_key in subs %}
-                {% if dim[sub_key] is defined %}
-                {% set sub = dim[sub_key] %}
-                {% set sub_max = maxes.get(sub_key, 0) %}
-                <span class="score-badge {% if sub.score is defined and sub_max > 0 and sub.score / sub_max >= 0.8 %}score-pass{% else %}score-fail{% endif %}"
-                      title="{{ sub.justification if sub.justification is defined else '' }}"
-                      style="font-size: 12px;">
-                    {{ sub_name }}: {{ sub.score|default("?") }}/{{ sub_max if sub_max else "?" }}
-                </span>
-                {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% endfor %}
-        {% endif %}
-
-        {% if ev.key_strengths %}
-        <div style="margin-top: 8px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">Strengths</div>
-        {% for s in ev.key_strengths %}
-        <div style="font-size: 13px; color: #8e8; margin-top: 4px;">• {{ s }}</div>
-        {% endfor %}
-        {% endif %}
-        {% if ev.key_limitations %}
-        <div style="margin-top: 10px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">Limitations</div>
-        {% for l in ev.key_limitations %}
-        <div style="font-size: 13px; color: #e88; margin-top: 4px;">• {{ l }}</div>
-        {% endfor %}
-        {% endif %}
-    </div>
-    {% elif selected_result._processing and selected_result.tuning_results %}
-    <div class="panel section-pending">Engagement Scoring — waiting...</div>
-    {% endif %}
-
-    <!-- Clips -->
-    {% if selected_result.clips_data and selected_result.clips_data.clips is defined %}
-    {% set cd = selected_result.clips_data %}
-    <div class="panel">
-        <div class="panel-label">Clips ({{ cd.clips | length }})</div>
-
-        {# Summary stats #}
-        {% if cd.extraction_summary is defined %}
-        {% set es = cd.extraction_summary %}
-        <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #222;">
-            {% if es.total_clips is defined %}
-            <div><span style="font-size: 24px; font-weight: 700; color: #8ad;">{{ es.total_clips }}</span> <span style="font-size: 12px; color: #666;">clips</span></div>
-            {% endif %}
-            {% if es.average_clip_score is defined %}
-            <div><span style="font-size: 24px; font-weight: 700; color: {% if es.average_clip_score >= 80 %}#8e8{% elif es.average_clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ "%.1f"|format(es.average_clip_score) }}</span> <span style="font-size: 12px; color: #666;">avg score</span></div>
-            {% endif %}
-            {% if es.total_clips_duration %}
-            <div><span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration }}</span> <span style="font-size: 12px; color: #666;">total duration</span></div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {# Individual clips #}
-        {% for clip in cd.clips %}
-        {% set clip_score = clip.scores.total_score | default(0) %}
-        <div class="chapter-card" style="margin-bottom: 12px; border-left: 3px solid {% if clip_score >= 80 %}#2d6a2d{% elif clip_score >= 60 %}#6a6a2d{% else %}#3a3a4a{% endif %};">
-            <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
-                    <div>
-                        <div class="chapter-num" style="font-size: 14px;">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
-                        <div class="chapter-time" style="margin-top: 2px;">
-                            {{ clip.timestamp_start }} → {{ clip.timestamp_end }}
-                            {% if clip.duration %} · {{ clip.duration }}{% endif %}
-                        </div>
-                    </div>
-                    <span style="font-size: 20px; font-weight: 700; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %}; flex-shrink: 0;">{{ clip_score }}/100</span>
-                </div>
-                {% if clip.thematic_tags is defined %}
-                <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
-                    {% for topic in clip.thematic_tags.main_topics | default([]) %}
-                    <span style="font-size: 11px; background: #1a2a3a; color: #8ad; padding: 2px 6px; border-radius: 3px;">{{ topic }}</span>
-                    {% endfor %}
-                    {% for event in clip.thematic_tags.key_events | default([]) %}
-                    <span style="font-size: 11px; background: #2a1a1a; color: #e88; padding: 2px 6px; border-radius: 3px;">{{ event }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% if clip.content_summary is defined and clip.content_summary.primary_focus %}
-                <div style="margin-top: 6px; font-size: 13px; color: #bbb;">{{ clip.content_summary.primary_focus }}</div>
-                {% endif %}
-            </div>
-            {% if selected_result.youtube_video_id %}
-            <div style="flex-shrink: 0; padding-top: 4px;">
-                <iframe width="280" height="158"
-                    src="https://www.youtube.com/embed/{{ selected_result.youtube_video_id }}?start={{ clip.timestamp_start | to_seconds }}&end={{ clip.timestamp_end | to_seconds }}"
-                    frameborder="0"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen style="border-radius: 6px; display: block;">
-                </iframe>
-            </div>
-            {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% elif selected_result._processing and selected_result.engagement_scores %}
-    <div class="panel section-pending">Clips — waiting...</div>
-    {% endif %}
-
-    <!-- Raw JSON -->
-    <div class="panel">
-        <div class="panel-label">Full JSON Output</div>
-        <div class="output-block" style="max-height: 400px; overflow-y: auto;">
-            <pre id="full-json"></pre>
-        </div>
-    </div>
-
-    {% endif %}
+</section>
+{% elif selected_result._processing %}
+<div class="app-skeleton-stack">
+    <div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-text-xl pf-m-width-50"></div><div class="pf-v6-c-skeleton pf-m-width-75" style="margin-top:0.75rem;"></div><div class="pf-v6-c-skeleton pf-m-width-66" style="margin-top:0.5rem;"></div></div>
 </div>
 {% endif %}
 
-{% if is_running and selected_result and selected_result._processing %}
-<script>
-    // Auto-refresh page every 3 seconds while viewing a processing interview
-    setTimeout(function() {
-        location.reload();
-    }, 3000);
-</script>
+{% if selected_result.chapters %}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Chapters</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for ch in selected_result.chapters %}
+        <div class="chapter-card">
+            <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+            <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+            <div style="margin-top:0.5rem;">{{ ch.summary }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% elif selected_result._processing %}
+<div class="app-skeleton-stack"><div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-width-33 pf-m-text-lg"></div><div class="pf-v6-c-skeleton pf-m-width-75" style="margin-top:0.75rem;"></div></div></div>
+{% endif %}
+
+{% if selected_result.questions %}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Interviewer questions</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for q in selected_result.questions if q.status != 'rejected' %}
+        <div class="chapter-card">
+            <div class="chapter-num">{{ q.status|upper }}</div>
+            <div class="chapter-time">{{ q.start_time }} → {{ q.end_time }}</div>
+            <div style="margin-top:0.5rem;">{{ q.question_text }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if selected_result.engagement_scores and selected_result.engagement_scores.overall_score is defined %}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Engagement score</h2></div>
+    <div class="pf-v6-c-card__body">
+        <div class="app-masthead-value">{{ selected_result.engagement_scores.overall_score.total }}/100</div>
+        <div class="app-muted">{{ selected_result.engagement_scores.overall_score.category }}</div>
+    </div>
+</section>
+{% endif %}
+
+{% if selected_result.clips_data and selected_result.clips_data.clips is defined %}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Clips</h2></div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for clip in selected_result.clips_data.clips[:10] %}
+        <div class="chapter-card">
+            <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
+            <div class="chapter-time">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% call ui.advanced_section("Full JSON output", False, "Inspect the complete payload for the selected interview.") %}
+<div class="output-block" style="max-height:30rem; overflow-y:auto;">
+    <pre id="full-json"></pre>
+</div>
+{% endcall %}
+{% endif %}
 {% endif %}
 {% endblock %}
 
@@ -516,7 +154,17 @@
 {% if selected_result and not selected_result.error %}
 <script>
     const data = {{ selected_result | tojson }};
-    document.getElementById('full-json').textContent = JSON.stringify(data, null, 2);
+    const output = document.getElementById('full-json');
+    if (output) {
+        output.textContent = JSON.stringify(data, null, 2);
+    }
+</script>
+{% endif %}
+{% if is_running and selected_result and selected_result._processing %}
+<script>
+    setTimeout(function() {
+        location.reload();
+    }, 3000);
 </script>
 {% endif %}
 {% endblock %}

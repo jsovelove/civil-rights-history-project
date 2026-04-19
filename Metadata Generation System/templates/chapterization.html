@@ -1,68 +1,70 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'chapterization' %}
 
 {% block title %}4. Chapterization — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 4 — Chapterization</h1>
-    <p>This step creates chapters by detecting topic transitions. Chapter breaks are created by analyzing TOC topic information, reviewing interview content and focus, and using chapterization prompts (which you can edit below).</p>
-</div>
+{{ ui.page_header("Step 4 — Chapterization", "Detect natural topic transitions and create chapter boundaries using the TOC context and chapterization prompts.", "Pipeline step") }}
 
-<form action="{{ url_for('chapterization_run') }}" method="post" id="chapter-form">
+{{ ui.status_card("Chapterization status", "Run chapterization to create the chapter boundaries used by summary, tuning, and clip extraction.", [
+    ("TOC entries", state.toc_bundle.toc|length if state.toc_bundle and state.toc_bundle.toc else 0),
+    ("Chapters detected", state.chapter_breaks_preview|length if state.chapter_breaks_preview else 0),
+]) }}
+
+<form action="{{ url_for('chapterization_run') }}" method="post" id="chapter-form" class="app-stack">
+    {% call ui.advanced_section("Advanced prompt controls", not state.chapter_breaks_preview, "Edit the system and user prompts for topic transition detection.") %}
     <div class="prompt-grid">
         <div class="panel">
-            <div class="panel-label">System Prompt</div>
+            <div class="panel-label">System prompt</div>
             <textarea name="sys_prompt" class="prompt-box">{{ state.chapterization_sys_prompt }}</textarea>
         </div>
         <div class="panel">
-            <div class="panel-label">User Prompt</div>
+            <div class="panel-label">User prompt</div>
             <textarea name="user_prompt" class="prompt-box">{{ state.chapterization_user_prompt }}</textarea>
         </div>
     </div>
+    {% endcall %}
 
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run Chapterization</button>
-        <a href="{{ url_for('toc_page') }}" class="btn btn-secondary">← Back</a>
+    <div class="app-actions">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run chapterization</button>
+        <a href="{{ url_for('toc_page') }}" class="btn btn-secondary">Back</a>
     </div>
 </form>
 
 {% if state.chapter_breaks_preview %}
-<div class="panel" style="margin-top: 24px;">
-    <div class="panel-label">Chapter Breaks ({{ state.chapter_breaks_preview|length }} chapters)</div>
-
-    {% for ch in state.chapter_breaks_preview %}
-    <div class="chapter-card">
-        <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-                <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                <div class="chapter-time">
-                    {{ ch.start_time }} → {{ ch.end_time }} ·
-                    {{ ch.segments }} segments · {{ ch.words }} words ·
-                    idx {{ ch.start_idx }}–{{ ch.end_idx }}
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-title pf-m-lg">Detected chapter breaks</h2>
+    </div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for ch in state.chapter_breaks_preview %}
+        <div class="chapter-card">
+            <div style="display:flex; gap:1rem; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div class="chapter-num">Chapter {{ ch.chapter }}</div>
+                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    <div class="chapter-snippet" style="margin-top:0.5rem;">{{ ch.snippet }}</div>
                 </div>
-                <div class="chapter-snippet">{{ ch.snippet }}</div>
+                {% if state.youtube_video_id %}
+                <div style="flex-shrink:0;">
+                    <iframe class="app-video-frame"
+                        src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
+                        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen></iframe>
+                </div>
+                {% endif %}
             </div>
-            {% if state.youtube_video_id %}
-            <div style="flex-shrink: 0;">
-                <iframe width="280" height="158"
-                    src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
-                    frameborder="0"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                    style="border-radius: 6px; display: block;">
-                </iframe>
-            </div>
-            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="app-actions">
+            <a href="{{ url_for('summarization_page') }}" class="btn btn-primary">Continue to summarization</a>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('chapter-form').submit()">Restart step</button>
         </div>
     </div>
-    {% endfor %}
-
-    <div class="btn-row">
-        <a href="{{ url_for('summarization_page') }}" class="btn btn-primary">Continue to Summarization →</a>
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('chapter-form').submit()">Restart Step</button>
-    </div>
-</div>
+</section>
+{% else %}
+{{ ui.empty_state("No chapters yet", "Run chapterization to create initial chapter boundaries from the TOC and transcript.") }}
 {% endif %}
 {% endblock %}
 

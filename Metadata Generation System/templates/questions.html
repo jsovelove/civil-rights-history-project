@@ -1,171 +1,164 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'questions' %}
 
 {% block title %}6. Questions — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 6 — Question Detection</h1>
-    <p>Generate interviewer questions from the interview and review the output before tuning.</p>
-</div>
+{{ ui.page_header("Step 6 — Question Detection", "Generate interviewer questions, review them, and carry curated output into tuning. Editing stays available without dominating the page.", "Pipeline step") }}
 
 {% if questions_message %}
-<div class="panel" style="border-color: #2a6a4a;">
-    <div class="output-block" style="color: #8e8;">{{ questions_message }}</div>
-</div>
+{% call ui.alert("Question detection updated", "success") %}
+<p>{{ questions_message }}</p>
+{% endcall %}
 {% endif %}
 
 {% if state.questions_error %}
-<div class="panel" style="border-color: #5a2d2d;">
-    <div class="output-block" style="color: #e88;">{{ state.questions_error }}</div>
-</div>
+{% call ui.alert("Question detection failed", "danger") %}
+<p>{{ state.questions_error }}</p>
+{% endcall %}
 {% endif %}
 
-<form action="{{ url_for('questions_run') }}" method="post" id="questions-run-form">
+{{ ui.status_card("Question review status", "Run question detection, then verify, reject, or annotate the generated interviewer questions before tuning.", [
+    ("Detected questions", state.questions_stats.total if state.questions_stats else 0),
+    ("Verified", state.questions_stats.status.verified if state.questions_stats else 0),
+    ("Needs review", state.questions_stats.status.needs_review if state.questions_stats else 0),
+]) }}
+
+<form action="{{ url_for('questions_run') }}" method="post" id="questions-run-form" class="app-stack">
+    {% call ui.advanced_section("Advanced detection and rewrite settings", not state.questions_rows, "Detection prompts, rewrite prompts, and context controls.") %}
     <div class="prompt-grid">
         <div class="panel">
-            <div class="panel-label">Detection System Prompt</div>
+            <div class="panel-label">Detection system prompt</div>
             <textarea name="questions_sys_prompt" class="prompt-box">{{ state.questions_sys_prompt }}</textarea>
         </div>
         <div class="panel">
-            <div class="panel-label">Detection User Prompt</div>
+            <div class="panel-label">Detection user prompt</div>
             <textarea name="questions_user_prompt" class="prompt-box">{{ state.questions_user_prompt }}</textarea>
         </div>
         <div class="panel">
-            <div class="panel-label">Rewrite System Prompt</div>
+            <div class="panel-label">Rewrite system prompt</div>
             <textarea name="questions_rewrite_sys_prompt" class="prompt-box">{{ state.questions_rewrite_sys_prompt }}</textarea>
         </div>
         <div class="panel">
-            <div class="panel-label">Rewrite User Prompt</div>
+            <div class="panel-label">Rewrite user prompt</div>
             <textarea name="questions_rewrite_user_prompt" class="prompt-box">{{ state.questions_rewrite_user_prompt }}</textarea>
         </div>
     </div>
-
-    <div class="panel" style="margin-top: 16px;">
-        <div class="panel-label">Rewrite Context Controls</div>
-        <div style="display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px;">
-            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9aa5b1;">
-                Max rows with context
-                <input type="number" name="questions_context_max_rows" min="0" max="40" value="{{ state.questions_context_max_rows }}" style="padding: 8px; border-radius: 8px; border: 1px solid #2d333b; background: #0f141b; color: #e6edf3;">
-            </label>
-            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9aa5b1;">
-                Before chars per row
-                <input type="number" name="questions_context_before_chars" min="0" max="600" value="{{ state.questions_context_before_chars }}" style="padding: 8px; border-radius: 8px; border: 1px solid #2d333b; background: #0f141b; color: #e6edf3;">
-            </label>
-            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9aa5b1;">
-                After chars per row
-                <input type="number" name="questions_context_after_chars" min="0" max="600" value="{{ state.questions_context_after_chars }}" style="padding: 8px; border-radius: 8px; border: 1px solid #2d333b; background: #0f141b; color: #e6edf3;">
-            </label>
-        </div>
-        <div style="margin-top: 8px; font-size: 11px; color: #6b7785;">
-            Lower values reduce tokens and cost. Higher values provide more local transcript context to the rewrite pass.
-        </div>
+    <div class="app-grid-3">
+        <label class="app-field">
+            Max rows with context
+            <input type="number" name="questions_context_max_rows" min="0" max="40" value="{{ state.questions_context_max_rows }}">
+        </label>
+        <label class="app-field">
+            Before chars per row
+            <input type="number" name="questions_context_before_chars" min="0" max="600" value="{{ state.questions_context_before_chars }}">
+        </label>
+        <label class="app-field">
+            After chars per row
+            <input type="number" name="questions_context_after_chars" min="0" max="600" value="{{ state.questions_context_after_chars }}">
+        </label>
     </div>
+    {% endcall %}
 
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run Question Detection</button>
-        <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">← Back to Summary</a>
+    <div class="app-actions">
+        <button type="submit" class="btn btn-primary" id="run-btn">Run question detection</button>
+        <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">Back to summary</a>
     </div>
 </form>
 
-<form id="questions-form" action="{{ url_for('questions_update') }}" method="post">
+<form id="questions-form" action="{{ url_for('questions_update') }}" method="post" class="app-stack">
     <input type="hidden" name="edited_output" id="edited-output" value="">
 
-    <div class="panel" style="margin-top: 20px;">
-        <div class="panel-label">Question Output</div>
+    <section class="pf-v6-c-card">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-title pf-m-lg">Question output</h2>
+        </div>
+        <div class="pf-v6-c-card__body app-stack">
+            {% if state.questions_stats %}
+            <div class="app-muted">
+                Total: {{ state.questions_stats.total }} |
+                High: {{ state.questions_stats.confidence.high }} |
+                Medium: {{ state.questions_stats.confidence.medium }} |
+                Low: {{ state.questions_stats.confidence.low }} |
+                Unreviewed: {{ state.questions_stats.status.unreviewed }} |
+                Verified: {{ state.questions_stats.status.verified }} |
+                Needs review: {{ state.questions_stats.status.needs_review }} |
+                Rejected: {{ state.questions_stats.status.rejected }}
+            </div>
+            {% endif %}
 
-        {% if state.questions_stats %}
-        <div style="font-size: 12px; color: #888; margin-bottom: 12px;">
-            Total: {{ state.questions_stats.total }} |
-            High: {{ state.questions_stats.confidence.high }} |
-            Medium: {{ state.questions_stats.confidence.medium }} |
-            Low: {{ state.questions_stats.confidence.low }} |
-            Unreviewed: {{ state.questions_stats.status.unreviewed }} |
-            Verified: {{ state.questions_stats.status.verified }} |
-            Needs review: {{ state.questions_stats.status.needs_review }} |
-            Rejected: {{ state.questions_stats.status.rejected }}
-        </div>
-        {% endif %}
-
-        {% if state.questions_rows and state.questions_rows|length > 0 %}
-        <div style="overflow-x: auto;">
-            <table class="questions-table">
-                <thead>
-                    <tr>
-                        <th>Question</th>
-                        <th>Timestamp</th>
-                        <th>Confidence</th>
-                        <th>Status</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for q in state.questions_rows %}
-                    <tr data-question-id="{{ q.id }}">
-                        <td>
-                            <textarea class="question-text" rows="2">{{ q.question_text }}</textarea>
-                            {% if q.original_question_text and q.original_question_text != q.question_text %}
-                            <div style="margin-top: 6px; font-size: 12px; color: #888;">
-                                Original: {{ q.original_question_text }}
-                            </div>
-                            {% endif %}
-                            {% if q.rewrite_applied %}
-                            <div style="margin-top: 4px; font-size: 11px; color: #6abf7b;">
-                                Readability rewrite applied{% if q.rewrite_notes %}: {{ q.rewrite_notes }}{% endif %}
-                            </div>
-                            {% endif %}
-                            {% if q.context_before or q.context_after %}
-                            <details style="margin-top: 6px; font-size: 11px; color: #9aa5b1;">
-                                <summary style="cursor: pointer;">Context for rewrite</summary>
-                                {% if q.context_chapter_title %}
-                                <div style="margin-top: 4px; color: #7fa0c0;">Chapter: {{ q.context_chapter_title }}</div>
+            {% if state.questions_rows and state.questions_rows|length > 0 %}
+            <div style="overflow-x:auto;">
+                <table class="questions-table">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Timestamp</th>
+                            <th>Confidence</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for q in state.questions_rows %}
+                        <tr data-question-id="{{ q.id }}">
+                            <td>
+                                <textarea class="question-text" rows="2">{{ q.question_text }}</textarea>
+                                {% if q.original_question_text and q.original_question_text != q.question_text %}
+                                <div class="app-muted" style="margin-top:0.5rem;">Original: {{ q.original_question_text }}</div>
                                 {% endif %}
-                                {% if q.context_before %}
-                                <div style="margin-top: 4px;"><strong>Before:</strong> {{ q.context_before }}</div>
+                                {% if q.rewrite_applied %}
+                                <div class="app-muted" style="margin-top:0.35rem;">Readability rewrite applied{% if q.rewrite_notes %}: {{ q.rewrite_notes }}{% endif %}</div>
                                 {% endif %}
-                                {% if q.context_after %}
-                                <div style="margin-top: 4px;"><strong>After:</strong> {{ q.context_after }}</div>
+                                {% if q.context_before or q.context_after %}
+                                <details style="margin-top:0.5rem;">
+                                    <summary>Context for rewrite</summary>
+                                    {% if q.context_chapter_title %}
+                                    <div class="app-muted" style="margin-top:0.35rem;">Chapter: {{ q.context_chapter_title }}</div>
+                                    {% endif %}
+                                    {% if q.context_before %}
+                                    <div style="margin-top:0.35rem;"><strong>Before:</strong> {{ q.context_before }}</div>
+                                    {% endif %}
+                                    {% if q.context_after %}
+                                    <div style="margin-top:0.35rem;"><strong>After:</strong> {{ q.context_after }}</div>
+                                    {% endif %}
+                                </details>
                                 {% endif %}
-                            </details>
-                            {% endif %}
-                        </td>
-                        <td class="mono">
-                            {{ q.start_time }} → {{ q.end_time }}
-                        </td>
-                        <td>
-                            <span class="confidence-dot confidence-{{ q.confidence_band }}"></span>
-                            <span class="mono">{{ '%.3f'|format(q.confidence) }}</span>
-                        </td>
-                        <td>
-                            <select class="question-status">
-                                <option value="unreviewed" {% if q.status == 'unreviewed' %}selected{% endif %}>unreviewed</option>
-                                <option value="verified" {% if q.status == 'verified' %}selected{% endif %}>verified</option>
-                                <option value="needs_review" {% if q.status == 'needs_review' %}selected{% endif %}>needs_review</option>
-                                <option value="rejected" {% if q.status == 'rejected' %}selected{% endif %}>rejected</option>
-                            </select>
-                        </td>
-                        <td>
-                            <textarea class="question-notes" rows="2">{{ q.notes or '' }}</textarea>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                            </td>
+                            <td class="mono">{{ q.start_time }} → {{ q.end_time }}</td>
+                            <td>
+                                <span class="confidence-dot confidence-{{ q.confidence_band }}"></span>
+                                <span class="mono">{{ '%.3f'|format(q.confidence) }}</span>
+                            </td>
+                            <td>
+                                <select class="question-status">
+                                    <option value="unreviewed" {% if q.status == 'unreviewed' %}selected{% endif %}>unreviewed</option>
+                                    <option value="verified" {% if q.status == 'verified' %}selected{% endif %}>verified</option>
+                                    <option value="needs_review" {% if q.status == 'needs_review' %}selected{% endif %}>needs_review</option>
+                                    <option value="rejected" {% if q.status == 'rejected' %}selected{% endif %}>rejected</option>
+                                </select>
+                            </td>
+                            <td><textarea class="question-notes" rows="2">{{ q.notes or '' }}</textarea></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="app-actions">
+                <button type="submit" class="btn btn-primary">Save question edits</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('questions-run-form').submit()">Re-run detection</button>
+                <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to tuning</a>
+            </div>
+            {% else %}
+            {{ ui.empty_state("No interviewer questions yet", "Run question detection to populate this review table. If nothing is found, you can still continue to tuning.") }}
+            <div class="app-actions">
+                <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to tuning</a>
+                <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">Back</a>
+            </div>
+            {% endif %}
         </div>
-
-        <div class="btn-row">
-            <button type="submit" class="btn btn-primary">Save Question Edits</button>
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('questions-run-form').submit()">Re-run Detection</button>
-            <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to Tuning →</a>
-        </div>
-        {% else %}
-        <div class="output-block"><pre>{% if state.questions_ran %}No interviewer questions were detected for this interview.{% else %}Run question detection to generate interviewer questions.{% endif %}</pre></div>
-        <div class="btn-row">
-            <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to Tuning →</a>
-            <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">← Back</a>
-        </div>
-        {% endif %}
-    </div>
+    </section>
 </form>
 {% endblock %}
 
@@ -182,21 +175,22 @@
             const notes = rowEl.querySelector('.question-notes')?.value || '';
             const sourceRow = sourceRows.find((q) => q.id === id);
             if (!sourceRow) return;
-
-            rows.push({
-                ...sourceRow,
-                question_text: questionText,
-                status,
-                notes
-            });
+            rows.push({ ...sourceRow, question_text: questionText, status, notes });
         });
         return rows;
     }
 
     const form = document.getElementById('questions-form');
     if (form) {
-        form.addEventListener('submit', function() {
-            document.getElementById('edited-output').value = JSON.stringify(collectRows());
+        form.addEventListener('submit', function(e) {
+            const expectedCount = document.querySelectorAll('tr[data-question-id]').length;
+            const rows = collectRows();
+            if (expectedCount > 0 && rows.length === 0) {
+                e.preventDefault();
+                alert('Could not collect question edits — please try again or refresh the page.');
+                return;
+            }
+            document.getElementById('edited-output').value = JSON.stringify(rows);
         });
     }
 

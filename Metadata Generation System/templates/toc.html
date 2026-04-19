@@ -1,70 +1,68 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'toc' %}
 
 {% block title %}3. TOC — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 3 — Table of Contents</h1>
-    <p>This step builds a Hierarchical TOC by merging labeled blocks by main topic and subtopics. This step doesn't make any API calls. You can also edit the JSON output.</p>
-</div>
+{{ ui.page_header("Step 3 — Table of Contents", "Build a hierarchical table of contents by merging labeled blocks. This is an internal structure step, so the UI focuses on previewing the result clearly.", "Pipeline step") }}
 
 {% if state.toc_bundle %}
-<div class="panel">
-    <div class="panel-label">TOC Output</div>
-    <form action="{{ url_for('toc_update_output') }}" method="post">
-        <textarea name="edited_output" class="output-box">{{ state.toc_bundle | tojson(indent=2) }}</textarea>
+{{ ui.status_card("TOC generated", "The labeling output has been consolidated into a table of contents that downstream chapterization can use.", [
+    ("TOC entries", state.toc_bundle.toc|length if state.toc_bundle.toc else 0),
+    ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
+]) }}
 
-        <div class="btn-row">
-            <button type="submit" class="btn btn-primary">Continue to Chapterization →</button>
-            <a href="{{ url_for('labeling_page') }}" class="btn btn-secondary">← Back to Labeling</a>
-        </div>
-    </form>
-</div>
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-title pf-m-lg">TOC output</h2>
+    </div>
+    <div class="pf-v6-c-card__body">
+        <form action="{{ url_for('toc_update_output') }}" method="post">
+            <textarea name="edited_output" class="output-box">{{ state.toc_bundle | tojson(indent=2) }}</textarea>
+            <div class="app-actions">
+                <button type="submit" class="btn btn-primary">Continue to chapterization</button>
+                <a href="{{ url_for('labeling_page') }}" class="btn btn-secondary">Back to labeling</a>
+            </div>
+        </form>
+    </div>
+</section>
 
-<!-- Visual preview -->
 {% if state.toc_bundle.toc %}
-<div class="panel">
-    <div class="panel-label">Preview</div>
-    {% for entry in state.toc_bundle.toc %}
-    <div class="chapter-card">
-        <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="flex: 1; min-width: 0;">
-                <div class="chapter-num">{{ entry.topic }}</div>
-                <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
-                {% if entry.subtopics %}
-                <div style="margin-top: 8px;">
-                    {% for sub in entry.subtopics %}
-                    <div style="font-size: 12px; color: #777; margin-left: 16px;">
-                        ↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})
+<section class="pf-v6-c-card">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-title pf-m-lg">Preview</h2>
+    </div>
+    <div class="pf-v6-c-card__body app-stack">
+        {% for entry in state.toc_bundle.toc %}
+        <div class="chapter-card">
+            <div style="display:flex; gap:1rem; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div class="chapter-num">{{ entry.topic }}</div>
+                    <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+                    {% if entry.subtopics %}
+                    <div class="app-stack" style="margin-top:0.75rem;">
+                        {% for sub in entry.subtopics %}
+                        <div class="chapter-time">↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})</div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                    {% endif %}
+                </div>
+                {% if state.youtube_video_id %}
+                <div style="flex-shrink:0;">
+                    <iframe class="app-video-frame"
+                        src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ entry.start_time | to_seconds }}&end={{ entry.end_time | to_seconds }}"
+                        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen></iframe>
                 </div>
                 {% endif %}
             </div>
-            {% if state.youtube_video_id %}
-            <div style="flex-shrink: 0;">
-                <iframe width="280" height="158"
-                    src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ entry.start_time | to_seconds }}&end={{ entry.end_time | to_seconds }}"
-                    frameborder="0"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                    style="border-radius: 6px; display: block;">
-                </iframe>
-            </div>
-            {% endif %}
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
+</section>
 {% endif %}
-
 {% else %}
-<div class="panel">
-    <div class="output-block"><pre>No labeled blocks available. Complete the labeling step first.</pre></div>
-</div>
-<div class="btn-row">
-    <a href="{{ url_for('labeling_page') }}" class="btn btn-primary">← Back to Labeling</a>
-</div>
+{{ ui.empty_state("No TOC available", "Complete topic labeling first so the app can merge the labeled blocks into a table of contents.", url_for('labeling_page'), "Back to labeling") }}
 {% endif %}
 {% endblock %}

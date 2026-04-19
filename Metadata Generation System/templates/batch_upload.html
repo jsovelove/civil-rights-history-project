@@ -1,85 +1,58 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 {% set active_step = 'batch' %}
 
 {% block title %}11. Batch — Pipeline Demo{% endblock %}
 
 {% block content %}
-<div class="step-header">
-    <h1>Step 11 — Batch Processing</h1>
-    <p>Upload a zip of SRT files to process them all with your current pipeline settings. Each interview will run through the full pipeline (blocking → labeling → TOC → chapterization → summarization → questions (if enabled) → tuning).</p>
-</div>
+{{ ui.page_header("Step 11 — Batch Processing", "Run multiple interviews through the full pipeline with the configuration captured from your current interactive session.", "Smithsonian demo flow") }}
 
 {% if not has_config %}
-<div class="panel" style="border-left: 3px solid #d4a017;">
-    <div class="panel-label" style="color: #d4a017;">No Configuration Detected</div>
-    <p style="color: #999; font-size: 14px;">
-        You need to run through at least one interview first so the pipeline has prompts and settings to use.
-        <a href="{{ url_for('upload_page') }}" style="color: #4a9eff;">Go to Step 1 →</a>
-    </p>
+{% call ui.alert("Configuration required", "warning") %}
+<p>You need to complete at least one interactive interview run so the batch processor has prompts and settings to reuse.</p>
+{% endcall %}
+<div class="app-actions">
+    <a href="{{ url_for('upload_page') }}" class="btn btn-primary">Go to upload</a>
 </div>
 {% else %}
+{{ ui.status_card("Captured settings", "Batch processing will reuse the current prompt stack and runtime configuration.", [
+    ("Block size", params.block_size),
+    ("Quality threshold", params.quality_threshold),
+    ("Accuracy threshold", params.accuracy_threshold),
+    ("Max tuning retries", params.max_retries),
+    ("Questions", "Enabled" if params.steps_enabled.questions else "Disabled"),
+]) }}
 
-<div class="panel">
-    <div class="panel-label">Captured Settings</div>
-    <div style="font-size: 13px; color: #888; line-height: 1.8;">
-        <div>Block size: <strong style="color: #ccc;">{{ params.block_size }}</strong></div>
-        <div>Quality threshold: <strong style="color: #ccc;">{{ params.quality_threshold }}</strong></div>
-        <div>Accuracy threshold: <strong style="color: #ccc;">{{ params.accuracy_threshold }}</strong></div>
-        <div>Max tuning retries: <strong style="color: #ccc;">{{ params.max_retries }}</strong></div>
-        <div>Question detection: <strong style="color: #ccc;">{{ 'enabled' if params.steps_enabled.questions else 'disabled' }}</strong></div>
-        <div>Question context rows: <strong style="color: #ccc;">{{ params.questions_context_max_rows }}</strong></div>
-        <div>Question context chars (before/after): <strong style="color: #ccc;">{{ params.questions_context_before_chars }}/{{ params.questions_context_after_chars }}</strong></div>
-        <div style="margin-top: 8px;">
-            Prompts configured:
-            <span style="color: #5a9;">Labeling ✓</span> ·
-            <span style="color: #5a9;">Chapterization ✓</span> ·
-            <span style="color: {% if params.main_summary_sys_prompt %}#5a9{% else %}#a55{% endif %};">
-                Summary {% if params.main_summary_sys_prompt %}✓{% else %}✗{% endif %}
-            </span> ·
-            <span style="color: {% if params.questions_sys_prompt %}#5a9{% else %}#a55{% endif %};">
-                Questions {% if params.questions_sys_prompt %}✓{% else %}✗{% endif %}
-            </span> ·
-            <span style="color: {% if params.questions_rewrite_sys_prompt %}#5a9{% else %}#a55{% endif %};">
-                Question Rewrite {% if params.questions_rewrite_sys_prompt %}✓{% else %}✗{% endif %}
-            </span> ·
-            <span style="color: {% if params.eval_sys_prompt %}#5a9{% else %}#a55{% endif %};">
-                Tuning {% if params.eval_sys_prompt %}✓{% else %}✗{% endif %}
-            </span>
-        </div>
-    </div>
-</div>
-
-<form action="{{ url_for('batch_start') }}" method="post" enctype="multipart/form-data" id="batch-form">
-    <div class="panel">
-        <div class="panel-label">Upload Interviews</div>
-        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('zip-input').click()">
-            <input type="file" name="batch_zip" id="zip-input" accept=".zip" required style="display:none;">
-            <div class="upload-label" id="file-label">
-                <strong>Click to select</strong> a .zip file containing .srt files
+<form action="{{ url_for('batch_start') }}" method="post" enctype="multipart/form-data" id="batch-form" class="app-stack">
+    <section class="pf-v6-c-card">
+        <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Upload interviews</h2></div>
+        <div class="pf-v6-c-card__body app-stack">
+            <div class="pf-v6-c-file-upload" id="upload-zone">
+                <div class="pf-v6-c-file-upload__file-select">
+                    <input type="file" name="batch_zip" id="zip-input" accept=".zip" required style="display:none;">
+                    <div class="upload-zone" onclick="document.getElementById('zip-input').click()">
+                        <div class="upload-label" id="file-label"><strong>Click to select</strong> a ZIP file containing `.srt` files</div>
+                    </div>
+                </div>
+                <div class="pf-v6-c-file-upload__helper-text">The ZIP can contain `.srt` files at any folder depth. Non-SRT files are ignored.</div>
             </div>
         </div>
-        <p style="margin-top: 10px; font-size: 13px; color: #666;">
-            The zip should contain .srt files at any level. Non-SRT files will be ignored.
-        </p>
-    </div>
+    </section>
 
-    <div class="panel">
-        <div class="panel-label">Video Links (optional)</div>
-        <label style="display: block; cursor: pointer;">
-            <input type="file" name="video_links_json" id="video-links-input" accept=".json" style="display:none;">
-            <div id="json-label" style="font-size: 13px; color: #666; padding: 10px; border: 1px dashed #333; border-radius: 8px; text-align: center; cursor: pointer;">
-                <strong style="color: #aaa;">Click to select</strong> an interviewee-video-links.json file
-            </div>
-        </label>
-        <p style="margin-top: 8px; font-size: 12px; color: #666;">
-            JSON array with <code style="color: #aaa;">transcript_file</code> and <code style="color: #aaa;">videoEmbedLink</code> fields.
-            When provided, video previews will be included in each interview's output.
-        </p>
-    </div>
+    <section class="pf-v6-c-card">
+        <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Optional video links JSON</h2></div>
+        <div class="pf-v6-c-card__body app-stack">
+            <label class="upload-zone" for="video-links-input">
+                <input type="file" name="video_links_json" id="video-links-input" accept=".json" style="display:none;">
+                <div id="json-label"><strong>Click to select</strong> an `interviewee-video-links.json` file</div>
+            </label>
+            <div class="app-muted">Expected fields: `transcript_file` and `videoEmbedLink`.</div>
+        </div>
+    </section>
 
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary" id="start-btn">Start Batch Processing</button>
-        <a href="{{ url_for('results_page') }}" class="btn btn-secondary">← Back to Results</a>
+    <div class="app-actions">
+        <button type="submit" class="btn btn-primary" id="start-btn">Start batch processing</button>
+        <a href="{{ url_for('results_page') }}" class="btn btn-secondary">Back to results</a>
     </div>
 </form>
 {% endif %}
@@ -89,7 +62,6 @@
 <script>
     const fileInput = document.getElementById('zip-input');
     const fileLabel = document.getElementById('file-label');
-
     if (fileInput) {
         fileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
@@ -100,12 +72,13 @@
 
     const jsonInput = document.getElementById('video-links-input');
     const jsonLabel = document.getElementById('json-label');
-
-    jsonInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            jsonLabel.innerHTML = '<strong style="color:#aaa;">' + this.files[0].name + '</strong>';
-        }
-    });
+    if (jsonInput) {
+        jsonInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                jsonLabel.innerHTML = '<strong>' + this.files[0].name + '</strong>';
+            }
+        });
+    }
 
     const form = document.getElementById('batch-form');
     if (form) {
