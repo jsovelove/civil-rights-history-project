@@ -15,31 +15,36 @@
 
 <div class="app-actions">
     {% if is_running %}
-    <a href="{{ url_for('batch_progress') }}" class="btn btn-secondary">Back to progress</a>
+    <a href="{{ url_for('batch_progress') }}" class="pf-v6-c-button pf-m-secondary">Back to progress</a>
     {% endif %}
-    <a href="{{ url_for('batch_download') }}" class="btn btn-primary">Download ZIP</a>
-    <a href="{{ url_for('batch_page') }}" class="btn btn-secondary">Run another batch</a>
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start over</a>
+    <a href="{{ url_for('batch_download') }}" class="pf-v6-c-button {% if is_running %}pf-m-secondary{% else %}pf-m-primary{% endif %}">
+        Download ZIP{% if is_running %} ({{ results|length }} of {{ interview_order|length }} complete){% endif %}
+    </a>
+    <a href="{{ url_for('batch_page') }}" class="pf-v6-c-button pf-m-secondary">Run another batch</a>
+    <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary">Start over</a>
 </div>
 
-<nav class="app-tab-nav" aria-label="Interview results tabs">
-    <ul class="app-tab-list">
+<div class="pf-v6-c-tabs" role="region" aria-label="Interview results tabs">
+    <ul class="pf-v6-c-tabs__list" role="tablist">
         {% for name in interview_order %}
         {% set r = results.get(name, {}) %}
         {% set has_result = name in results %}
         {% if has_result %}
-        <li>
+        <li class="pf-v6-c-tabs__item{% if name == selected %} pf-m-current{% endif %}" role="presentation">
             <a href="{% if is_running %}{{ url_for('batch_results', i=name) }}&from=progress{% else %}{{ url_for('batch_results', i=name) }}{% endif %}"
-               class="app-tab-link {% if name == selected %}is-active{% endif %}">
-                {{ name }}{% if r.get('_processing', false) %} · loading{% elif r.get('error') %} · error{% endif %}
+               class="pf-v6-c-tabs__link"
+               {% if name == selected %}aria-current="page"{% endif %}>
+                <span class="pf-v6-c-tabs__item-text">{{ name }}{% if r.get('_processing', false) %} · loading{% elif r.get('error') %} · error{% endif %}</span>
             </a>
         </li>
         {% else %}
-        <li><span class="app-tab-link is-disabled">{{ name }}</span></li>
+        <li class="pf-v6-c-tabs__item pf-m-disabled" role="presentation">
+            <span class="pf-v6-c-tabs__link" aria-disabled="true"><span class="pf-v6-c-tabs__item-text">{{ name }}</span></span>
+        </li>
         {% endif %}
         {% endfor %}
     </ul>
-</nav>
+</div>
 
 {% if selected_result %}
 <div class="app-summary-grid">
@@ -63,7 +68,7 @@
 
 {% if selected_result._processing %}
 {% call ui.alert("Currently processing", "info") %}
-<p>Current step: {{ selected_result._current_step or 'Starting' }}</p>
+<p>Current step: <span id="current-step-label">{{ selected_result._current_step or 'Starting' }}</span></p>
 {% endcall %}
 {% endif %}
 
@@ -74,43 +79,59 @@
 {% else %}
 {% if selected_result.main_summary %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Main summary</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Main summary</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">
         <div class="output-block"><pre>{{ selected_result.main_summary.get('summary', '') if selected_result.main_summary is mapping else selected_result.main_summary }}</pre></div>
     </div>
 </section>
 {% elif selected_result._processing %}
 <div class="app-skeleton-stack">
-    <div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-text-xl pf-m-width-50"></div><div class="pf-v6-c-skeleton pf-m-width-75" style="margin-top:0.75rem;"></div><div class="pf-v6-c-skeleton pf-m-width-66" style="margin-top:0.5rem;"></div></div>
+    <div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-text-xl pf-m-width-50"></div><div class="pf-v6-c-skeleton pf-m-width-75 app-mt-md"></div><div class="pf-v6-c-skeleton pf-m-width-66 app-mt-sm"></div></div>
 </div>
 {% endif %}
 
 {% if selected_result.chapters %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Chapters</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Chapters</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for ch in selected_result.chapters %}
         <div class="chapter-card">
             <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
             <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-            <div style="margin-top:0.5rem;">{{ ch.summary }}</div>
+            <div class="app-mt-sm">{{ ch.summary }}</div>
         </div>
         {% endfor %}
     </div>
 </section>
 {% elif selected_result._processing %}
-<div class="app-skeleton-stack"><div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-width-33 pf-m-text-lg"></div><div class="pf-v6-c-skeleton pf-m-width-75" style="margin-top:0.75rem;"></div></div></div>
+<div class="app-skeleton-stack"><div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-width-33 pf-m-text-lg"></div><div class="pf-v6-c-skeleton pf-m-width-75 app-mt-md"></div></div></div>
 {% endif %}
 
 {% if selected_result.questions %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Interviewer questions</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Interviewer questions</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for q in selected_result.questions if q.status != 'rejected' %}
         <div class="chapter-card">
-            <div class="chapter-num">{{ q.status|upper }}</div>
-            <div class="chapter-time">{{ q.start_time }} → {{ q.end_time }}</div>
-            <div style="margin-top:0.5rem;">{{ q.question_text }}</div>
+            <div class="app-row-label">
+                <span class="pf-v6-c-label pf-m-compact {% if q.status == 'verified' %}pf-m-green{% elif q.status == 'needs_review' %}pf-m-orange{% else %}pf-m-blue{% endif %}">
+                    <span class="pf-v6-c-label__content">{{ q.status | replace('_', ' ') | title }}</span>
+                </span>
+                <span class="chapter-time">{{ q.start_time }} → {{ q.end_time }}</span>
+            </div>
+            <div>{{ q.question_text }}</div>
         </div>
         {% endfor %}
     </div>
@@ -119,7 +140,11 @@
 
 {% if selected_result.engagement_scores and selected_result.engagement_scores.overall_score is defined %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Engagement score</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Engagement score</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">
         <div class="app-masthead-value">{{ selected_result.engagement_scores.overall_score.total }}/100</div>
         <div class="app-muted">{{ selected_result.engagement_scores.overall_score.category }}</div>
@@ -129,7 +154,11 @@
 
 {% if selected_result.clips_data and selected_result.clips_data.clips is defined %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Clips</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Clips</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for clip in selected_result.clips_data.clips[:10] %}
         <div class="chapter-card">
@@ -142,7 +171,7 @@
 {% endif %}
 
 {% call ui.advanced_section("Full JSON output", False, "Inspect the complete payload for the selected interview.") %}
-<div class="output-block" style="max-height:30rem; overflow-y:auto;">
+<div class="output-block app-scroll-y">
     <pre id="full-json"></pre>
 </div>
 {% endcall %}
@@ -162,9 +191,34 @@
 {% endif %}
 {% if is_running and selected_result and selected_result._processing %}
 <script>
-    setTimeout(function() {
-        location.reload();
-    }, 3000);
+    const _selectedName = {{ selected | tojson }};
+    const _statusUrl = {{ url_for('batch_status') | tojson }};
+    const _stepLabel = document.getElementById('current-step-label');
+    let _reloaded = false;
+
+    function pollForCompletion() {
+        if (_reloaded) return;
+        fetch(_statusUrl)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.progress) return;
+                const completed = new Set(data.progress.completed || []);
+                if (completed.has(_selectedName)) {
+                    _reloaded = true;
+                    location.reload();
+                    return;
+                }
+                if (_stepLabel && data.running && data.progress.current_name === _selectedName) {
+                    _stepLabel.textContent = data.progress.current_step || 'Processing';
+                }
+                setTimeout(pollForCompletion, 3000);
+            })
+            .catch(function() {
+                setTimeout(pollForCompletion, 5000);
+            });
+    }
+
+    setTimeout(pollForCompletion, 3000);
 </script>
 {% endif %}
 {% endblock %}

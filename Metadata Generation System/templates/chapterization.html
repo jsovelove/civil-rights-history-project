@@ -12,7 +12,7 @@
     ("Chapters detected", state.chapter_breaks_preview|length if state.chapter_breaks_preview else 0),
 ]) }}
 
-<form action="{{ url_for('chapterization_run') }}" method="post" id="chapter-form" class="app-stack">
+<form action="{{ url_for('chapterization_run') }}" method="post" id="chapter-form" class="pf-v6-c-form app-stack">
     {% call ui.advanced_section("Advanced prompt controls", not state.chapter_breaks_preview, "Edit the system and user prompts for topic transition detection.") %}
     <div class="prompt-grid">
         <div class="panel">
@@ -27,28 +27,31 @@
     {% endcall %}
 
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run chapterization</button>
-        <a href="{{ url_for('toc_page') }}" class="btn btn-secondary">Back</a>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-btn">{% if state.chapter_breaks_preview %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run chapterization</button>
+        <a href="{{ url_for('toc_page') }}" class="pf-v6-c-button pf-m-secondary">Back</a>
     </div>
 </form>
 
 {% if state.chapter_breaks_preview %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Detected chapter breaks</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Detected chapter breaks</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for ch in state.chapter_breaks_preview %}
         <div class="chapter-card">
-            <div style="display:flex; gap:1rem; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
+            <div class="app-row-start">
+                <div class="app-fill">
                     <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
-                    <div class="chapter-snippet" style="margin-top:0.5rem;">{{ ch.snippet }}</div>
+                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.segments }} segments · {{ ch.words }} words</div>
+                    <div class="chapter-snippet app-mt-sm">{{ ch.snippet }}</div>
                 </div>
                 {% if state.youtube_video_id %}
-                <div style="flex-shrink:0;">
+                <div class="app-shrink-0">
                     <iframe class="app-video-frame"
+                        title="Video preview for chapter {{ ch.chapter_number }} — {{ ch.title }}"
                         src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
                         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen></iframe>
@@ -57,12 +60,12 @@
             </div>
         </div>
         {% endfor %}
-        <div class="app-actions">
-            <a href="{{ url_for('summarization_page') }}" class="btn btn-primary">Continue to summarization</a>
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('chapter-form').submit()">Restart step</button>
-        </div>
     </div>
 </section>
+<div class="app-actions">
+    <a href="{{ url_for('summarization_page') }}" class="pf-v6-c-button pf-m-primary">Continue to summarization</a>
+    <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run chapterization? Current chapter breaks will be replaced.')) document.getElementById('chapter-form').submit();">Re-run chapterization</button>
+</div>
 {% else %}
 {{ ui.empty_state("No chapters yet", "Run chapterization to create initial chapter boundaries from the TOC and transcript.") }}
 {% endif %}
@@ -70,9 +73,6 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('chapter-form').addEventListener('submit', function() {
-        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running...';
-        document.getElementById('run-btn').disabled = true;
-    });
+    wireRunButton('chapter-form', 'run-btn', 'Running...');
 </script>
 {% endblock %}

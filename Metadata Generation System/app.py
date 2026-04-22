@@ -4,6 +4,7 @@ Flask app that breaks the interview processing pipeline into
 individually controllable steps.
 """
 
+import copy
 import json
 import os
 import re
@@ -94,6 +95,8 @@ def to_seconds_filter(time_str):
     return 0
 
 
+_OPTIONAL_STEPS = {"questions", "engagement", "clips"}
+
 _PIPELINE_STEP_DEFS = [
     {"id": "upload", "label": "Upload", "endpoint": "upload_page", "description": "Interview source and settings"},
     {"id": "labeling", "label": "Labeling", "endpoint": "labeling_page", "description": "Topic labeling"},
@@ -181,9 +184,11 @@ def _step_issue(step_id: str, state_obj: dict):
 
 
 def get_pipeline_steps(state_obj: dict, active_step: str = ""):
+    steps_enabled = state_obj.get("steps_enabled", {})
     items = []
     for index, step_def in enumerate(_PIPELINE_STEP_DEFS, start=1):
         step_id = step_def["id"]
+        is_toggled_off = step_id in _OPTIONAL_STEPS and not steps_enabled.get(step_id, True)
         issue = _step_issue(step_id, state_obj)
         is_current = active_step == step_id
         is_complete = _step_complete(step_id, state_obj)
@@ -196,6 +201,8 @@ def get_pipeline_steps(state_obj: dict, active_step: str = ""):
             status = "current"
         elif is_complete:
             status = "success"
+        elif is_toggled_off:
+            status = "off"
         elif is_enabled:
             status = "info"
         else:
@@ -206,6 +213,7 @@ def get_pipeline_steps(state_obj: dict, active_step: str = ""):
             "is_current": is_current,
             "is_complete": is_complete,
             "is_enabled": is_enabled,
+            "is_toggled_off": is_toggled_off,
             "status": status,
         })
     return items
@@ -228,6 +236,7 @@ def inject_template_helpers():
     return {
         "get_pipeline_steps": get_pipeline_steps,
         "get_metrics_summary": get_metrics_summary,
+        "dev_mode": session.get('dev_mode', False),
     }
 
 # ── YouTube helpers ────────────────────────────────────────────────────
@@ -505,6 +514,267 @@ def load_prompt_file(filename):
     return f"[prompt file not found: {filename}]"
 
 
+# ── dev mode ──────────────────────────────────────────────────────────
+
+def _is_dev_mode() -> bool:
+    return bool(session.get('dev_mode', False))
+
+
+def _dev_block_topics(text_blocks: list) -> list:
+    """Generate mock block topics scaled to actual text_blocks count."""
+    labels = [
+        "early life and family", "childhood experiences",
+        "civil rights movement", "community organizing",
+        "voter registration", "nonviolent protest",
+        "march on washington", "sit-in protests",
+        "sncc and sclc", "personal sacrifice",
+        "historical memory", "legacy and reflection",
+    ]
+    return [
+        {
+            "block_index": i,
+            "primary_topic": labels[i % len(labels)],
+            "subtopics": [],
+            "topics": [labels[i % len(labels)]],
+        }
+        for i in range(len(text_blocks))
+    ]
+
+
+def _dev_chapter_breaks(text_blocks: list) -> list:
+    """Split text_blocks into 4 roughly equal chapters, returning segment indices."""
+    n = len(text_blocks)
+    size = max(1, n // 4)
+    breaks = []
+    for i in range(4):
+        start_block = i * size
+        end_block = min((i + 1) * size, n) - 1
+        breaks.append((
+            text_blocks[start_block]["start_idx"],
+            text_blocks[end_block]["end_idx"],
+        ))
+    return breaks
+
+
+_DEV_MAIN_SUMMARY = {
+    "summary": (
+        "In this oral history interview, the subject recounts their personal journey through the American "
+        "civil rights movement of the 1950s and 1960s. From a childhood in rural Mississippi marked by "
+        "systemic inequality, they trace their path to active participation in voter registration drives, "
+        "sit-ins, and the 1963 March on Washington. The interview offers firsthand testimony about the "
+        "organizing strategies of SNCC and SCLC, the personal costs of activism, and the enduring "
+        "significance of this period for American democracy."
+    ),
+    "key_themes": [
+        "voter registration", "nonviolent resistance",
+        "community organizing", "personal sacrifice", "historical memory",
+    ],
+    "historical_significance": (
+        "This interview documents the lived experience of a participant in one of the most transformative "
+        "social movements in American history, providing primary source testimony about events central to "
+        "the passage of the Civil Rights Act of 1964 and the Voting Rights Act of 1965."
+    ),
+}
+
+_DEV_CHAPTERS = [
+    {
+        "chapter_number": 1,
+        "title": "Early Life and Family Background",
+        "start_time": "00:00:00",
+        "end_time": "00:12:30",
+        "summary": (
+            "The subject describes growing up in rural Mississippi during the Jim Crow era, recounting "
+            "family experiences with segregation and economic hardship. Witnessing injustice from an "
+            "early age shaped their eventual commitment to civil rights activism."
+        ),
+    },
+    {
+        "chapter_number": 2,
+        "title": "Joining the Movement",
+        "start_time": "00:12:30",
+        "end_time": "00:28:15",
+        "summary": (
+            "The subject describes their introduction to civil rights organizing through a local NAACP "
+            "chapter and involvement with SNCC. They detail training in nonviolent resistance, dangers "
+            "faced by organizers, and the community networks that sustained the movement."
+        ),
+    },
+    {
+        "chapter_number": 3,
+        "title": "The March on Washington",
+        "start_time": "00:28:15",
+        "end_time": "00:45:00",
+        "summary": (
+            "The subject provides a firsthand account of the 1963 March on Washington. They describe "
+            "the atmosphere of hope and determination, proximity to the Lincoln Memorial during "
+            "Dr. King's 'I Have a Dream' speech, and the march's immediate emotional impact."
+        ),
+    },
+    {
+        "chapter_number": 4,
+        "title": "Legacy and Reflection",
+        "start_time": "00:45:00",
+        "end_time": "01:02:00",
+        "summary": (
+            "The subject reflects on the long-term impact of their civil rights work, progress made, "
+            "challenges that remain, and hopes for future generations. They emphasize preserving this "
+            "history and passing lessons of the movement to young people today."
+        ),
+    },
+]
+
+_DEV_QUESTIONS_ROWS = [
+    {"question_id": "Q001", "question_text": "Can you tell us about where you grew up and what your early life was like?", "start_time": "00:01:15", "end_time": "00:01:45", "status": "verified"},
+    {"question_id": "Q002", "question_text": "How did your family talk about race and the political situation at the time?", "start_time": "00:05:30", "end_time": "00:05:55", "status": "verified"},
+    {"question_id": "Q003", "question_text": "When did you first become aware of the civil rights movement?", "start_time": "00:13:20", "end_time": "00:13:50", "status": "verified"},
+    {"question_id": "Q004", "question_text": "What was it like to participate in your first sit-in?", "start_time": "00:18:45", "end_time": "00:19:10", "status": "needs_review"},
+    {"question_id": "Q005", "question_text": "Can you describe the training you received in nonviolent resistance?", "start_time": "00:22:00", "end_time": "00:22:30", "status": "verified"},
+    {"question_id": "Q006", "question_text": "What do you remember most vividly about the March on Washington?", "start_time": "00:29:15", "end_time": "00:29:45", "status": "verified"},
+    {"question_id": "Q007", "question_text": "Where were you standing when Dr. King gave his speech?", "start_time": "00:35:00", "end_time": "00:35:20", "status": "verified"},
+    {"question_id": "Q008", "question_text": "How did your activism affect your personal relationships and family life?", "start_time": "00:46:30", "end_time": "00:47:00", "status": "unreviewed"},
+    {"question_id": "Q009", "question_text": "What would you want young people today to understand about this period?", "start_time": "00:54:20", "end_time": "00:54:50", "status": "verified"},
+]
+
+_DEV_ENGAGEMENT_SCORES = {
+    "overall_score": {"total": 82, "category": "High Engagement"},
+    "dimension_scores": {
+        "narrative_quality": {"score": 18, "max_possible": 20, "notes": "Vivid personal recollections with strong narrative arc"},
+        "historical_significance": {"score": 19, "max_possible": 20, "notes": "Direct witness testimony to landmark events"},
+        "emotional_resonance": {"score": 16, "max_possible": 20, "notes": "Authentic emotional depth throughout"},
+        "educational_value": {"score": 17, "max_possible": 20, "notes": "Rich contextual detail appropriate for educational use"},
+        "archival_quality": {"score": 12, "max_possible": 20, "notes": "Good audio quality with minor transcription gaps"},
+    },
+}
+
+_DEV_TOC_BUNDLE = {
+    "toc": [
+        {
+            "topic": "Early Life and Family Background",
+            "start_time": "00:00:00",
+            "end_time": "00:12:30",
+            "start_block": 0,
+            "end_block": 4,
+            "subtopics": [
+                {"label": "Childhood in rural Mississippi", "start_time": "00:00:00", "end_time": "00:05:15"},
+                {"label": "Family and Jim Crow", "start_time": "00:05:15", "end_time": "00:12:30"},
+            ],
+        },
+        {
+            "topic": "Joining the Civil Rights Movement",
+            "start_time": "00:12:30",
+            "end_time": "00:28:15",
+            "start_block": 5,
+            "end_block": 9,
+            "subtopics": [
+                {"label": "NAACP involvement", "start_time": "00:12:30", "end_time": "00:18:00"},
+                {"label": "Nonviolent resistance training", "start_time": "00:18:00", "end_time": "00:28:15"},
+            ],
+        },
+        {
+            "topic": "The March on Washington",
+            "start_time": "00:28:15",
+            "end_time": "00:45:00",
+            "start_block": 10,
+            "end_block": 14,
+            "subtopics": [
+                {"label": "Traveling to Washington", "start_time": "00:28:15", "end_time": "00:33:00"},
+                {"label": "I Have a Dream speech", "start_time": "00:33:00", "end_time": "00:45:00"},
+            ],
+        },
+        {
+            "topic": "Legacy and Reflection",
+            "start_time": "00:45:00",
+            "end_time": "01:02:00",
+            "start_block": 15,
+            "end_block": 19,
+            "subtopics": [
+                {"label": "Progress and remaining challenges", "start_time": "00:45:00", "end_time": "00:54:00"},
+                {"label": "Message to future generations", "start_time": "00:54:00", "end_time": "01:02:00"},
+            ],
+        },
+    ],
+    "topic_index": {
+        "early life and family": [0, 1, 2, 3, 4],
+        "civil rights movement": [5, 6, 7, 8, 9],
+        "march on washington": [10, 11, 12, 13, 14],
+        "legacy and reflection": [15, 16, 17, 18, 19],
+    },
+}
+
+_DEV_CLIPS_DATA = {
+    "clips": [
+        {
+            "clip_id": "CLIP_001",
+            "clip_title": "Witnessing Segregation as a Child",
+            "timestamp_start": "00:03:20",
+            "timestamp_end": "00:06:45",
+            "duration": "3m 25s",
+            "scores": {"total_score": 91},
+            "thematic_tags": {
+                "main_topics": ["childhood experience", "Jim Crow", "segregation"],
+                "key_events": ["personal testimony"],
+            },
+            "content_summary": {"primary_focus": "Firsthand account of experiencing racial segregation as a child in rural Mississippi."},
+        },
+        {
+            "clip_id": "CLIP_002",
+            "clip_title": "First Arrest During a Sit-In",
+            "timestamp_start": "00:19:10",
+            "timestamp_end": "00:23:00",
+            "duration": "3m 50s",
+            "scores": {"total_score": 95},
+            "thematic_tags": {
+                "main_topics": ["nonviolent protest", "sit-ins", "arrest"],
+                "key_events": ["civil disobedience"],
+            },
+            "content_summary": {"primary_focus": "Detailed recollection of the first arrest during a lunch counter sit-in protest."},
+        },
+        {
+            "clip_id": "CLIP_003",
+            "clip_title": "Standing Near the Lincoln Memorial",
+            "timestamp_start": "00:33:45",
+            "timestamp_end": "00:38:20",
+            "duration": "4m 35s",
+            "scores": {"total_score": 98},
+            "thematic_tags": {
+                "main_topics": ["March on Washington", "MLK speech", "historic moment"],
+                "key_events": ["I Have a Dream speech"],
+            },
+            "content_summary": {"primary_focus": "Eyewitness account of Dr. King's 'I Have a Dream' speech at the 1963 March on Washington."},
+        },
+        {
+            "clip_id": "CLIP_004",
+            "clip_title": "Advice for Future Generations",
+            "timestamp_start": "00:55:30",
+            "timestamp_end": "00:59:15",
+            "duration": "3m 45s",
+            "scores": {"total_score": 87},
+            "thematic_tags": {
+                "main_topics": ["legacy", "youth", "civic engagement"],
+                "key_events": ["personal reflection"],
+            },
+            "content_summary": {"primary_focus": "Heartfelt message about civic responsibility and the importance of historical memory."},
+        },
+    ],
+    "extraction_summary": {
+        "total_clips_extracted": 4,
+        "average_clip_score": 92.75,
+        "total_clips_duration": "15m 35s",
+        "topic_coverage": ["childhood", "activism", "historic events", "legacy"],
+    },
+    "extraction_notes": {
+        "interview_strengths": "Exceptional firsthand testimony with vivid narrative detail and strong emotional authenticity.",
+        "coverage_gaps": "Limited discussion of post-1965 civil rights developments.",
+    },
+}
+
+
+@app.route('/dev-mode/toggle', methods=['POST'])
+def dev_mode_toggle():
+    session['dev_mode'] = not session.get('dev_mode', False)
+    return redirect(request.referrer or url_for('upload_page'))
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  STEP 1 — UPLOAD / BLOCKING
 # ══════════════════════════════════════════════════════════════════════
@@ -522,7 +792,11 @@ def upload_run():
         state["api_key"] = submitted_api_key
         state["processor"] = None
     elif not has_api_key():
-        return _render_upload('Enter an API key before running the pipeline.')
+        if _is_dev_mode():
+            state["api_key"] = "dev-mode"
+            state["processor"] = None
+        else:
+            return _render_upload('Enter an API key before running the pipeline.')
 
     use_sample = request.form.get('use_sample') == 'on'
     uploaded_file = request.files.get('srt_file')
@@ -664,6 +938,11 @@ def labeling_run():
     if not text_blocks:
         return redirect(url_for('upload_page'))
 
+    if _is_dev_mode():
+        state["block_topics"] = _dev_block_topics(text_blocks)
+        _record_step_metric("Labeling", 0.1, 0)
+        return render_template('labeling.html', state=state, just_ran=True)
+
     try:
         ctx = get_ctx()
         from processor.labeling import label_text_blocks
@@ -709,9 +988,12 @@ def labeling_update_output():
 @app.route('/toc', methods=['GET'])
 def toc_page():
     if state["text_blocks"] and state["block_topics"] and not state["toc_bundle"]:
-        from processor.toc import build_hierarchical_toc
-        toc_bundle = build_hierarchical_toc(state["text_blocks"], state["block_topics"])
-        state["toc_bundle"] = toc_bundle
+        if _is_dev_mode():
+            state["toc_bundle"] = copy.deepcopy(_DEV_TOC_BUNDLE)
+        else:
+            from processor.toc import build_hierarchical_toc
+            toc_bundle = build_hierarchical_toc(state["text_blocks"], state["block_topics"])
+            state["toc_bundle"] = toc_bundle
 
     return render_template('toc.html', state=state)
 
@@ -753,6 +1035,15 @@ def chapterization_run():
 
     if not text_blocks:
         return redirect(url_for('upload_page'))
+
+    if _is_dev_mode():
+        from processor.chapterization import build_chapter_preview
+        chapter_breaks = _dev_chapter_breaks(text_blocks)
+        state["chapter_breaks"] = chapter_breaks
+        preview = build_chapter_preview(chapter_breaks, state["segments"], state["plaintext_transcript"])
+        state["chapter_breaks_preview"] = preview
+        _record_step_metric("Chapterization", 0.1, 0)
+        return render_template('chapterization.html', state=state, just_ran=True)
 
     from processor.chapterization import detect_topic_transitions, build_chapter_preview
     _t0 = time.time()
@@ -801,6 +1092,12 @@ def summarization_run_main():
     transcript = state["plaintext_transcript"]
     interview_name = os.path.basename(state["srt_path"] or "unknown")
 
+    if _is_dev_mode():
+        state["main_summary"] = copy.deepcopy(_DEV_MAIN_SUMMARY)
+        _reset_after_summary_changes()
+        _record_step_metric("Main Summary", 0.1, 0)
+        return render_template('summarization.html', state=state, ran_main=True)
+
     from processor.summarization import generate_main_summary
     _t0 = time.time()
     _tok0 = ctx.total_tokens_used
@@ -827,6 +1124,12 @@ def summarization_run_chapters():
     interview_name = os.path.basename(state["srt_path"] or "unknown")
     plaintext = state["plaintext_transcript"]
     chapter_breaks = state["chapter_breaks"]
+
+    if _is_dev_mode():
+        state["chapters"] = copy.deepcopy(_DEV_CHAPTERS)
+        _reset_after_summary_changes()
+        _record_step_metric("Chapter Summaries", 0.1, 0)
+        return render_template('summarization.html', state=state, ran_chapters=True)
 
     from processor.summarization import generate_chapters
     _t0 = time.time()
@@ -899,6 +1202,15 @@ def questions_run():
     segments = state.get("segments")
     if not segments:
         return redirect(url_for('upload_page'))
+
+    if _is_dev_mode():
+        rows = normalize_question_rows(copy.deepcopy(_DEV_QUESTIONS_ROWS))
+        state["questions_rows"] = rows
+        state["questions_stats"] = compute_question_stats(rows)
+        state["questions_error"] = None
+        state["questions_ran"] = True
+        _record_step_metric("Questions", 0.1, 0)
+        return render_template('questions.html', state=state, questions_message=f"Generated {len(rows)} questions.")
 
     try:
         ctx = get_ctx()
@@ -989,6 +1301,26 @@ def tuning_run():
     state["revision_sys_prompt"] = request.form.get('revision_sys_prompt', '')
     state["revision_user_prompt"] = request.form.get('revision_user_prompt', '')
 
+    if _is_dev_mode():
+        chapters = state.get("chapters") or copy.deepcopy(_DEV_CHAPTERS)
+        state["tuning_results"] = {
+            "main_summary": {
+                "summary": state.get("main_summary") or copy.deepcopy(_DEV_MAIN_SUMMARY),
+                "scores": {"accuracy_score": 91, "quality_score": 88, "errors": []},
+                "regenerated": False,
+                "retries": 0,
+            },
+            "chapters": [
+                {
+                    "chapter": ch,
+                    "scores": {"accuracy_score": 85 + i * 2, "quality_score": 83 + i * 3, "errors": []},
+                }
+                for i, ch in enumerate(chapters)
+            ],
+        }
+        _record_step_metric("Tuning", 0.1, 0)
+        return render_template('tuning.html', state=state, just_ran=True)
+
     ctx = get_ctx()
     transcript = state["plaintext_transcript"]
 
@@ -1070,6 +1402,11 @@ def engagement_run():
     state["engagement_sys_prompt"] = request.form.get('sys_prompt', '')
     state["engagement_rubric"] = request.form.get('rubric', '')
     state["engagement_schema"] = request.form.get('schema', '')
+
+    if _is_dev_mode():
+        state["engagement_scores"] = copy.deepcopy(_DEV_ENGAGEMENT_SCORES)
+        _record_step_metric("Engagement Scoring", 0.1, 0)
+        return render_template('engagement.html', state=state, just_ran=True)
 
     ctx = get_ctx()
 
@@ -1166,6 +1503,11 @@ def clips_run():
         sections[section_id] = request.form.get(f'prompt_section_{section_id}', '')
     state["clips_prompt_sections"] = sections
     state["clips_token_limit"] = int(request.form.get('token_limit', 30000))
+
+    if _is_dev_mode():
+        state["clips_data"] = copy.deepcopy(_DEV_CLIPS_DATA)
+        _record_step_metric("Clip Extraction", 0.1, 0)
+        return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS, just_ran=True)
 
     combined_prompt = _assemble_clips_prompt(state["clips_prompt_sections"])
     ctx = get_ctx()

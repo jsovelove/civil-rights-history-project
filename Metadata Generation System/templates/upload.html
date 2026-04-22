@@ -7,25 +7,13 @@
 {% block content %}
 {{ ui.page_header("Step 1 — Upload and Blocking", "Start with one interview ZIP or use the bundled sample. This demo explains the workflow clearly for first-time viewers while still exposing advanced controls for operators.", "Pipeline entry") }}
 
-<div class="app-grid-2">
-    {{ ui.status_card("Current session", "Configure the interview source, choose optional modules, and load an API key for this browser session.", [
-        ("Loaded file", "Bundled sample interview" if state.using_sample else (state.srt_path.rsplit('\\', 1)[-1] if state.srt_path else "None")),
-        ("Block size", state.block_size),
-        ("Questions", "Enabled" if state.steps_enabled.questions else "Disabled"),
-        ("Engagement", "Enabled" if state.steps_enabled.engagement else "Disabled"),
-        ("Clips", "Enabled" if state.steps_enabled.clips else "Disabled"),
-    ]) }}
-
-    <section class="pf-v6-c-card">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-title pf-m-lg">How this works</h2>
-        </div>
-        <div class="pf-v6-c-card__body pf-v6-c-content">
-            <p>The pipeline turns a transcript into structured metadata for archives, web applications, and demos. It builds text blocks, labels topics, generates chapters and summaries, then optionally scores engagement and extracts clips.</p>
-            <p class="app-muted">Batch processing uses the same configuration, so a clean first run here becomes the source of truth for the rest of the demo.</p>
-        </div>
-    </section>
-</div>
+{{ ui.status_card("Current session", "Configure the interview source, choose optional modules, and load an API key for this browser session.", [
+    ("Loaded file", "Bundled sample interview" if state.using_sample else (state.srt_path.rsplit('\\', 1)[-1] if state.srt_path else "None")),
+    ("Block size", state.block_size),
+    ("Questions", "Enabled" if state.steps_enabled.questions else "Disabled"),
+    ("Engagement", "Enabled" if state.steps_enabled.engagement else "Disabled"),
+    ("Clips", "Enabled" if state.steps_enabled.clips else "Disabled"),
+]) }}
 
 {% if api_key_error %}
 {% call ui.alert("API key required", "danger") %}
@@ -33,54 +21,66 @@
 {% endcall %}
 {% endif %}
 
-<form action="{{ url_for('upload_run') }}" method="post" enctype="multipart/form-data" id="upload-form" class="app-stack">
+<form action="{{ url_for('upload_run') }}" method="post" enctype="multipart/form-data" id="upload-form" class="pf-v6-c-form app-stack">
     <section class="pf-v6-c-card">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-title pf-m-lg">Interview source</h2>
+        <div class="pf-v6-c-card__header">
+            <div class="pf-v6-c-card__title">
+                <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Interview source</h2>
+            </div>
         </div>
         <div class="pf-v6-c-card__body app-stack">
             <div class="app-grid-2">
-                <div class="app-field">
-                    <label for="api-key-input">OpenAI API key</label>
-                    <input
-                        id="api-key-input"
-                        type="password"
-                        name="api_key"
-                        placeholder="Paste an OpenAI API key"
-                        autocomplete="off"
-                        {% if not api_key_present %}required{% endif %}
-                    >
-                    <p class="app-muted">
-                        {% if api_key_present %}
-                        Current session key: {{ api_key_masked }}. Leave blank to keep using it.
-                        {% else %}
-                        Used only for this browser session.
-                        {% endif %}
-                    </p>
-                    <div class="app-actions">
-                        <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Get API key</a>
-                        <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Where to find it</a>
+                <div class="pf-v6-c-form__group">
+                    <div class="pf-v6-c-form__group-label">
+                        <label class="pf-v6-c-form__label" for="api-key-input"><span class="pf-v6-c-form__label-text">OpenAI API key</span></label>
+                    </div>
+                    <div class="pf-v6-c-form__group-control">
+                        <span class="pf-v6-c-form-control"><input
+                            id="api-key-input"
+                            type="password"
+                            name="api_key"
+                            placeholder="{% if dev_mode %}Not required in dev mode{% else %}Paste an OpenAI API key{% endif %}"
+                            autocomplete="off"
+                            {% if not api_key_present and not dev_mode %}required{% endif %}
+                            {% if dev_mode %}disabled{% endif %}
+                        ></span>
+                        <p class="pf-v6-c-form__helper-text">
+                            {% if dev_mode %}
+                            Dev mode is on — no API key needed. Steps use mock data.
+                            {% elif api_key_present %}
+                            Current session key: {{ api_key_masked }}. Leave blank to keep using it.
+                            {% else %}
+                            Used only for this browser session.
+                            {% endif %}
+                        </p>
+                        <div class="app-actions">
+                            <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" rel="noopener noreferrer" class="pf-v6-c-button pf-m-secondary">Get API key</a>
+                            {# <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key" target="_blank" rel="noopener noreferrer" class="pf-v6-c-button pf-m-secondary">Where to find it</a> #}
+                        </div>
                     </div>
                 </div>
 
-                <div class="app-field">
-                    <label for="youtube-url">Video preview URL</label>
-                    <input id="youtube-url" type="url" name="youtube_url" value="{{ state.youtube_url }}" placeholder="https://www.youtube.com/watch?v=...">
-                    <p class="app-muted">Optional. When present, TOC, chapter, summary, and clip screens can show contextual video embeds.</p>
+                <div class="pf-v6-c-form__group">
+                    <div class="pf-v6-c-form__group-label">
+                        <label class="pf-v6-c-form__label" for="youtube-url"><span class="pf-v6-c-form__label-text">Video preview URL</span></label>
+                    </div>
+                    <div class="pf-v6-c-form__group-control">
+                        <span class="pf-v6-c-form-control"><input id="youtube-url" type="url" name="youtube_url" value="{{ state.youtube_url }}" placeholder="https://www.youtube.com/watch?v=..."></span>
+                        <p class="pf-v6-c-form__helper-text">Optional. When present, TOC, chapter, summary, and clip screens can show contextual video embeds.</p>
+                    </div>
                 </div>
             </div>
 
-            <label style="display:flex; align-items:center; gap:0.6rem;">
+            <label class="app-row-center-gap">
                 <input type="checkbox" name="use_sample" id="use-sample-checkbox">
                 <span>Use the bundled Amos C. Brown sample interview instead of uploading a ZIP.</span>
             </label>
 
+            <input type="file" name="srt_file" id="srt-input" accept=".zip" required class="app-file-input-hidden" aria-hidden="true" tabindex="-1">
             <div class="pf-v6-c-file-upload" id="upload-zone">
-                <div class="pf-v6-c-file-upload__file-select">
-                    <input type="file" name="srt_file" id="srt-input" accept=".zip" required>
-                    <div class="upload-zone">
-                        <div class="upload-label" id="file-label"><strong>Click or drag and drop</strong> a ZIP file containing transcript data</div>
-                    </div>
+                <div class="upload-zone">
+                    <div class="upload-label" id="file-label"><strong>Click or drag and drop</strong> a ZIP file containing transcript data</div>
+                    <button type="button" class="pf-v6-c-button pf-m-secondary" id="file-browse-btn">Choose file</button>
                 </div>
                 <div class="pf-v6-c-file-upload__helper-text">
                     Upload one ZIP for a single run or a ZIP of multiple `.srt` files to stage the remaining interviews for batch processing.
@@ -90,35 +90,63 @@
     </section>
 
     <section class="pf-v6-c-card">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-title pf-m-lg">Processing controls</h2>
+        <div class="pf-v6-c-card__header">
+            <div class="pf-v6-c-card__title">
+                <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Processing controls</h2>
+            </div>
         </div>
         <div class="pf-v6-c-card__body app-stack">
-            <div class="slider-group">
-                <label for="block-size">Number of SRT segments per block <span class="app-masthead-value" id="block-size-val">{{ state.block_size }}</span></label>
-                <input id="block-size" type="range" name="block_size" min="10" max="80" value="{{ state.block_size }}"
-                       oninput="document.getElementById('block-size-val').textContent = this.value">
+            <div class="pf-v6-c-form__group">
+                <div class="pf-v6-c-form__group-label">
+                    <label class="pf-v6-c-form__label" id="block-size-label">
+                        <span class="pf-v6-c-form__label-text">Segments per block</span>
+                    </label>
+                </div>
+                <div class="pf-v6-c-form__group-control">
+                    <div class="app-slider-row">
+                        <div class="pf-v6-c-slider" id="block-size-slider"
+                            style="--pf-v6-c-slider--value: {{ ((state.block_size - 10) / 70 * 100) | round(2) }}%">
+                            <div class="pf-v6-c-slider__main">
+                                <div class="pf-v6-c-slider__rail">
+                                    <div class="pf-v6-c-slider__rail-track"></div>
+                                </div>
+                                <div class="pf-v6-c-slider__thumb"
+                                    role="slider"
+                                    tabindex="0"
+                                    aria-labelledby="block-size-label"
+                                    aria-valuemin="10"
+                                    aria-valuemax="80"
+                                    aria-valuenow="{{ state.block_size }}"
+                                    aria-valuetext="{{ state.block_size }} segments per block">
+                                </div>
+                            </div>
+                        </div>
+                        <span class="app-slider-value" id="block-size-val" aria-hidden="true">{{ state.block_size }}</span>
+                    </div>
+                    <input type="hidden" name="block_size" id="block-size-input" value="{{ state.block_size }}">
+                    <p class="pf-v6-c-form__helper-text">Larger blocks = fewer, longer chapters. Smaller = more granular topics. Default (23) works well for most interviews.</p>
+                </div>
             </div>
 
             <div class="app-grid-3">
-                <label class="chapter-card" style="display:block;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                <label class="chapter-card pf-v6-u-display-block">
+                    <div class="app-row-label">
                         <input type="checkbox" name="enable_questions" {% if state.steps_enabled.questions %}checked{% endif %}>
                         <strong>Question Detection</strong>
                     </div>
                     <div class="app-muted">Identifies interviewer questions and places that review step after summary generation.</div>
                 </label>
 
-                <label class="chapter-card" style="display:block;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                <label class="chapter-card pf-v6-u-display-block">
+                    <div class="app-row-label">
                         <input type="checkbox" name="enable_engagement" {% if state.steps_enabled.engagement %}checked{% endif %}>
                         <strong>Engagement Scoring</strong>
                     </div>
                     <div class="app-muted">Adds narrative, historical, emotional, and accessibility scoring with extra API usage.</div>
                 </label>
 
-                <label class="chapter-card" style="display:block;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                <label class="chapter-card pf-v6-u-display-block">
+                    <div class="app-row-label">
                         <input type="checkbox" name="enable_clips" {% if state.steps_enabled.clips %}checked{% endif %}>
                         <strong>Clip Extraction</strong>
                     </div>
@@ -130,7 +158,7 @@
     </section>
 
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run blocking</button>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-btn">{% if state.text_blocks %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run blocking</button>
     </div>
 </form>
 
@@ -150,6 +178,11 @@
     const fileLabel = document.getElementById('file-label');
     const sampleCheckbox = document.getElementById('use-sample-checkbox');
     const uploadZone = document.getElementById('upload-zone');
+    const browseBtn = document.getElementById('file-browse-btn');
+
+    browseBtn.addEventListener('click', function () {
+        fileInput.click();
+    });
 
     function setZoneActive(isActive) {
         if (sampleCheckbox.checked) return;
@@ -179,12 +212,12 @@
             fileInput.required = false;
             fileInput.value = '';
             zone.style.opacity = '0.65';
-            zone.style.cursor = 'default';
+            browseBtn.disabled = true;
             fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
         } else {
             fileInput.required = true;
             zone.style.opacity = '1';
-            zone.style.cursor = 'pointer';
+            browseBtn.disabled = false;
             showDefaultLabel();
         }
     }
@@ -232,9 +265,75 @@
     sampleCheckbox.addEventListener('change', updateSourceMode);
     updateSourceMode();
 
-    document.getElementById('upload-form').addEventListener('submit', function() {
-        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running blocking...';
-        document.getElementById('run-btn').disabled = true;
-    });
+    wireRunButton('upload-form', 'run-btn', 'Running blocking...');
+
+    (function () {
+        var slider = document.getElementById('block-size-slider');
+        var thumb = slider.querySelector('.pf-v6-c-slider__thumb');
+        var hiddenInput = document.getElementById('block-size-input');
+        var valDisplay = document.getElementById('block-size-val');
+        var MIN = 10, MAX = 80;
+
+        function toPercent(val) {
+            return (val - MIN) / (MAX - MIN) * 100;
+        }
+
+        function clamp(val) {
+            return Math.max(MIN, Math.min(MAX, Math.round(val)));
+        }
+
+        function applyValue(val) {
+            val = clamp(val);
+            thumb.setAttribute('aria-valuenow', val);
+            thumb.setAttribute('aria-valuetext', val + ' segments per block');
+            slider.style.setProperty('--pf-v6-c-slider--value', toPercent(val) + '%');
+            hiddenInput.value = val;
+            valDisplay.textContent = val;
+        }
+
+        function valueFromClientX(clientX) {
+            var rail = slider.querySelector('.pf-v6-c-slider__rail');
+            var rect = rail.getBoundingClientRect();
+            var pct = (clientX - rect.left) / rect.width;
+            return MIN + pct * (MAX - MIN);
+        }
+
+        function startDrag(startX) {
+            function onMouseMove(e) { applyValue(valueFromClientX(e.clientX)); }
+            function onTouchMove(e) { applyValue(valueFromClientX(e.touches[0].clientX)); }
+            function stop() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', stop);
+                document.removeEventListener('touchmove', onTouchMove);
+                document.removeEventListener('touchend', stop);
+            }
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', stop);
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('touchend', stop);
+            applyValue(valueFromClientX(startX));
+        }
+
+        thumb.addEventListener('mousedown', function (e) { e.preventDefault(); startDrag(e.clientX); });
+        thumb.addEventListener('touchstart', function (e) { e.preventDefault(); startDrag(e.touches[0].clientX); }, { passive: false });
+
+        slider.querySelector('.pf-v6-c-slider__rail').addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            startDrag(e.clientX);
+        });
+
+        thumb.addEventListener('keydown', function (e) {
+            var val = parseInt(thumb.getAttribute('aria-valuenow'), 10);
+            var handled = true;
+            if      (e.key === 'ArrowRight' || e.key === 'ArrowUp')   applyValue(val + 1);
+            else if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown')  applyValue(val - 1);
+            else if (e.key === 'PageUp')   applyValue(val + 5);
+            else if (e.key === 'PageDown') applyValue(val - 5);
+            else if (e.key === 'Home')     applyValue(MIN);
+            else if (e.key === 'End')      applyValue(MAX);
+            else handled = false;
+            if (handled) e.preventDefault();
+        });
+    })();
 </script>
 {% endblock %}

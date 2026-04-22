@@ -10,6 +10,15 @@
     <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.4.0/patternfly-addons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        (function () {
+            var stored = localStorage.getItem('theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark' || (!stored && prefersDark)) {
+                document.documentElement.classList.add('pf-v6-theme-dark');
+            }
+        })();
+    </script>
 </head>
 <body>
     <a class="pf-v6-c-button pf-m-primary pf-v6-u-screen-reader" href="#main-content">Skip to content</a>
@@ -23,32 +32,34 @@
                 </div>
             </div>
             <div class="pf-v6-c-masthead__content">
-                <div class="pf-v6-l-flex pf-m-space-items-md pf-m-align-items-center">
+                <div class="app-masthead-row">
                     <div class="app-masthead-context">
-                        <div class="pf-v6-c-content">
-                            <p class="app-masthead-label">Current interview</p>
-                            <p class="app-masthead-value">
-                                {% if state.using_sample %}
-                                Bundled sample interview
-                                {% elif state.srt_path %}
-                                {{ state.srt_path.rsplit('\\', 1)[-1] }}
-                                {% else %}
-                                No file loaded
-                                {% endif %}
-                            </p>
+                        <p class="app-masthead-label">Current interview</p>
+                        <p class="app-masthead-value">
+                            {% if state.using_sample %}
+                            Bundled sample interview
+                            {% elif state.srt_path %}
+                            {{ state.srt_path.rsplit('\\', 1)[-1] }}
+                            {% else %}
+                            No file loaded
+                            {% endif %}
+                        </p>
+                    </div>
+                    <span class="app-masthead-divider" aria-hidden="true"></span>
+                    <div class="app-module-chips-wrap">
+                        <div class="pf-v6-c-label-group app-module-chips">
+                            <span class="pf-v6-c-label {% if state.steps_enabled.questions %}pf-m-blue{% endif %}">
+                                <span class="pf-v6-c-label__content">Questions {{ 'on' if state.steps_enabled.questions else 'off' }}</span>
+                            </span>
+                            <span class="pf-v6-c-label {% if state.steps_enabled.engagement %}pf-m-green{% endif %}">
+                                <span class="pf-v6-c-label__content">Engagement {{ 'on' if state.steps_enabled.engagement else 'off' }}</span>
+                            </span>
+                            <span class="pf-v6-c-label {% if state.steps_enabled.clips %}pf-m-gold{% endif %}">
+                                <span class="pf-v6-c-label__content">Clips {{ 'on' if state.steps_enabled.clips else 'off' }}</span>
+                            </span>
                         </div>
                     </div>
-                    <div class="pf-v6-c-label-group app-module-chips">
-                        <span class="pf-v6-c-label {% if state.steps_enabled.questions %}pf-m-blue{% endif %}">
-                            <span class="pf-v6-c-label__content">Questions {{ 'on' if state.steps_enabled.questions else 'off' }}</span>
-                        </span>
-                        <span class="pf-v6-c-label {% if state.steps_enabled.engagement %}pf-m-green{% endif %}">
-                            <span class="pf-v6-c-label__content">Engagement {{ 'on' if state.steps_enabled.engagement else 'off' }}</span>
-                        </span>
-                        <span class="pf-v6-c-label {% if state.steps_enabled.clips %}pf-m-gold{% endif %}">
-                            <span class="pf-v6-c-label__content">Clips {{ 'on' if state.steps_enabled.clips else 'off' }}</span>
-                        </span>
-                    </div>
+                    <span class="app-masthead-divider" aria-hidden="true"></span>
                     <details class="app-metrics-popover">
                         <summary class="pf-v6-c-button pf-m-secondary pf-m-small">
                             Pipeline metrics
@@ -63,12 +74,12 @@
                                 {% if metrics %}
                                 <dl class="pf-v6-c-description-list pf-m-horizontal-on-md app-meta-list">
                                     <div class="pf-v6-c-description-list__group">
-                                        <dt class="pf-v6-c-description-list__term">Total time</dt>
-                                        <dd class="pf-v6-c-description-list__description">{{ metrics.total_time | fmt_duration }}</dd>
+                                        <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">Total time</span></dt>
+                                        <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">{{ metrics.total_time | fmt_duration }}</span></dd>
                                     </div>
                                     <div class="pf-v6-c-description-list__group">
-                                        <dt class="pf-v6-c-description-list__term">Total tokens</dt>
-                                        <dd class="pf-v6-c-description-list__description">{{ "{:,}".format(metrics.total_tokens) }}</dd>
+                                        <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">Total tokens</span></dt>
+                                        <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">{{ "{:,}".format(metrics.total_tokens) }}</span></dd>
                                     </div>
                                 </dl>
                                 <table class="pf-v6-c-table pf-m-compact app-metrics-table" role="grid" aria-label="Pipeline metrics">
@@ -95,30 +106,38 @@
                             </div>
                         </div>
                     </details>
-                </div>
+                    <div class="app-masthead-end">
+                        <button type="button" class="pf-v6-c-button pf-m-plain app-theme-btn" id="theme-toggle-btn" aria-label="Switch to dark mode">
+                            <i class="fas fa-moon" aria-hidden="true" id="theme-icon"></i>
+                        </button>
+                        <button type="button" class="pf-v6-c-button pf-m-plain app-help-btn" id="help-open-btn" aria-label="Open user guide">
+                            <i class="fas fa-circle-question" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div><!-- /.app-masthead-row -->
             </div>
         </header>
 
         <div class="pf-v6-c-page__sidebar pf-m-light">
             <div class="pf-v6-c-page__sidebar-body app-sidebar">
-                <div class="pf-v6-c-content app-sidebar-header">
+                {# <div class="pf-v6-c-content app-sidebar-header">
                     <h2>Pipeline</h2>
                     <p>Follow each stage from transcript upload to downloadable metadata.</p>
-                </div>
+                </div> #}
                 <ol class="pf-v6-c-progress-stepper pf-m-vertical app-stepper" aria-label="Pipeline steps">
                     {% for step in pipeline_steps %}
-                    <li class="pf-v6-c-progress-stepper__step {% if step.status == 'success' %}pf-m-success{% elif step.status == 'warning' %}pf-m-warning{% elif step.status == 'danger' %}pf-m-danger{% elif step.is_current %}pf-m-current{% elif step.status == 'pending' %}pf-m-pending{% else %}pf-m-info{% endif %}"
-                        aria-label="{{ step.label }} {{ step.status }}">
+                    <li class="pf-v6-c-progress-stepper__step {% if step.status == 'success' %}pf-m-success{% elif step.status == 'warning' %}pf-m-warning{% elif step.status == 'danger' %}pf-m-danger{% elif step.is_current %}pf-m-current{% elif step.status == 'off' %}pf-m-pending app-step--off{% elif step.status == 'pending' %}pf-m-pending{% else %}pf-m-info{% endif %}"
+                        aria-label="{{ step.label }}{% if step.is_toggled_off %} (disabled){% else %} {{ step.status }}{% endif %}">
                         <div class="pf-v6-c-progress-stepper__step-connector">
                             <span class="pf-v6-c-progress-stepper__step-icon" aria-hidden="true">
                                 {% if step.status == 'success' %}
-                                <i class="fas fa-check" aria-label="Complete"></i>
+                                <i class="fas fa-check" aria-hidden="true"></i>
                                 {% elif step.status == 'warning' %}
-                                <i class="fas fa-exclamation" aria-label="Warning"></i>
+                                <i class="fas fa-exclamation" aria-hidden="true"></i>
                                 {% elif step.status == 'danger' %}
-                                <i class="fas fa-times" aria-label="Error"></i>
+                                <i class="fas fa-times" aria-hidden="true"></i>
                                 {% elif step.is_current %}
-                                <i class="fas fa-spinner fa-spin" aria-label="In progress"></i>
+                                <i class="fas fa-spinner app-step-spinner" aria-hidden="true"></i>
                                 {% else %}
                                 {{ step.number }}
                                 {% endif %}
@@ -132,6 +151,9 @@
                             {% else %}
                             <div class="pf-v6-c-progress-stepper__step-title app-step-link app-step-link--disabled">
                                 {{ step.number }}. {{ step.label }}
+                                {% if step.is_toggled_off %}
+                                <span class="app-step-off-badge">Off</span>
+                                {% endif %}
                             </div>
                             {% endif %}
                             <div class="pf-v6-c-progress-stepper__step-description">{{ step.description }}</div>
@@ -143,6 +165,12 @@
         </div>
 
         <main class="pf-v6-c-page__main" id="main-content" tabindex="-1">
+            {% if dev_mode %}
+            <div class="app-dev-banner">
+                <i class="fas fa-flask" aria-hidden="true"></i>
+                Dev mode active — pipeline steps use mock data, no API tokens will be consumed.
+            </div>
+            {% endif %}
             <section class="pf-v6-c-page__main-section pf-m-light">
                 <div class="pf-v6-c-page__main-body app-main-body">
                     {% block content %}{% endblock %}
@@ -151,6 +179,190 @@
         </main>
     </div>
 
+    <script>
+    function wireRunButton(formId, btnId, runningLabel) {
+        var form = document.getElementById(formId);
+        var btn = document.getElementById(btnId);
+        if (!form || !btn) return;
+        form.addEventListener('submit', function () {
+            btn.innerHTML = '<span class="spinner"></span>' + runningLabel;
+            btn.disabled = true;
+        });
+    }
+    </script>
+
     {% block scripts %}{% endblock %}
+
+    <!-- ── Help / User guide modal ── -->
+    <div class="pf-v6-c-backdrop app-help-backdrop" id="help-backdrop" hidden aria-hidden="true">
+        <div class="pf-v6-l-bullseye">
+            <div class="pf-v6-c-modal-box pf-m-md" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" id="help-modal">
+                <div class="pf-v6-c-modal-box__header">
+                    <div class="pf-v6-c-modal-box__header-main">
+                        <h2 class="pf-v6-c-modal-box__title" id="help-modal-title">
+                            <i class="fas fa-circle-question app-modal-title-icon" aria-hidden="true"></i>
+                            User Guide
+                        </h2>
+                    </div>
+                    <div class="pf-v6-c-modal-box__close">
+                        <button class="pf-v6-c-button pf-m-plain" type="button" aria-label="Close guide" id="help-modal-close-x">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pf-v6-c-modal-box__body app-help-body">
+                    <div class="pf-v6-c-content">
+                        <p>This tool processes oral history interview transcripts through a multi-step AI pipeline to produce structured metadata for the Smithsonian Civil Rights History Project archive.</p>
+                        <p>The pipeline turns a transcript into structured metadata for archives, web applications, and demos. It builds text blocks, labels topics, generates chapters and summaries, then optionally scores engagement and extracts clips.</p>
+                        <p class="app-muted">Batch processing uses the same configuration, so a clean first run on the Upload page becomes the source of truth for the rest of the pipeline.</p>
+                        <h2>Pipeline steps</h2>
+                    </div>
+                    <dl class="pf-v6-c-description-list">
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">1. Upload</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Upload an SRT transcript file and set your OpenAI API key. Optional modules (Questions, Engagement, Clips) can be toggled here.</span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">2. Labeling</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">The transcript is split into blocks and each block is labeled with a topic category and subtopics by the AI.</span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">3. Table of Contents</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Labeled blocks are merged into a hierarchical table of contents with timestamps. You can edit the raw JSON before continuing.</span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">4. Chapterization</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Topic transitions are detected to divide the interview into chapters. Chapter boundaries can be adjusted manually.</span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">5. Summarization</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">An overall summary and per-chapter summaries are generated. System and user prompts are fully editable before running.</span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">6. Questions</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Suggested research questions are generated from the interview content. <em>Optional — enable on the Upload page.</em></span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">7. Tuning</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Summaries are scored against quality and accuracy thresholds. Failing summaries are automatically regenerated up to the configured retry limit.</span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">8. Engagement</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Each chapter is scored for public engagement potential. <em>Optional — enable on the Upload page.</em></span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">9. Clips</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">Key excerpts are identified as candidate video clips with start/end timestamps. <em>Optional — enable on the Upload page.</em></span></dd>
+                        </div>
+                        <div class="pf-v6-c-description-list__group">
+                            <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">10. Results</span></dt>
+                            <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">All outputs are bundled into a downloadable <code>results.json</code> file ready for archival ingest.</span></dd>
+                        </div>
+                    </dl>
+                    <div class="pf-v6-c-content">
+                        <h2>Dev mode</h2>
+                        <p>Run the full pipeline with mock data — no API key required and no tokens consumed. Useful for testing the UI and reviewing output formats.</p>
+                        <form method="POST" action="{{ url_for('dev_mode_toggle') }}" class="app-dev-toggle-form">
+                            <button type="submit" class="app-dev-toggle-btn{% if dev_mode %} is-active{% endif %}">
+                                <i class="fas fa-flask" aria-hidden="true"></i>
+                                {% if dev_mode %}Dev mode: ON — click to turn off{% else %}Dev mode: OFF — click to turn on{% endif %}
+                            </button>
+                        </form>
+                        <h2>Tips</h2>
+                        <ul>
+                            <li>If a step produces unexpected output, expand the <strong>Advanced</strong> section to edit the prompts before re-running.</li>
+                            <li>The <strong>Pipeline metrics</strong> button in the header shows elapsed time and token usage per step.</li>
+                            <li>Chapter boundaries on the Chapterization page can be adjusted in the raw JSON before continuing.</li>
+                            <li>Use <strong>Start over</strong> on the Results page to clear the session and process a new interview.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="pf-v6-c-modal-box__footer">
+                    <button type="button" class="pf-v6-c-button pf-m-primary" id="help-modal-close-btn">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var btn = document.getElementById('theme-toggle-btn');
+            var icon = document.getElementById('theme-icon');
+            var html = document.documentElement;
+
+            function syncIcon() {
+                var isDark = html.classList.contains('pf-v6-theme-dark');
+                icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+                btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+            }
+
+            syncIcon();
+
+            btn.addEventListener('click', function () {
+                html.classList.toggle('pf-v6-theme-dark');
+                localStorage.setItem('theme', html.classList.contains('pf-v6-theme-dark') ? 'dark' : 'light');
+                syncIcon();
+            });
+        })();
+
+        (function () {
+            var backdrop = document.getElementById('help-backdrop');
+            var modal = document.getElementById('help-modal');
+            var openBtn = document.getElementById('help-open-btn');
+            var closeX = document.getElementById('help-modal-close-x');
+            var closeBtn = document.getElementById('help-modal-close-btn');
+            var FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+            function getFocusable() {
+                return Array.prototype.filter.call(
+                    modal.querySelectorAll(FOCUSABLE),
+                    function (el) { return !el.hasAttribute('hidden') && el.offsetParent !== null; }
+                );
+            }
+
+            function openModal() {
+                backdrop.hidden = false;
+                backdrop.removeAttribute('aria-hidden');
+                closeX.focus();
+            }
+
+            function closeModal() {
+                backdrop.hidden = true;
+                backdrop.setAttribute('aria-hidden', 'true');
+                openBtn.focus();
+            }
+
+            openBtn.addEventListener('click', openModal);
+            closeX.addEventListener('click', closeModal);
+            closeBtn.addEventListener('click', closeModal);
+
+            backdrop.addEventListener('click', function (e) {
+                if (e.target === backdrop || e.target === backdrop.firstElementChild) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (backdrop.hidden) return;
+                if (e.key === 'Escape') {
+                    closeModal();
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    var focusable = getFocusable();
+                    if (!focusable.length) return;
+                    var first = focusable[0];
+                    var last = focusable[focusable.length - 1];
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

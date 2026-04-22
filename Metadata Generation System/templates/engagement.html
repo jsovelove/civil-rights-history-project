@@ -18,29 +18,36 @@
     ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
 ]) }}
 
-<form action="{{ url_for('engagement_run') }}" method="post" id="engagement-form" class="app-stack">
+<form action="{{ url_for('engagement_run') }}" method="post" id="engagement-form" class="pf-v6-c-form app-stack">
     {% call ui.advanced_section("Advanced engagement prompt assets", not state.engagement_scores, "System prompt, rubric, and JSON schema.") %}
-    <div class="app-tab-nav">
-        <ul class="app-tab-list">
-            <li><button type="button" class="btn btn-secondary prompt-tab-btn is-active" onclick="showPromptTab('sys_prompt')" data-section="sys_prompt">System prompt</button></li>
-            <li><button type="button" class="btn btn-secondary prompt-tab-btn" onclick="showPromptTab('rubric')" data-section="rubric">Rubric</button></li>
-            <li><button type="button" class="btn btn-secondary prompt-tab-btn" onclick="showPromptTab('schema')" data-section="schema">Schema</button></li>
+    <div class="pf-v6-c-tabs" role="region" aria-label="Engagement prompt sections">
+        <ul class="pf-v6-c-tabs__list" role="tablist">
+            <li class="pf-v6-c-tabs__item pf-m-current" role="presentation">
+                <button type="button" class="pf-v6-c-tabs__link" role="tab" id="tab-sys_prompt" aria-controls="panel-sys_prompt" aria-selected="true" tabindex="0" data-section="sys_prompt"><span class="pf-v6-c-tabs__item-text">System prompt</span></button>
+            </li>
+            <li class="pf-v6-c-tabs__item" role="presentation">
+                <button type="button" class="pf-v6-c-tabs__link" role="tab" id="tab-rubric" aria-controls="panel-rubric" aria-selected="false" tabindex="-1" data-section="rubric"><span class="pf-v6-c-tabs__item-text">Rubric</span></button>
+            </li>
+            <li class="pf-v6-c-tabs__item" role="presentation">
+                <button type="button" class="pf-v6-c-tabs__link" role="tab" id="tab-schema" aria-controls="panel-schema" aria-selected="false" tabindex="-1" data-section="schema"><span class="pf-v6-c-tabs__item-text">Schema</span></button>
+            </li>
         </ul>
     </div>
-    <div class="prompt-tab-pane" id="prompt-tab-sys_prompt">
+    <section id="panel-sys_prompt" role="tabpanel" aria-labelledby="tab-sys_prompt" tabindex="0" class="prompt-tab-pane">
         <textarea name="sys_prompt" class="prompt-box">{{ state.engagement_sys_prompt }}</textarea>
-    </div>
-    <div class="prompt-tab-pane app-hidden" id="prompt-tab-rubric">
+    </section>
+    <section id="panel-rubric" role="tabpanel" aria-labelledby="tab-rubric" tabindex="0" class="prompt-tab-pane" hidden>
         <textarea name="rubric" class="prompt-box">{{ state.engagement_rubric }}</textarea>
-    </div>
-    <div class="prompt-tab-pane app-hidden" id="prompt-tab-schema">
+    </section>
+    <section id="panel-schema" role="tabpanel" aria-labelledby="tab-schema" tabindex="0" class="prompt-tab-pane" hidden>
         <textarea name="schema" class="prompt-box">{{ state.engagement_schema }}</textarea>
-    </div>
+    </section>
     {% endcall %}
 
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run engagement scoring</button>
-        <a href="{{ url_for('tuning_page') }}" class="btn btn-secondary">Back</a>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-btn">{% if state.engagement_scores %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run engagement scoring</button>
+        <a href="{{ url_for('tuning_page') }}" class="pf-v6-c-button pf-m-secondary">Back</a>
+        <span class="app-muted app-run-hint">Takes 1–2 minutes.</span>
     </div>
 </form>
 
@@ -81,8 +88,10 @@
 {% set ds = ev.dimension_scores %}
 {% set maxes = get_engagement_maxes() %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Dimension details</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Dimension details</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for dim_label, dim_key, subs in [
@@ -95,15 +104,15 @@
         {% set dim = ds[dim_key] %}
         <div class="chapter-card">
             <div class="chapter-num">{{ dim_label }} — {{ dim.total }}/{{ dim.max_possible if dim.max_possible is defined else '?' }}</div>
-            <div class="app-stack" style="margin-top:0.75rem;">
+            <div class="app-stack app-mt-md">
                 {% for sub_name, sub_key in subs %}
                 {% if dim[sub_key] is defined %}
                 {% set sub = dim[sub_key] %}
                 {% set sub_max = maxes.get(sub_key, 0) %}
                 <div>
-                    <span class="score-badge {% if sub.score is defined and sub_max > 0 and sub.score / sub_max >= 0.8 %}score-pass{% else %}score-fail{% endif %}">{{ sub_name }}: {{ sub.score|default('?') }}/{{ sub_max if sub_max else '?' }}</span>
+                    {{ ui.score_label(sub_name ~ ": " ~ sub.score|default('?') ~ "/" ~ (sub_max if sub_max else '?'), sub.score if (sub.score is defined) else none, (sub_max * 0.8) if sub_max > 0 else 999, (sub_max * 0.6) if sub_max > 0 else 999) }}
                     {% if sub.justification %}
-                    <div style="margin-top:0.35rem;">{{ sub.justification }}</div>
+                    <div class="app-mt-xs">{{ sub.justification }}</div>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -121,7 +130,11 @@
 
 {% if ev.key_strengths %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Key strengths</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Key strengths</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">
         {% for s in ev.key_strengths %}
         <div>• {{ s }}</div>
@@ -132,7 +145,11 @@
 
 {% if ev.key_limitations %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Key limitations</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Key limitations</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">
         {% for l in ev.key_limitations %}
         <div>• {{ l }}</div>
@@ -143,14 +160,18 @@
 
 {% if ev.overall_assessment %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Overall assessment</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Overall assessment</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">{{ ev.overall_assessment }}</div>
 </section>
 {% endif %}
 
 <div class="app-actions">
-    <a href="{{ url_for('clips_page') }}" class="btn btn-primary">Continue to clips</a>
-    <button type="button" class="btn btn-secondary" onclick="document.getElementById('engagement-form').submit()">Re-run scoring</button>
+    <a href="{{ url_for('clips_page') }}" class="pf-v6-c-button pf-m-primary">Continue to clips</a>
+    <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run engagement scoring? Current scores will be replaced.')) document.getElementById('engagement-form').submit();">Re-run scoring</button>
 </div>
 {% else %}
 {{ ui.empty_state("No engagement results yet", "Run engagement scoring to generate the audience-facing quality assessment.") }}
@@ -159,22 +180,21 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('engagement-form').addEventListener('submit', function() {
-        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Scoring...';
-        document.getElementById('run-btn').disabled = true;
-    });
+    wireRunButton('engagement-form', 'run-btn', 'Scoring...');
 
-    function showPromptTab(sectionId) {
-        document.querySelectorAll('[id^="prompt-tab-"]').forEach(function(el) {
-            el.classList.add('app-hidden');
+    document.querySelectorAll('.pf-v6-c-tabs__link[role="tab"]').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var section = tab.getAttribute('data-section');
+            document.querySelectorAll('.pf-v6-c-tabs__link[role="tab"]').forEach(function (t) {
+                var isActive = t === tab;
+                t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                t.setAttribute('tabindex', isActive ? '0' : '-1');
+                t.parentElement.classList.toggle('pf-m-current', isActive);
+            });
+            document.querySelectorAll('[role="tabpanel"]').forEach(function (panel) {
+                panel.hidden = panel.id !== 'panel-' + section;
+            });
         });
-        document.querySelectorAll('.prompt-tab-btn').forEach(function(btn) {
-            btn.classList.remove('is-active');
-        });
-        const pane = document.getElementById('prompt-tab-' + sectionId);
-        if (pane) pane.classList.remove('app-hidden');
-        const activeBtn = document.querySelector('.prompt-tab-btn[data-section="' + sectionId + '"]');
-        if (activeBtn) activeBtn.classList.add('is-active');
-    }
+    });
 </script>
 {% endblock %}

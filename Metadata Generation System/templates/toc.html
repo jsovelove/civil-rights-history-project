@@ -13,35 +13,22 @@
     ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
 ]) }}
 
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">TOC output</h2>
-    </div>
-    <div class="pf-v6-c-card__body">
-        <form action="{{ url_for('toc_update_output') }}" method="post">
-            <textarea name="edited_output" class="output-box">{{ state.toc_bundle | tojson(indent=2) }}</textarea>
-            <div class="app-actions">
-                <button type="submit" class="btn btn-primary">Continue to chapterization</button>
-                <a href="{{ url_for('labeling_page') }}" class="btn btn-secondary">Back to labeling</a>
-            </div>
-        </form>
-    </div>
-</section>
-
 {% if state.toc_bundle.toc %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Preview</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Table of contents — {{ state.toc_bundle.toc|length }} entries</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for entry in state.toc_bundle.toc %}
         <div class="chapter-card">
-            <div style="display:flex; gap:1rem; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
+            <div class="app-row-start">
+                <div class="app-fill">
                     <div class="chapter-num">{{ entry.topic }}</div>
                     <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
                     {% if entry.subtopics %}
-                    <div class="app-stack" style="margin-top:0.75rem;">
+                    <div class="app-stack app-mt-md">
                         {% for sub in entry.subtopics %}
                         <div class="chapter-time">↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})</div>
                         {% endfor %}
@@ -49,8 +36,9 @@
                     {% endif %}
                 </div>
                 {% if state.youtube_video_id %}
-                <div style="flex-shrink:0;">
+                <div class="app-shrink-0">
                     <iframe class="app-video-frame"
+                        title="Video preview for TOC entry — {{ entry.title }}"
                         src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ entry.start_time | to_seconds }}&end={{ entry.end_time | to_seconds }}"
                         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen></iframe>
@@ -62,6 +50,16 @@
     </div>
 </section>
 {% endif %}
+
+<form action="{{ url_for('toc_update_output') }}" method="post" class="pf-v6-c-form app-stack">
+    {% call ui.advanced_section("Edit raw TOC output", False, "Modify the JSON directly before continuing. Only needed if you want to adjust a topic boundary or label.") %}
+    <textarea name="edited_output" class="output-box">{{ state.toc_bundle | tojson(indent=2) }}</textarea>
+    {% endcall %}
+    <div class="app-actions">
+        <button type="submit" class="pf-v6-c-button pf-m-primary">Continue to chapterization</button>
+        <a href="{{ url_for('labeling_page') }}" class="pf-v6-c-button pf-m-secondary">Back to labeling</a>
+    </div>
+</form>
 {% else %}
 {{ ui.empty_state("No TOC available", "Complete topic labeling first so the app can merge the labeled blocks into a table of contents.", url_for('labeling_page'), "Back to labeling") }}
 {% endif %}

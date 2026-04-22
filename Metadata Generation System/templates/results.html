@@ -8,15 +8,15 @@
 {{ ui.page_header("Step 10 — Final Results", "Review the complete interview output in a concise executive layout, then open the detailed artifacts only when needed.", "Final deliverable") }}
 
 <div class="app-actions">
-    <a href="{{ url_for('results_download') }}" class="btn btn-primary">Download results.json</a>
+    <a href="{{ url_for('results_download') }}" class="pf-v6-c-button pf-m-primary">Download results.json</a>
     {% if pending_batch_count > 0 %}
-    <form method="POST" action="{{ url_for('results_continue_batch') }}" style="display:inline;">
-        <button type="submit" class="btn btn-secondary">Process remaining {{ pending_batch_count }} interview{{ 's' if pending_batch_count != 1 else '' }}</button>
+    <form method="POST" action="{{ url_for('results_continue_batch') }}" class="pf-v6-u-display-inline">
+        <button type="submit" class="pf-v6-c-button pf-m-secondary">Process remaining {{ pending_batch_count }} interview{{ 's' if pending_batch_count != 1 else '' }}</button>
     </form>
     {% else %}
-    <a href="{{ url_for('batch_page') }}" class="btn btn-secondary">Run batch with these settings</a>
+    <a href="{{ url_for('batch_page') }}" class="pf-v6-c-button pf-m-secondary">Run batch with these settings</a>
     {% endif %}
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start over</a>
+    <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary" onclick="return confirm('Start over? All pipeline results for this session will be cleared.');">Start over</a>
 </div>
 
 <div class="app-summary-grid">
@@ -40,7 +40,11 @@
 
 {% if state.main_summary %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Executive summary</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Executive summary</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
         <div class="output-block"><pre>{{ state.main_summary.get('summary', '') }}</pre></div>
         {% if state.main_summary.key_themes %}
@@ -55,13 +59,17 @@
 
 {% if state.chapters %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Chapters</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Chapters</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for ch in state.chapters %}
         <div class="chapter-card">
             <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
             <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-            <div style="margin-top:0.5rem;">{{ ch.summary }}</div>
+            <div class="app-mt-sm">{{ ch.summary }}</div>
         </div>
         {% endfor %}
     </div>
@@ -70,7 +78,11 @@
 
 {% if state.engagement_scores and state.engagement_scores.overall_score is defined %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Engagement summary</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Engagement summary</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">
         <div class="app-masthead-value">{{ state.engagement_scores.overall_score.total }}/100</div>
         <div class="app-muted">{{ state.engagement_scores.overall_score.category }}</div>
@@ -79,9 +91,17 @@
 {% endif %}
 
 {% if state.clips_data and state.clips_data.clips is defined %}
+{% set total_clips = state.clips_data.clips|length %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Clip highlights</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Clip highlights</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
+        {% if total_clips > 8 %}
+        <p class="app-muted">Showing 8 of {{ total_clips }} clips. <a href="{{ url_for('clips_page') }}">View all on the Clips page.</a></p>
+        {% endif %}
         {% for clip in state.clips_data.clips[:8] %}
         <div class="chapter-card">
             <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
@@ -93,10 +113,22 @@
 {% endif %}
 
 {% call ui.advanced_section("Full JSON output", False, "Expand to inspect or copy the full export payload.") %}
-<div class="output-block" style="max-height:32rem; overflow-y:auto;">
+<div class="output-block app-scroll-y-lg">
     <pre id="full-json"></pre>
 </div>
 {% endcall %}
+
+<div class="app-actions">
+    <a href="{{ url_for('results_download') }}" class="pf-v6-c-button pf-m-primary">Download results.json</a>
+    {% if pending_batch_count > 0 %}
+    <form method="POST" action="{{ url_for('results_continue_batch') }}" class="pf-v6-u-display-inline">
+        <button type="submit" class="pf-v6-c-button pf-m-secondary">Process remaining {{ pending_batch_count }} interview{{ 's' if pending_batch_count != 1 else '' }}</button>
+    </form>
+    {% else %}
+    <a href="{{ url_for('batch_page') }}" class="pf-v6-c-button pf-m-secondary">Run batch with these settings</a>
+    {% endif %}
+    <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary" onclick="return confirm('Start over? All pipeline results for this session will be cleared.');">Start over</a>
+</div>
 {% endblock %}
 
 {% block scripts %}

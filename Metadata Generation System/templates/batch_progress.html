@@ -8,7 +8,11 @@
 {{ ui.page_header("Batch Processing", "Monitor long-running interviews with clear overall progress, current stage, and queue visibility.", "Live processing") }}
 
 <section class="pf-v6-c-card" id="progress-panel">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Overall progress</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Overall progress</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body app-stack">
         <div>
             <div id="progress-text" class="app-masthead-value">Starting...</div>
@@ -22,15 +26,19 @@
 </section>
 
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title"><h2 class="pf-v6-c-title pf-m-lg">Interview queue</h2></div>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Interview queue</h2>
+        </div>
+    </div>
     <div class="pf-v6-c-card__body">
         <div id="interview-queue"></div>
     </div>
 </section>
 
 <div id="done-actions" class="app-actions app-hidden">
-    <a href="{{ url_for('batch_results') }}" class="btn btn-primary">View all results</a>
-    <a href="{{ url_for('batch_download') }}" class="btn btn-secondary">Download ZIP</a>
+    <a href="{{ url_for('batch_results') }}" class="pf-v6-c-button pf-m-primary">View all results</a>
+    <a href="{{ url_for('batch_download') }}" class="pf-v6-c-button pf-m-secondary">Download ZIP</a>
 </div>
 {% endblock %}
 

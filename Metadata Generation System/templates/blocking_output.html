@@ -15,23 +15,25 @@
 ]) }}
 
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Text blocks</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Text blocks</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for block in state.text_blocks %}
         <div class="chapter-card">
             <div class="chapter-num">Block {{ loop.index }}</div>
             <div class="chapter-time">{{ block.start_time }} → {{ block.end_time }} · Segments {{ block.start_idx }}–{{ block.end_idx }}</div>
-            <div class="chapter-snippet" style="margin-top:0.5rem;">{{ block.text[:300] if block.text else '' }}{% if block.text and block.text|length > 300 %}...{% endif %}</div>
+            <div class="chapter-snippet app-mt-sm">{{ block.text[:300] if block.text else '' }}{% if block.text and block.text|length > 300 %}...{% endif %}</div>
         </div>
         {% endfor %}
     </div>
 </section>
 
 <div class="app-actions">
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Restart</a>
-    <a href="{{ url_for('labeling_page') }}" class="btn btn-primary">Continue to labeling</a>
+    <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary">Restart</a>
+    <a href="{{ url_for('labeling_page') }}" class="pf-v6-c-button pf-m-primary">Continue to labeling</a>
 </div>
 {% else %}
 {{ ui.empty_state("No text blocks generated", "Go back to upload and run blocking with a transcript or the bundled sample.", url_for('upload_page'), "Back to upload") }}

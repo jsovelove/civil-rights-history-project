@@ -25,7 +25,7 @@
     ("Needs review", state.questions_stats.status.needs_review if state.questions_stats else 0),
 ]) }}
 
-<form action="{{ url_for('questions_run') }}" method="post" id="questions-run-form" class="app-stack">
+<form action="{{ url_for('questions_run') }}" method="post" id="questions-run-form" class="pf-v6-c-form app-stack">
     {% call ui.advanced_section("Advanced detection and rewrite settings", not state.questions_rows, "Detection prompts, rewrite prompts, and context controls.") %}
     <div class="prompt-grid">
         <div class="panel">
@@ -46,33 +46,47 @@
         </div>
     </div>
     <div class="app-grid-3">
-        <label class="app-field">
-            Max rows with context
-            <input type="number" name="questions_context_max_rows" min="0" max="40" value="{{ state.questions_context_max_rows }}">
-        </label>
-        <label class="app-field">
-            Before chars per row
-            <input type="number" name="questions_context_before_chars" min="0" max="600" value="{{ state.questions_context_before_chars }}">
-        </label>
-        <label class="app-field">
-            After chars per row
-            <input type="number" name="questions_context_after_chars" min="0" max="600" value="{{ state.questions_context_after_chars }}">
-        </label>
+        <div class="pf-v6-c-form__group">
+            <div class="pf-v6-c-form__group-label">
+                <label class="pf-v6-c-form__label" for="q-max-rows"><span class="pf-v6-c-form__label-text">Max rows with context</span></label>
+            </div>
+            <div class="pf-v6-c-form__group-control">
+                <span class="pf-v6-c-form-control"><input type="number" id="q-max-rows" name="questions_context_max_rows" min="0" max="40" value="{{ state.questions_context_max_rows }}"></span>
+            </div>
+        </div>
+        <div class="pf-v6-c-form__group">
+            <div class="pf-v6-c-form__group-label">
+                <label class="pf-v6-c-form__label" for="q-before-chars"><span class="pf-v6-c-form__label-text">Before chars per row</span></label>
+            </div>
+            <div class="pf-v6-c-form__group-control">
+                <span class="pf-v6-c-form-control"><input type="number" id="q-before-chars" name="questions_context_before_chars" min="0" max="600" value="{{ state.questions_context_before_chars }}"></span>
+            </div>
+        </div>
+        <div class="pf-v6-c-form__group">
+            <div class="pf-v6-c-form__group-label">
+                <label class="pf-v6-c-form__label" for="q-after-chars"><span class="pf-v6-c-form__label-text">After chars per row</span></label>
+            </div>
+            <div class="pf-v6-c-form__group-control">
+                <span class="pf-v6-c-form-control"><input type="number" id="q-after-chars" name="questions_context_after_chars" min="0" max="600" value="{{ state.questions_context_after_chars }}"></span>
+            </div>
+        </div>
     </div>
     {% endcall %}
 
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run question detection</button>
-        <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">Back to summary</a>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-btn">{% if state.questions %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run question detection</button>
+        <a href="{{ url_for('summarization_page') }}" class="pf-v6-c-button pf-m-secondary">Back to summary</a>
     </div>
 </form>
 
-<form id="questions-form" action="{{ url_for('questions_update') }}" method="post" class="app-stack">
+<form id="questions-form" action="{{ url_for('questions_update') }}" method="post" class="pf-v6-c-form app-stack">
     <input type="hidden" name="edited_output" id="edited-output" value="">
 
     <section class="pf-v6-c-card">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-title pf-m-lg">Question output</h2>
+        <div class="pf-v6-c-card__header">
+            <div class="pf-v6-c-card__title">
+                <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Question output</h2>
+            </div>
         </div>
         <div class="pf-v6-c-card__body app-stack">
             {% if state.questions_stats %}
@@ -89,7 +103,7 @@
             {% endif %}
 
             {% if state.questions_rows and state.questions_rows|length > 0 %}
-            <div style="overflow-x:auto;">
+            <div class="app-scroll-x">
                 <table class="questions-table">
                     <thead>
                         <tr>
@@ -106,22 +120,22 @@
                             <td>
                                 <textarea class="question-text" rows="2">{{ q.question_text }}</textarea>
                                 {% if q.original_question_text and q.original_question_text != q.question_text %}
-                                <div class="app-muted" style="margin-top:0.5rem;">Original: {{ q.original_question_text }}</div>
+                                <div class="app-muted app-mt-sm">Original: {{ q.original_question_text }}</div>
                                 {% endif %}
                                 {% if q.rewrite_applied %}
-                                <div class="app-muted" style="margin-top:0.35rem;">Readability rewrite applied{% if q.rewrite_notes %}: {{ q.rewrite_notes }}{% endif %}</div>
+                                <div class="app-muted app-mt-xs">Readability rewrite applied{% if q.rewrite_notes %}: {{ q.rewrite_notes }}{% endif %}</div>
                                 {% endif %}
                                 {% if q.context_before or q.context_after %}
-                                <details style="margin-top:0.5rem;">
+                                <details class="app-mt-sm">
                                     <summary>Context for rewrite</summary>
                                     {% if q.context_chapter_title %}
-                                    <div class="app-muted" style="margin-top:0.35rem;">Chapter: {{ q.context_chapter_title }}</div>
+                                    <div class="app-muted app-mt-xs">Chapter: {{ q.context_chapter_title }}</div>
                                     {% endif %}
                                     {% if q.context_before %}
-                                    <div style="margin-top:0.35rem;"><strong>Before:</strong> {{ q.context_before }}</div>
+                                    <div class="app-mt-xs"><strong>Before:</strong> {{ q.context_before }}</div>
                                     {% endif %}
                                     {% if q.context_after %}
-                                    <div style="margin-top:0.35rem;"><strong>After:</strong> {{ q.context_after }}</div>
+                                    <div class="app-mt-xs"><strong>After:</strong> {{ q.context_after }}</div>
                                     {% endif %}
                                 </details>
                                 {% endif %}
@@ -133,10 +147,10 @@
                             </td>
                             <td>
                                 <select class="question-status">
-                                    <option value="unreviewed" {% if q.status == 'unreviewed' %}selected{% endif %}>unreviewed</option>
-                                    <option value="verified" {% if q.status == 'verified' %}selected{% endif %}>verified</option>
-                                    <option value="needs_review" {% if q.status == 'needs_review' %}selected{% endif %}>needs_review</option>
-                                    <option value="rejected" {% if q.status == 'rejected' %}selected{% endif %}>rejected</option>
+                                    <option value="unreviewed" {% if q.status == 'unreviewed' %}selected{% endif %}>Unreviewed</option>
+                                    <option value="verified" {% if q.status == 'verified' %}selected{% endif %}>Verified</option>
+                                    <option value="needs_review" {% if q.status == 'needs_review' %}selected{% endif %}>Needs review</option>
+                                    <option value="rejected" {% if q.status == 'rejected' %}selected{% endif %}>Rejected</option>
                                 </select>
                             </td>
                             <td><textarea class="question-notes" rows="2">{{ q.notes or '' }}</textarea></td>
@@ -146,20 +160,19 @@
                 </table>
             </div>
             <div class="app-actions">
-                <button type="submit" class="btn btn-primary">Save question edits</button>
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('questions-run-form').submit()">Re-run detection</button>
-                <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to tuning</a>
+                <button type="submit" class="pf-v6-c-button pf-m-primary">Save question edits</button>
+                <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run detection? Current questions will be replaced.')) document.getElementById('questions-run-form').submit();">Re-run detection</button>
             </div>
             {% else %}
             {{ ui.empty_state("No interviewer questions yet", "Run question detection to populate this review table. If nothing is found, you can still continue to tuning.") }}
-            <div class="app-actions">
-                <a href="{{ url_for('tuning_page') }}" class="btn btn-primary">Continue to tuning</a>
-                <a href="{{ url_for('summarization_page') }}" class="btn btn-secondary">Back</a>
-            </div>
             {% endif %}
         </div>
     </section>
 </form>
+<div class="app-actions">
+    <a href="{{ url_for('tuning_page') }}" class="pf-v6-c-button pf-m-primary">Continue to tuning</a>
+    <a href="{{ url_for('summarization_page') }}" class="pf-v6-c-button pf-m-secondary">Back to summarization</a>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -194,15 +207,6 @@
         });
     }
 
-    const runForm = document.getElementById('questions-run-form');
-    if (runForm) {
-        runForm.addEventListener('submit', function() {
-            const runBtn = document.getElementById('run-btn');
-            if (runBtn) {
-                runBtn.innerHTML = '<span class="spinner"></span>Running...';
-                runBtn.disabled = true;
-            }
-        });
-    }
+    wireRunButton('questions-run-form', 'run-btn', 'Running...');
 </script>
 {% endblock %}

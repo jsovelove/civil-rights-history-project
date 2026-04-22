@@ -18,7 +18,7 @@
     ("Labeled blocks", state.block_topics|length if state.block_topics else 0),
 ]) }}
 
-<form action="{{ url_for('labeling_run') }}" method="post" id="labeling-form" class="app-stack">
+<form action="{{ url_for('labeling_run') }}" method="post" id="labeling-form" class="pf-v6-c-form app-stack">
     {% call ui.advanced_section("Advanced prompt controls", not state.block_topics, "Edit the system and user prompts used for labeling.") %}
     <div class="prompt-grid">
         <div class="panel">
@@ -33,41 +33,38 @@
     {% endcall %}
 
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-btn">Run labeling</button>
-        <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Back</a>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-btn">{% if state.block_topics %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run labeling</button>
+        <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary">Back</a>
     </div>
 </form>
 
 {% if state.block_topics %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Labeling output</h2>
-    </div>
-    <div class="pf-v6-c-card__body app-stack">
-        <form action="{{ url_for('labeling_update_output') }}" method="post">
-            <textarea name="edited_output" class="output-box">{{ state.block_topics | tojson(indent=2) }}</textarea>
-            <div class="app-actions">
-                <button type="submit" class="btn btn-primary">Continue to TOC</button>
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('labeling-form').submit()">Restart step</button>
-            </div>
-        </form>
-    </div>
-</section>
-
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Preview</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Labeled blocks — {{ state.block_topics|length }} blocks</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for bt in state.block_topics %}
         <div class="chapter-card">
             <div class="chapter-num">Block {{ bt.block_number }}</div>
             <div><strong>{{ bt.main_topic_category }}</strong> — {{ bt.subtopics | join(', ') }}</div>
-            <div class="chapter-time" style="margin-top:0.35rem;">Confidence: {{ bt.confidence }}</div>
+            <div class="chapter-time app-mt-xs">Confidence: {{ bt.confidence }}</div>
         </div>
         {% endfor %}
     </div>
 </section>
+
+<form action="{{ url_for('labeling_update_output') }}" method="post" class="pf-v6-c-form app-stack">
+    {% call ui.advanced_section("Edit raw labeling output", False, "Modify the JSON directly before continuing. Only needed if you want to correct a specific label.") %}
+    <textarea name="edited_output" class="output-box">{{ state.block_topics | tojson(indent=2) }}</textarea>
+    {% endcall %}
+    <div class="app-actions">
+        <button type="submit" class="pf-v6-c-button pf-m-primary">Continue to TOC</button>
+        <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run labeling? Current output will be replaced.')) document.getElementById('labeling-form').submit();">Re-run labeling</button>
+    </div>
+</form>
 {% else %}
 {{ ui.empty_state("No labels yet", "Run topic labeling to generate block categories and subtopics for the TOC stage.") }}
 {% endif %}
@@ -75,9 +72,6 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('labeling-form').addEventListener('submit', function() {
-        document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running...';
-        document.getElementById('run-btn').disabled = true;
-    });
+    wireRunButton('labeling-form', 'run-btn', 'Running...');
 </script>
 {% endblock %}

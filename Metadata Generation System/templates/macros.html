@@ -15,10 +15,15 @@
 {%- endmacro %}
 
 {% macro alert(title, variant='info') -%}
-<div class="pf-v6-c-alert pf-m-inline pf-m-{{ variant }} app-alert" aria-label="{{ variant }} alert">
-    <div class="pf-v6-c-alert__title">
-        <h4>{{ title }}</h4>
+{%- set variant_label = {'info': 'Info', 'success': 'Success', 'warning': 'Warning', 'danger': 'Danger'}.get(variant, 'Info') -%}
+<div class="pf-v6-c-alert pf-m-inline pf-m-{{ variant }} app-alert" aria-label="{{ variant_label }} alert">
+    <div class="pf-v6-c-alert__icon" aria-hidden="true">
+        <span class="app-alert-glyph app-alert-glyph-{{ variant }}"></span>
     </div>
+    <p class="pf-v6-c-alert__title">
+        <span class="pf-v6-screen-reader">{{ variant_label }} alert:</span>
+        {{ title }}
+    </p>
     {% if caller %}
     <div class="pf-v6-c-alert__description">
         {{ caller() }}
@@ -29,21 +34,21 @@
 
 {% macro empty_state(title, body, action_href=None, action_label=None, variant='default') -%}
 <div class="pf-v6-c-empty-state pf-m-lg app-empty-state">
-    <div class="pf-v6-c-empty-state__content">
-        <div class="pf-v6-c-empty-state__header">
-            <div class="pf-v6-c-empty-state__title">
-                <h2 class="pf-v6-c-title pf-m-lg">{{ title }}</h2>
-            </div>
+    <div class="pf-v6-c-empty-state__header">
+        <div class="pf-v6-c-empty-state__title">
+            <h2 class="pf-v6-c-empty-state__title-text">{{ title }}</h2>
         </div>
-        <div class="pf-v6-c-empty-state__body">
-            {{ body }}
-        </div>
-        {% if action_href and action_label %}
-        <div class="pf-v6-c-empty-state__footer">
+    </div>
+    <div class="pf-v6-c-empty-state__body">
+        {{ body }}
+    </div>
+    {% if action_href and action_label %}
+    <div class="pf-v6-c-empty-state__footer">
+        <div class="pf-v6-c-empty-state__actions">
             <a href="{{ action_href }}" class="pf-v6-c-button pf-m-primary">{{ action_label }}</a>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 {%- endmacro %}
 
@@ -66,8 +71,10 @@
 
 {% macro status_card(title, summary, meta_items=[]) -%}
 <section class="pf-v6-c-card app-status-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">{{ title }}</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">{{ title }}</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body">
         <p class="app-status-summary">{{ summary }}</p>
@@ -75,12 +82,31 @@
         <dl class="pf-v6-c-description-list pf-m-horizontal-on-md app-meta-list">
             {% for label, value in meta_items %}
             <div class="pf-v6-c-description-list__group">
-                <dt class="pf-v6-c-description-list__term">{{ label }}</dt>
-                <dd class="pf-v6-c-description-list__description">{{ value }}</dd>
+                <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">{{ label }}</span></dt>
+                <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">{{ value }}</span></dd>
             </div>
             {% endfor %}
         </dl>
         {% endif %}
     </div>
 </section>
+{%- endmacro %}
+
+{%- macro score_label(text, score, pass_at, warn_at) -%}
+{%- if score is defined and score is not none and score != '?' -%}
+  {%- if score >= pass_at -%}{%- set v = 'green' -%}
+  {%- elif score >= warn_at -%}{%- set v = 'orange' -%}
+  {%- else -%}{%- set v = 'red' -%}
+  {%- endif -%}
+{%- else -%}{%- set v = 'red' -%}
+{%- endif -%}
+<span class="pf-v6-c-label pf-m-{{ v }} pf-m-compact"><span class="pf-v6-c-label__content">{{ text }}</span></span>
+{%- endmacro %}
+
+{%- macro card_header(title) -%}
+<div class="pf-v6-c-card__header">
+    <div class="pf-v6-c-card__title">
+        <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">{{ title }}</h2>
+    </div>
+</div>
 {%- endmacro %}

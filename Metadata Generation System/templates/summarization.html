@@ -13,7 +13,8 @@
     ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
 ]) }}
 
-<form action="{{ url_for('summarization_run_main') }}" method="post" id="main-form" class="app-stack">
+<form action="{{ url_for('summarization_run_main') }}" method="post" id="main-form" class="pf-v6-c-form app-stack">
+    <div class="pf-v6-c-content"><p class="app-muted"><strong>Step 1 of 2</strong> — Generate the interview-level summary first.</p></div>
     {% call ui.advanced_section("Main summary prompts", not state.main_summary, "Edit the prompts used to generate the interview-level summary.") %}
     <div class="prompt-grid">
         <div class="panel">
@@ -27,14 +28,17 @@
     </div>
     {% endcall %}
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-main-btn">Run main summary</button>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-main-btn">{% if state.main_summary %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run main summary</button>
+        <span class="app-muted app-run-hint">Takes about 30–60 seconds.</span>
     </div>
 </form>
 
 {% if state.main_summary %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Main summary</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Main summary</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% if state.main_summary.summary %}
@@ -48,8 +52,8 @@
         {% endif %}
         {% if state.main_summary.quality_metrics %}
         <div>
-            <span class="score-badge {% if state.main_summary.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">Accuracy: {{ state.main_summary.quality_metrics.accuracy_score }}</span>
-            <span class="score-badge {% if state.main_summary.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">Quality: {{ state.main_summary.quality_metrics.quality_score }}</span>
+            {{ ui.score_label("Accuracy: " ~ state.main_summary.quality_metrics.accuracy_score, state.main_summary.quality_metrics.accuracy_score, 80, 60) }}
+            {{ ui.score_label("Quality: " ~ state.main_summary.quality_metrics.quality_score, state.main_summary.quality_metrics.quality_score, 80, 60) }}
         </div>
         {% if state.main_summary.quality_metrics.errors %}
         <div class="app-muted">
@@ -63,7 +67,10 @@
 </section>
 {% endif %}
 
-<form action="{{ url_for('summarization_run_chapters') }}" method="post" id="chapters-form" class="app-stack">
+<form action="{{ url_for('summarization_run_chapters') }}" method="post" id="chapters-form" class="pf-v6-c-form app-stack">
+    <div class="pf-v6-c-content">
+        <p class="app-muted"><strong>Step 2 of 2</strong> — Generate per-chapter summaries.</p>
+    </div>
     {% call ui.advanced_section("Chapter summary prompts", not state.chapters, "Edit the prompts used for each chapter summary.") %}
     <div class="prompt-grid">
         <div class="panel">
@@ -77,36 +84,40 @@
     </div>
     {% endcall %}
     <div class="app-actions">
-        <button type="submit" class="btn btn-primary" id="run-ch-btn">Run chapter summaries</button>
+        <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-ch-btn">{% if state.chapters %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run chapter summaries</button>
+        <span class="app-muted app-run-hint">Takes about 1–2 minutes depending on chapter count.</span>
     </div>
 </form>
 
 {% if state.chapters %}
 <section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__title">
-        <h2 class="pf-v6-c-title pf-m-lg">Chapter summaries</h2>
+    <div class="pf-v6-c-card__header">
+        <div class="pf-v6-c-card__title">
+            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Chapter summaries</h2>
+        </div>
     </div>
     <div class="pf-v6-c-card__body app-stack">
         {% for ch in state.chapters %}
         <div class="chapter-card">
-            <div style="display:flex; gap:1rem; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
+            <div class="app-row-start">
+                <div class="app-fill">
                     <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
                     <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-                    <div style="margin-top:0.75rem;">{{ ch.summary }}</div>
+                    <div class="app-mt-md">{{ ch.summary }}</div>
                     {% if ch.keywords %}
-                    <div class="app-muted" style="margin-top:0.5rem;">Keywords: {{ ch.keywords | join(', ') }}</div>
+                    <div class="app-muted app-mt-sm">Keywords: {{ ch.keywords | join(', ') }}</div>
                     {% endif %}
                     {% if ch.quality_metrics %}
-                    <div style="margin-top:0.5rem;">
-                        <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">Accuracy: {{ ch.quality_metrics.accuracy_score }}</span>
-                        <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">Quality: {{ ch.quality_metrics.quality_score }}</span>
+                    <div class="app-mt-sm">
+                        {{ ui.score_label("Accuracy: " ~ ch.quality_metrics.accuracy_score, ch.quality_metrics.accuracy_score, 80, 60) }}
+                        {{ ui.score_label("Quality: " ~ ch.quality_metrics.quality_score, ch.quality_metrics.quality_score, 80, 60) }}
                     </div>
                     {% endif %}
                 </div>
                 {% if state.youtube_video_id %}
-                <div style="flex-shrink:0;">
+                <div class="app-shrink-0">
                     <iframe class="app-video-frame"
+                        title="Video preview for chapter {{ ch.chapter_number }} — {{ ch.title }}"
                         src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
                         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen></iframe>
@@ -121,8 +132,8 @@
 
 {% if state.main_summary or state.chapters %}
 <div class="app-actions">
-    <a href="{{ url_for('questions_page') if state.steps_enabled.questions and state.question_placement == 'after_summary' else url_for('tuning_page') }}" class="btn btn-primary">Continue to {{ 'questions' if state.steps_enabled.questions and state.question_placement == 'after_summary' else 'tuning' }}</a>
-    <a href="{{ url_for('chapterization_page') }}" class="btn btn-secondary">Back</a>
+    <a href="{{ url_for('questions_page') if state.steps_enabled.questions and state.question_placement == 'after_summary' else url_for('tuning_page') }}" class="pf-v6-c-button pf-m-primary">Continue to {{ 'questions' if state.steps_enabled.questions and state.question_placement == 'after_summary' else 'tuning' }}</a>
+    <a href="{{ url_for('chapterization_page') }}" class="pf-v6-c-button pf-m-secondary">Back</a>
 </div>
 {% else %}
 {{ ui.empty_state("No summaries yet", "Run the summary generators to create the interview-level summary and chapter summaries.") }}
@@ -131,13 +142,7 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('main-form').addEventListener('submit', function() {
-        document.getElementById('run-main-btn').innerHTML = '<span class="spinner"></span>Running...';
-        document.getElementById('run-main-btn').disabled = true;
-    });
-    document.getElementById('chapters-form').addEventListener('submit', function() {
-        document.getElementById('run-ch-btn').innerHTML = '<span class="spinner"></span>Running...';
-        document.getElementById('run-ch-btn').disabled = true;
-    });
+    wireRunButton('main-form', 'run-main-btn', 'Running...');
+    wireRunButton('chapters-form', 'run-ch-btn', 'Running...');
 </script>
 {% endblock %}
