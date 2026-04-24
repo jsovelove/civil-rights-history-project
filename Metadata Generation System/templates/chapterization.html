@@ -31,6 +31,11 @@
 <div class="panel" style="margin-top: 24px;">
     <div class="panel-label">Chapter Breaks ({{ state.chapter_breaks_preview|length }} chapters)</div>
 
+    <div class="btn-row" style="margin-bottom: 16px;">
+        <a href="{{ url_for('summarization_page') }}" class="btn btn-primary">Continue to Summarization →</a>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('chapter-form').submit()">Restart Step</button>
+    </div>
+
     {% for ch in state.chapter_breaks_preview %}
     <div class="chapter-card">
         <div style="display: flex; gap: 16px; align-items: flex-start;">
@@ -57,11 +62,6 @@
         </div>
     </div>
     {% endfor %}
-
-    <div class="btn-row">
-        <a href="{{ url_for('summarization_page') }}" class="btn btn-primary">Continue to Summarization →</a>
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('chapter-form').submit()">Restart Step</button>
-    </div>
 </div>
 {% endif %}
 {% endblock %}

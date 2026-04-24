@@ -46,10 +46,15 @@
             <span>Use sample interview of Amos C. Brown</span>
         </label>
 
+        <label style="display:flex; align-items:center; gap:10px; margin-bottom: 14px; cursor:pointer;">
+            <input type="checkbox" name="use_transcripts" id="use-transcripts-checkbox">
+            <span>Use bundled batch (4 interviews)</span>
+        </label>
+
         <div
             class="upload-zone"
             id="upload-zone"
-            onclick="if (!document.getElementById('use-sample-checkbox').checked) document.getElementById('srt-input').click()"
+            onclick="if (!document.getElementById('use-sample-checkbox').checked && !document.getElementById('use-transcripts-checkbox').checked) document.getElementById('srt-input').click()"
             style="transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;"
         >
             <input type="file" name="srt_file" id="srt-input" accept=".zip" required>
@@ -101,6 +106,20 @@
     </div>
 
     <div class="panel">
+        <div class="panel-label">Primary Source Info (optional)</div>
+        <label style="display: block; cursor: pointer;">
+            <input type="file" name="primary_source_json" id="primary-source-input" accept=".json" style="display:none;">
+            <div id="primary-source-label" style="font-size: 13px; color: #666; padding: 10px; border: 1px dashed #333; border-radius: 8px; text-align: center; cursor: pointer;">
+                <strong style="color: #aaa;">Click to select</strong> a JSON file with interviewee metadata
+            </div>
+        </label>
+        <p style="margin-top: 8px; font-size: 12px; color: #666;">
+            JSON object with fields such as <code style="color: #aaa;">interviewer</code>, <code style="color: #aaa;">interview_date</code>, <code style="color: #aaa;">biographical_history</code>, etc.
+            When provided, this information is used to improve accuracy during summarization and tuning (correct names, dates, and facts).
+        </p>
+    </div>
+
+    <div class="panel">
         <div class="panel-label">Video Preview (optional)</div>
         <label style="display:block;">
             <input
@@ -139,10 +158,15 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
     const fileInput = document.getElementById('srt-input');
     const fileLabel = document.getElementById('file-label');
     const sampleCheckbox = document.getElementById('use-sample-checkbox');
+    const transcriptsCheckbox = document.getElementById('use-transcripts-checkbox');
     const uploadZone = document.getElementById('upload-zone');
 
+    function isBundledSelected() {
+        return sampleCheckbox.checked || transcriptsCheckbox.checked;
+    }
+
     function setZoneActive(isActive) {
-        if (sampleCheckbox.checked) return;
+        if (isBundledSelected()) return;
         uploadZone.style.borderColor = isActive ? '#0550ae' : '';
         uploadZone.style.backgroundColor = isActive ? 'rgba(5, 80, 174, 0.06)' : '';
         uploadZone.style.transform = isActive ? 'scale(1.01)' : '';
@@ -166,7 +190,7 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
     }
 
     function updateSourceMode() {
-        if (sampleCheckbox.checked) {
+        if (isBundledSelected()) {
             fileInput.required = false;
             fileInput.value = '';
             uploadZone.style.opacity = '0.65';
@@ -174,7 +198,11 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
             uploadZone.style.borderColor = '';
             uploadZone.style.backgroundColor = '';
             uploadZone.style.transform = '';
-            fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
+            if (sampleCheckbox.checked) {
+                fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
+            } else {
+                fileLabel.innerHTML = '<strong>Bundled batch selected</strong> — no upload needed';
+            }
         } else {
             fileInput.required = true;
             uploadZone.style.opacity = '1';
@@ -183,10 +211,20 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
         }
     }
 
+    // Make checkboxes mutually exclusive
+    sampleCheckbox.addEventListener('change', function() {
+        if (this.checked) transcriptsCheckbox.checked = false;
+        updateSourceMode();
+    });
+    transcriptsCheckbox.addEventListener('change', function() {
+        if (this.checked) sampleCheckbox.checked = false;
+        updateSourceMode();
+    });
+
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             applySelectedFile(this.files[0]);
-        } else if (!sampleCheckbox.checked) {
+        } else if (!isBundledSelected()) {
             showDefaultLabel();
         }
     });
@@ -212,7 +250,7 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
         event.stopPropagation();
         setZoneActive(false);
 
-        if (sampleCheckbox.checked) return;
+        if (isBundledSelected()) return;
 
         const files = event.dataTransfer.files;
         if (!files || files.length === 0) return;
@@ -224,8 +262,18 @@ Text blocks: {{ state.text_blocks|length if state.text_blocks else 'N/A' }}</pre
         applySelectedFile(file);
     });
 
-    sampleCheckbox.addEventListener('change', updateSourceMode);
     updateSourceMode();
+
+    const primarySourceInput = document.getElementById('primary-source-input');
+    const primarySourceLabel = document.getElementById('primary-source-label');
+
+    primarySourceInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            primarySourceLabel.innerHTML = '<strong style="color:#aaa;">' + this.files[0].name + '</strong>';
+        } else {
+            primarySourceLabel.innerHTML = '<strong style="color:#aaa;">Click to select</strong> a JSON file with interviewee metadata';
+        }
+    });
 
     document.getElementById('upload-form').addEventListener('submit', function() {
         document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Processing...';

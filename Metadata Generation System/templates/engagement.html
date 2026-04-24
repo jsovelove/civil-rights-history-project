@@ -276,10 +276,20 @@
 {% endif %}
 
 <div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('clips_page') }}" class="btn btn-primary">Continue to Clips →</a>
     <button type="button" class="btn btn-secondary" onclick="document.getElementById('engagement-form').submit()">Re-run Scoring</button>
 </div>
 {% endif %}
+
+<div class="btn-row" style="margin-top: 16px;">
+    {% if state.steps_enabled.clips %}
+    <a href="{{ url_for('clips_page') }}" class="btn btn-primary">Continue to Clips →</a>
+    {% else %}
+    <a href="{{ url_for('results_page') }}" class="btn btn-primary">Continue to Results →</a>
+    {% endif %}
+    {% if not state.engagement_scores %}
+    <span style="font-size: 12px; color: #666; margin-left: 8px;">You can skip this step</span>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}

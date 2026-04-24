@@ -46,7 +46,7 @@
 
     <div class="btn-row">
         <button type="submit" class="btn btn-primary" id="run-btn">Run Clip Extraction</button>
-        <a href="{{ url_for('engagement_page') }}" class="btn btn-secondary">← Back</a>
+        <a href="{{ url_for('engagement_page') if state.steps_enabled.engagement else url_for('tuning_page') }}" class="btn btn-secondary">← Back</a>
     </div>
 </form>
 
@@ -382,11 +382,17 @@
 {% endif %}
 
 <div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('results_page') }}" class="btn btn-primary">Continue to Results →</a>
     <button type="button" class="btn btn-secondary" onclick="document.getElementById('clips-form').submit()">Re-run Extraction</button>
 </div>
 
 {% endif %}
+
+<div class="btn-row" style="margin-top: 16px;">
+    <a href="{{ url_for('results_page') }}" class="btn btn-primary">Continue to Results →</a>
+    {% if not state.clips_data %}
+    <span style="font-size: 12px; color: #666; margin-left: 8px;">You can skip this step</span>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}

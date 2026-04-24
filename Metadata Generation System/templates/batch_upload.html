@@ -77,6 +77,21 @@
         </p>
     </div>
 
+    <div class="panel">
+        <div class="panel-label">Primary Source Info (optional)</div>
+        <label style="display: block; cursor: pointer;">
+            <input type="file" name="primary_source_json" id="primary-source-input" accept=".json" style="display:none;">
+            <div id="primary-source-label" style="font-size: 13px; color: #666; padding: 10px; border: 1px dashed #333; border-radius: 8px; text-align: center; cursor: pointer;">
+                <strong style="color: #aaa;">Click to select</strong> a primary source metadata JSON file
+            </div>
+        </label>
+        <p style="margin-top: 8px; font-size: 12px; color: #666;">
+            JSON object keyed by interviewee name (same format as <code style="color: #aaa;">oral_histories.json</code>), with a
+            <code style="color: #aaa;">transcript_file</code> field in each entry to match against the uploaded SRT files.
+            When provided, biographical info and dates are used during summarization and tuning for each matched interview.
+        </p>
+    </div>
+
     <div class="btn-row">
         <button type="submit" class="btn btn-primary" id="start-btn">Start Batch Processing</button>
         <a href="{{ url_for('results_page') }}" class="btn btn-secondary">← Back to Results</a>
@@ -104,6 +119,15 @@
     jsonInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             jsonLabel.innerHTML = '<strong style="color:#aaa;">' + this.files[0].name + '</strong>';
+        }
+    });
+
+    const primarySourceInput = document.getElementById('primary-source-input');
+    const primarySourceLabel = document.getElementById('primary-source-label');
+
+    primarySourceInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            primarySourceLabel.innerHTML = '<strong style="color:#aaa;">' + this.files[0].name + '</strong>';
         }
     });
 

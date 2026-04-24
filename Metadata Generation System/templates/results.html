@@ -4,6 +4,144 @@
 {% block title %}10. Results — Pipeline Demo{% endblock %}
 
 {% block content %}
+<style>
+.results-layout {
+    display: grid;
+    gap: 16px;
+}
+.results-section {
+    overflow: hidden;
+}
+.results-read-block {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #d6dde6;
+}
+.results-read-block--preview {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.results-meta-row {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.results-preview-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+.results-preview-item {
+    padding: 10px 12px;
+    border: 1px solid #242a31;
+    border-radius: 8px;
+    background: #101419;
+}
+.results-preview-item-title {
+    font-size: 13px;
+    color: #d6dde6;
+}
+.results-preview-item-meta {
+    font-size: 12px;
+    color: #77808a;
+    margin-top: 4px;
+}
+.results-more-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #7f8994;
+}
+.results-expand {
+    margin-top: 14px;
+    border-top: 1px solid #20252b;
+    padding-top: 12px;
+}
+.results-expand > summary {
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #8ad;
+    font-size: 13px;
+    user-select: none;
+}
+.results-expand > summary::-webkit-details-marker {
+    display: none;
+}
+.results-expand > summary::before {
+    content: '▸';
+    font-size: 11px;
+    transition: transform 0.15s ease;
+}
+.results-expand[open] > summary::before {
+    transform: rotate(90deg);
+}
+.results-expand-label-open {
+    display: none;
+}
+.results-expand[open] .results-expand-label-open {
+    display: inline;
+}
+.results-expand[open] .results-expand-label-closed {
+    display: none;
+}
+.results-compact-grid-header {
+    display: grid;
+    grid-template-columns: 30px 1fr 100px 100px 80px;
+    gap: 4px;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 6px;
+}
+.results-compact-grid-row {
+    display: grid;
+    grid-template-columns: 30px 1fr 100px 100px 80px;
+    gap: 4px;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+.results-step-grid-header,
+.results-step-grid-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 100px;
+    gap: 4px;
+    font-size: 12px;
+}
+.results-step-grid-header {
+    color: #555;
+    margin-bottom: 6px;
+}
+.results-step-grid-row {
+    margin-bottom: 2px;
+}
+.results-divider-top {
+    margin-top: 12px;
+    border-top: 1px solid #2a2d31;
+    padding-top: 10px;
+}
+.results-inline-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    font-size: 13px;
+}
+.results-json {
+    max-height: 500px;
+    overflow-y: auto;
+}
+@media (max-width: 760px) {
+    .results-inline-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 <div class="step-header">
     <h1>Step 10 — Final Results</h1>
     <p>This is every pipeline output in one view, including chapters, summaries, TOC, questions, and optional engagement scores and clips. You can download the results as JSON.</p>
@@ -23,21 +161,106 @@
     <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Start Over</a>
 </div>
 
-<!-- Main Summary -->
+<div class="results-layout">
+
+{% if state.processor and state.processor.call_log %}
+{% set ctx = state.processor %}
+<div class="panel results-section">
+    <div class="panel-label">Pipeline Cost</div>
+    <div class="results-meta-row">
+        <div>
+            <span style="font-size: 28px; font-weight: 700; color: #8e8;">${{ "%.4f"|format(ctx.total_cost_usd) }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">total cost</span>
+        </div>
+        <div>
+            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ "{:,}".format(ctx.total_prompt_tokens) }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">input tokens</span>
+        </div>
+        <div>
+            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ "{:,}".format(ctx.total_completion_tokens) }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">output tokens</span>
+        </div>
+        <div>
+            <span style="font-size: 16px; color: #aaa;">{{ ctx.call_log|length }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">API calls</span>
+        </div>
+    </div>
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show cost breakdown</span>
+            <span class="results-expand-label-open">Hide cost breakdown</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            <div class="results-compact-grid-header">
+                <span>#</span>
+                <span>Model</span>
+                <span style="text-align: right;">Input tok</span>
+                <span style="text-align: right;">Output tok</span>
+                <span style="text-align: right;">Cost</span>
+            </div>
+            {% for call in ctx.call_log %}
+            <div class="results-compact-grid-row">
+                <span style="color: #555;">{{ loop.index }}</span>
+                <span style="color: {% if call.model == 'gpt-4o' %}#e8b86d{% else %}#8ad{% endif %};">{{ call.model }}</span>
+                <span style="color: #999; text-align: right;">{{ "{:,}".format(call.prompt_tokens) }}</span>
+                <span style="color: #999; text-align: right;">{{ "{:,}".format(call.completion_tokens) }}</span>
+                <span style="color: #8e8; text-align: right;">${{ "%.4f"|format(call.cost_usd) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+</div>
+{% endif %}
+
+{% if state.step_metrics %}
+<div class="panel results-section">
+    <div class="panel-label">Step Timing</div>
+    <div class="results-meta-row" style="margin-bottom: 0;">
+        <div>
+            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ state.step_metrics[-1].cumulative_s|fmt_duration }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">total time</span>
+        </div>
+        <div>
+            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ "{:,}".format(state.step_metrics[-1].cumulative_tokens) }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">total tokens</span>
+        </div>
+        <div>
+            <span style="font-size: 16px; color: #aaa;">{{ state.step_metrics|length }}</span>
+            <span style="font-size: 13px; color: #666; margin-left: 4px;">tracked steps</span>
+        </div>
+    </div>
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show step timing table</span>
+            <span class="results-expand-label-open">Hide step timing table</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            <div class="results-step-grid-header">
+                <span>Step</span>
+                <span style="text-align: right;">Time</span>
+                <span style="text-align: right;">Tokens</span>
+            </div>
+            {% for m in state.step_metrics %}
+            <div class="results-step-grid-row">
+                <span style="color: #bbb;">{{ m.step }}</span>
+                <span style="color: #999; text-align: right;">{{ m.elapsed_s|fmt_duration }}</span>
+                <span style="color: #999; text-align: right;">{{ "{:,}".format(m.tokens) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+</div>
+{% endif %}
+
 {% if state.main_summary %}
-<div class="panel">
+<div class="panel results-section">
     <div class="panel-label">Main Summary</div>
-    <div class="output-block">
-        <pre>{{ state.main_summary.get('summary', '') }}</pre>
-    </div>
-    {% if state.main_summary.key_themes %}
-    <div style="margin-top: 8px; font-size: 13px; color: #aaa;">
-        <strong>Key Themes:</strong> {{ state.main_summary.key_themes | join(', ') }}
-    </div>
+    {% if state.main_summary.get('summary') %}
+    <div class="results-read-block results-read-block--preview">{{ state.main_summary.get('summary', '') }}</div>
     {% endif %}
-    {% if state.main_summary.historical_significance %}
-    <div style="margin-top: 6px; font-size: 13px; color: #aaa;">
-        <strong>Historical Significance:</strong> {{ state.main_summary.historical_significance }}
+    {% if state.main_summary.key_themes %}
+    <div style="margin-top: 10px; font-size: 13px; color: #aaa;">
+        <strong>Key Themes:</strong> {{ state.main_summary.key_themes | join(', ') }}
     </div>
     {% endif %}
     {% if state.main_summary.quality_metrics %}
@@ -56,64 +279,98 @@
         {% endif %}
     </div>
     {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show full main summary</span>
+            <span class="results-expand-label-open">Hide full main summary</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            {% if state.main_summary.get('summary') %}
+            <div class="results-read-block">{{ state.main_summary.get('summary', '') }}</div>
+            {% endif %}
+            {% if state.main_summary.historical_significance %}
+            <div style="margin-top: 12px; font-size: 13px; color: #aaa;">
+                <strong>Historical Significance:</strong> {{ state.main_summary.historical_significance }}
+            </div>
+            {% endif %}
+        </div>
+    </details>
 </div>
 {% endif %}
 
-<!-- Chapters -->
 {% if state.chapters %}
-<div class="panel">
+<div class="panel results-section">
     <div class="panel-label">Chapters ({{ state.chapters|length }})</div>
-    {% for ch in state.chapters %}
-    <div class="chapter-card">
-        <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-        <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-        {% if ch.main_topic_category %}
-        <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
-        {% endif %}
-        <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
-        {% if ch.keywords %}
-        <div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>
-        {% endif %}
-        {% if ch.related_events %}
-        <div style="margin-top: 4px; font-size: 12px; color: #666;">Events: {{ ch.related_events | join(', ') }}</div>
-        {% endif %}
-        {% if ch.quality_metrics %}
-        <div style="margin-top: 6px;">
-            {% if ch.quality_metrics.accuracy_score is defined and ch.quality_metrics.quality_score is defined %}
-            <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Acc: {{ ch.quality_metrics.accuracy_score }}
-            </span>
-            <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
-                Qual: {{ ch.quality_metrics.quality_score }}
-            </span>
-            {% elif ch.quality_metrics.error is defined %}
-            <span class="score-badge score-fail">Scoring failed: {{ ch.quality_metrics.error }}</span>
-            {% else %}
-            <span class="score-badge score-fail">Scores unavailable</span>
-            {% endif %}
+    <div class="results-preview-list">
+        {% for ch in state.chapters[:3] %}
+        <div class="results-preview-item">
+            <div class="results-preview-item-title">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+            <div class="results-preview-item-meta">{{ ch.start_time }} → {{ ch.end_time }}</div>
         </div>
-        {% if ch.quality_metrics.errors is defined and ch.quality_metrics.errors %}
-        <div style="margin-top: 6px; font-size: 12px; color: #e88;">
-            {% for err in ch.quality_metrics.errors %}
-            <div>• {{ err }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% if ch.quality_metrics.improvements %}
-        <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
-            {% for imp in ch.quality_metrics.improvements %}
-            <div>↳ {{ imp }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endif %}
+        {% endfor %}
     </div>
-    {% endfor %}
+    {% if state.chapters|length > 3 %}
+    <div class="results-more-note">+ {{ state.chapters|length - 3 }} more chapter{{ '' if state.chapters|length - 3 == 1 else 's' }}</div>
+    {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show all chapters</span>
+            <span class="results-expand-label-open">Hide chapters</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            {% for ch in state.chapters %}
+            <div class="chapter-card">
+                <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+                {% if ch.main_topic_category %}
+                <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
+                {% endif %}
+                <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
+                {% if ch.keywords %}
+                <div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>
+                {% endif %}
+                {% if ch.related_events %}
+                <div style="margin-top: 4px; font-size: 12px; color: #666;">Events: {{ ch.related_events | join(', ') }}</div>
+                {% endif %}
+                {% if ch.quality_metrics %}
+                <div style="margin-top: 6px;">
+                    {% if ch.quality_metrics.accuracy_score is defined and ch.quality_metrics.quality_score is defined %}
+                    <span class="score-badge {% if ch.quality_metrics.accuracy_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                        Acc: {{ ch.quality_metrics.accuracy_score }}
+                    </span>
+                    <span class="score-badge {% if ch.quality_metrics.quality_score >= 80 %}score-pass{% else %}score-fail{% endif %}">
+                        Qual: {{ ch.quality_metrics.quality_score }}
+                    </span>
+                    {% elif ch.quality_metrics.error is defined %}
+                    <span class="score-badge score-fail">Scoring failed: {{ ch.quality_metrics.error }}</span>
+                    {% else %}
+                    <span class="score-badge score-fail">Scores unavailable</span>
+                    {% endif %}
+                </div>
+                {% if ch.quality_metrics.errors is defined and ch.quality_metrics.errors %}
+                <div style="margin-top: 6px; font-size: 12px; color: #e88;">
+                    {% for err in ch.quality_metrics.errors %}
+                    <div>• {{ err }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if ch.quality_metrics.improvements %}
+                <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
+                    {% for imp in ch.quality_metrics.improvements %}
+                    <div>↳ {{ imp }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </details>
 </div>
 {% endif %}
 
 {% if state.questions_rows %}
-<div class="panel">
+<div class="panel results-section">
     <div class="panel-label">Interviewer Questions ({{ state.questions_rows|length }})</div>
     {% if state.questions_stats %}
     <div style="font-size: 12px; color: #888; margin-bottom: 10px;">
@@ -124,75 +381,148 @@
         Needs review: {{ state.questions_stats.status.needs_review }}
     </div>
     {% endif %}
-    {% for q in state.questions_rows %}
-    {% if q.status != 'rejected' %}
-    <div class="chapter-card">
-        <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
-        <div style="font-size: 13px; color: #bbb; margin-top: 6px;">{{ q.question_text }}</div>
-        <div style="margin-top: 6px; font-size: 12px; color: #777;">
-            Confidence: {{ q.confidence }} ({{ q.confidence_band }})
+    <div class="results-preview-list">
+        {% set shown_questions = 0 %}
+        {% for q in state.questions_rows if q.status != 'rejected' %}
+        {% if shown_questions < 3 %}
+        <div class="results-preview-item">
+            <div class="results-preview-item-title">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
+            <div class="results-preview-item-meta">{{ q.question_text }}</div>
         </div>
-        {% if q.notes %}
-        <div style="margin-top: 4px; font-size: 12px; color: #888;">Notes: {{ q.notes }}</div>
+        {% set shown_questions = shown_questions + 1 %}
         {% endif %}
-    </div>
-    {% endif %}
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- TOC -->
-{% if state.toc_bundle and state.toc_bundle.toc %}
-<div class="panel">
-    <div class="panel-label">Table of Contents</div>
-    {% for entry in state.toc_bundle.toc %}
-    <div class="chapter-card">
-        <div class="chapter-num">{{ entry.topic }}</div>
-        <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
-        {% for sub in entry.subtopics %}
-        <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }}</div>
         {% endfor %}
     </div>
-    {% endfor %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show all questions</span>
+            <span class="results-expand-label-open">Hide questions</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            {% for q in state.questions_rows %}
+            {% if q.status != 'rejected' %}
+            <div class="chapter-card">
+                <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
+                <div style="font-size: 13px; color: #bbb; margin-top: 6px;">{{ q.question_text }}</div>
+                <div style="margin-top: 6px; font-size: 12px; color: #777;">
+                    Confidence: {{ q.confidence }} ({{ q.confidence_band }})
+                </div>
+                {% if q.notes %}
+                <div style="margin-top: 4px; font-size: 12px; color: #888;">Notes: {{ q.notes }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </details>
 </div>
 {% endif %}
 
-<!-- Chapter Breaks -->
+{% if state.toc_bundle and state.toc_bundle.toc %}
+<div class="panel results-section">
+    <div class="panel-label">Table of Contents ({{ state.toc_bundle.toc|length }})</div>
+    <div class="results-preview-list">
+        {% for entry in state.toc_bundle.toc[:4] %}
+        <div class="results-preview-item">
+            <div class="results-preview-item-title">{{ entry.topic }}</div>
+            <div class="results-preview-item-meta">{{ entry.start_time }} → {{ entry.end_time }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% if state.toc_bundle.toc|length > 4 %}
+    <div class="results-more-note">+ {{ state.toc_bundle.toc|length - 4 }} more TOC entr{{ 'y' if state.toc_bundle.toc|length - 4 == 1 else 'ies' }}</div>
+    {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show full TOC</span>
+            <span class="results-expand-label-open">Hide TOC</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            {% for entry in state.toc_bundle.toc %}
+            <div class="chapter-card">
+                <div class="chapter-num">{{ entry.topic }}</div>
+                <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
+                {% for sub in entry.subtopics %}
+                <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+</div>
+{% endif %}
+
 {% if state.chapter_breaks_preview %}
-<div class="panel">
-    <div class="panel-label">Chapter Breaks</div>
-    {% for ch in state.chapter_breaks_preview %}
-    <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
-        Ch {{ ch.chapter }}: {{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
+<div class="panel results-section">
+    <div class="panel-label">Chapter Breaks ({{ state.chapter_breaks_preview|length }})</div>
+    <div class="results-preview-list">
+        {% for ch in state.chapter_breaks_preview[:4] %}
+        <div class="results-preview-item">
+            <div class="results-preview-item-title">Ch {{ ch.chapter }} · {{ ch.start_time }} → {{ ch.end_time }}</div>
+            <div class="results-preview-item-meta">{{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+    {% if state.chapter_breaks_preview|length > 4 %}
+    <div class="results-more-note">+ {{ state.chapter_breaks_preview|length - 4 }} more chapter break{{ '' if state.chapter_breaks_preview|length - 4 == 1 else 's' }}</div>
+    {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show chapter breaks</span>
+            <span class="results-expand-label-open">Hide chapter breaks</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            {% for ch in state.chapter_breaks_preview %}
+            <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
+                Ch {{ ch.chapter }}: {{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
+            </div>
+            {% endfor %}
+        </div>
+    </details>
 </div>
 {% endif %}
 
-<!-- Block Topics -->
 {% if state.block_topics %}
-<div class="panel">
+<div class="panel results-section">
     <div class="panel-label">Block Topics ({{ state.block_topics|length }})</div>
-    {% for bt in state.block_topics %}
-    <div style="font-size: 12px; color: #777; margin-bottom: 2px;">
-        B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}
+    <div class="results-preview-list">
+        {% for bt in state.block_topics[:4] %}
+        <div class="results-preview-item">
+            <div class="results-preview-item-title">B{{ bt.block_number }}: {{ bt.main_topic_category }}</div>
+            <div class="results-preview-item-meta">{{ bt.subtopics | join(', ') }}</div>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+    {% if state.block_topics|length > 4 %}
+    <div class="results-more-note">+ {{ state.block_topics|length - 4 }} more block topic{{ '' if state.block_topics|length - 4 == 1 else 's' }}</div>
+    {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show block topics</span>
+            <span class="results-expand-label-open">Hide block topics</span>
+        </summary>
+        <div style="margin-top: 12px;">
+            {% for bt in state.block_topics %}
+            <div style="font-size: 12px; color: #777; margin-bottom: 4px;">
+                B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}
+            </div>
+            {% endfor %}
+        </div>
+    </details>
 </div>
 {% endif %}
 
-<!-- Engagement Scores -->
 {% if state.engagement_scores and state.engagement_scores.overall_score is defined %}
 {% set ev = state.engagement_scores %}
-<div class="panel">
+<div class="panel results-section">
     <div class="panel-label">Engagement Score</div>
-    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
         <span style="font-size: 28px; font-weight: 700; color: {% if ev.overall_score.total >= 80 %}#8e8{% elif ev.overall_score.total >= 60 %}#ee8{% else %}#e88{% endif %};">
             {{ ev.overall_score.total }}/100
         </span>
         <span style="font-size: 14px; color: #aaa;">{{ ev.overall_score.category }}</span>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px;">
+    <div class="results-inline-grid">
         <div>
             <span style="color: #666;">Narrative Quality:</span>
             <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.narrative_quality.total if ev.dimension_scores.narrative_quality is defined else 'N/A' }}/30</span>
@@ -210,21 +540,26 @@
             <span style="color: #ccc; font-weight: 600;">{{ ev.dimension_scores.accessibility.total if ev.dimension_scores.accessibility is defined else 'N/A' }}/20</span>
         </div>
     </div>
-    {% if ev.overall_assessment %}
-    <div style="margin-top: 10px; font-size: 13px; color: #999;">{{ ev.overall_assessment }}</div>
-    {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show engagement notes</span>
+            <span class="results-expand-label-open">Hide engagement notes</span>
+        </summary>
+        <div style="margin-top: 12px; font-size: 13px; color: #999;">
+            {{ ev.overall_assessment if ev.overall_assessment else 'No additional engagement notes.' }}
+        </div>
+    </details>
 </div>
 {% endif %}
 
-<!-- Clips -->
 {% if state.clips_data and state.clips_data.clips is defined %}
 {% set cd = state.clips_data %}
-<div class="panel">
-    <div class="panel-label">Clip Extraction</div>
+<div class="panel results-section">
+    <div class="panel-label">Clip Extraction{% if cd.clips %} ({{ cd.clips|length }}){% endif %}</div>
 
     {% if cd.extraction_summary is defined %}
     {% set es = cd.extraction_summary %}
-    <div style="display: flex; gap: 20px; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap;">
+    <div class="results-meta-row" style="margin-bottom: 0;">
         <div>
             <span style="font-size: 24px; font-weight: 700; color: #8ad;">{{ es.total_clips_extracted | default(0) }}</span>
             <span style="font-size: 13px; color: #666; margin-left: 4px;">clips extracted</span>
@@ -242,59 +577,72 @@
         </div>
         {% endif %}
     </div>
-
-    {% if es.score_distribution is defined %}
-    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;">
-        {% for range_label, count in es.score_distribution.items() %}
-        {% if count > 0 %}
-        <span class="score-badge {% if range_label.startswith('9') or range_label.startswith('8') %}score-pass{% else %}score-fail{% endif %}" style="font-size: 12px;">{{ range_label }}: {{ count }}</span>
-        {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if es.topic_coverage is defined %}
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px;">
-        {% for topic, count in es.topic_coverage.items() %}
-        {% if count > 0 %}
-        <div>
-            <span style="color: #555;">{{ topic }}:</span>
-            <span style="color: #8ad; font-weight: 600; margin-left: 4px;">{{ count }}</span>
-        </div>
-        {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
     {% endif %}
 
     {% if cd.clips %}
-    <div style="margin-top: 12px; border-top: 1px solid #2a2d31; padding-top: 10px;">
-        {% for clip in cd.clips %}
+    <div class="results-preview-list">
+        {% for clip in cd.clips[:4] %}
         {% set clip_score = clip.scores.total_score | default(0) %}
-        <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; margin-bottom: 5px; gap: 8px;">
-            <span style="color: #666; flex-shrink: 0;">{{ clip.clip_id }}</span>
-            <span style="color: #bbb; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clip.clip_title }}</span>
-            <span style="color: #888; flex-shrink: 0;">{{ clip.timestamp_start | replace(',000','') }} → {{ clip.timestamp_end | replace(',000','') }}</span>
-            <span style="font-weight: 600; flex-shrink: 0; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ clip_score }}</span>
+        <div class="results-preview-item">
+            <div class="results-preview-item-title">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
+            <div class="results-preview-item-meta">{{ clip.timestamp_start | replace(',000','') }} → {{ clip.timestamp_end | replace(',000','') }} · score {{ clip_score }}</div>
         </div>
         {% endfor %}
     </div>
+    {% if cd.clips|length > 4 %}
+    <div class="results-more-note">+ {{ cd.clips|length - 4 }} more clip{{ '' if cd.clips|length - 4 == 1 else 's' }}</div>
+    {% endif %}
     {% endif %}
 
-    {% if cd.extraction_notes is defined and cd.extraction_notes.highest_scoring_clips %}
-    <div style="margin-top: 10px; font-size: 12px; color: #666;">
-        Top clips: <span style="color: #8e8;">{{ cd.extraction_notes.highest_scoring_clips | join(', ') }}</span>
-    </div>
-    {% endif %}
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show clip details</span>
+            <span class="results-expand-label-open">Hide clip details</span>
+        </summary>
+        {% if cd.extraction_summary is defined and cd.extraction_summary.score_distribution is defined %}
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px;">
+            {% for range_label, count in cd.extraction_summary.score_distribution.items() %}
+            {% if count > 0 %}
+            <span class="score-badge {% if range_label.startswith('9') or range_label.startswith('8') %}score-pass{% else %}score-fail{% endif %}" style="font-size: 12px;">{{ range_label }}: {{ count }}</span>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if cd.clips %}
+        <div class="results-divider-top">
+            {% for clip in cd.clips %}
+            {% set clip_score = clip.scores.total_score | default(0) %}
+            <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; margin-bottom: 5px; gap: 8px;">
+                <span style="color: #666; flex-shrink: 0;">{{ clip.clip_id }}</span>
+                <span style="color: #bbb; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clip.clip_title }}</span>
+                <span style="color: #888; flex-shrink: 0;">{{ clip.timestamp_start | replace(',000','') }} → {{ clip.timestamp_end | replace(',000','') }}</span>
+                <span style="font-weight: 600; flex-shrink: 0; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ clip_score }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if cd.extraction_notes is defined and cd.extraction_notes.highest_scoring_clips %}
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+            Top clips: <span style="color: #8e8;">{{ cd.extraction_notes.highest_scoring_clips | join(', ') }}</span>
+        </div>
+        {% endif %}
+    </details>
 </div>
 {% endif %}
 
-<!-- Raw JSON -->
-<div class="panel">
+<div class="panel results-section">
     <div class="panel-label">Full JSON Output</div>
-    <div class="output-block" style="max-height: 500px; overflow-y: auto;">
-        <pre id="full-json"></pre>
-    </div>
+    <details class="results-expand">
+        <summary>
+            <span class="results-expand-label-closed">Show full JSON</span>
+            <span class="results-expand-label-open">Hide full JSON</span>
+        </summary>
+        <div class="output-block results-json" style="margin-top: 12px;">
+            <pre id="full-json"></pre>
+        </div>
+    </details>
+</div>
+
 </div>
 
 <div class="btn-row" style="margin-top: 16px;">
@@ -305,7 +653,6 @@
 
 {% block scripts %}
 <script>
-    // Build full JSON preview
     const fullData = {
         main_summary: {{ state.main_summary | tojson if state.main_summary else 'null' }},
         chapters: {{ state.chapters | tojson if state.chapters else '[]' }},

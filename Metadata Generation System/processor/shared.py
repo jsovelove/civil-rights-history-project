@@ -42,6 +42,24 @@ CIVIL_RIGHTS_EVENTS = [
     "Sixth Pan-African Congress"
 ]
 
+# ── Per-token pricing (USD per token) ──────────────────────────────────
+# Source: https://openai.com/api/pricing/  (legacy models, still active)
+# Update these when OpenAI changes rates.
+
+MODEL_RATES = {
+    "gpt-4o":      {"input": 2.50 / 1_000_000, "output": 10.00 / 1_000_000},
+    "gpt-4o-mini": {"input": 0.15 / 1_000_000, "output":  0.60 / 1_000_000},
+}
+
+
+def _cost_for_call(model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    """Compute USD cost for a single API call."""
+    rates = MODEL_RATES.get(model)
+    if not rates:
+        # Unknown model — fall back to gpt-4o rates as conservative estimate
+        rates = MODEL_RATES["gpt-4o"]
+    return (prompt_tokens * rates["input"]) + (completion_tokens * rates["output"])
+
 
 # ── Processor Context ──────────────────────────────────────────────────
 # Lightweight object that holds all shared state. Passed to every module.
@@ -90,11 +108,21 @@ class ProcessorContext:
         # Token usage counter (accumulated across all API calls)
         self.total_tokens_used: int = 0
 
+        # ── Cost tracking ──────────────────────────────────────────
+        # Each API call appends a record here.
+        self.call_log: List[Dict[str, Any]] = []
+        self.total_prompt_tokens: int = 0
+        self.total_completion_tokens: int = 0
+        self.total_cost_usd: float = 0.0
+
         # Keywords
         self.standard_keywords: List[str] = []
         self.keyword_definitions: Dict[str, str] = {}
         if use_keyword_collection:
             self._load_keyword_collection()
+
+        # Attached by app.py after context creation (optional)
+        self.logger = None
 
     def _load_facts(self, facts_path: str):
         try:
@@ -153,6 +181,17 @@ class ProcessorContext:
             print(f"Error loading keyword collection: {e}")
             self.use_keyword_collection = False
 
+    def get_cost_summary(self) -> Dict[str, Any]:
+        """Return a summary of all API costs so far."""
+        return {
+            "total_calls": len(self.call_log),
+            "total_prompt_tokens": self.total_prompt_tokens,
+            "total_completion_tokens": self.total_completion_tokens,
+            "total_tokens": self.total_tokens_used,
+            "total_cost_usd": round(self.total_cost_usd, 6),
+            "calls": self.call_log,
+        }
+
 
 # ── OpenAI call ────────────────────────────────────────────────────────
 
@@ -180,7 +219,27 @@ def call_openai_json(
 
             content = response.choices[0].message.content
             if hasattr(response, 'usage') and response.usage:
-                ctx.total_tokens_used += (response.usage.total_tokens or 0)
+                prompt_tok = response.usage.prompt_tokens or 0
+                completion_tok = response.usage.completion_tokens or 0
+                total_tok = response.usage.total_tokens or 0
+
+                call_cost = _cost_for_call(model, prompt_tok, completion_tok)
+
+                # Accumulate totals
+                ctx.total_tokens_used += total_tok
+                ctx.total_prompt_tokens += prompt_tok
+                ctx.total_completion_tokens += completion_tok
+                ctx.total_cost_usd += call_cost
+
+                # Log this call
+                ctx.call_log.append({
+                    "model": model,
+                    "prompt_tokens": prompt_tok,
+                    "completion_tokens": completion_tok,
+                    "total_tokens": total_tok,
+                    "cost_usd": round(call_cost, 6),
+                })
+
             try:
                 parsed = json.loads(content)
                 return clean_markdown_from_dict(parsed)
@@ -231,6 +290,30 @@ def format_facts_for_prompt(facts: List[Dict[str, str]]) -> str:
     lines = ["\n\nVERIFIED HISTORICAL FACTS (use for accuracy, do not penalize summary for missing facts not in transcript):"]
     for fact in facts:
         lines.append(f"- {fact['event']}: {fact['summary']}")
+    return "\n".join(lines)
+
+
+def format_primary_source_for_prompt(info: Optional[Dict[str, Any]]) -> str:
+    """Format interviewee primary source metadata as a prompt block."""
+    if not info:
+        return ""
+    field_labels = [
+        ("birth_date", "Birth date"),
+        ("birth_place", "Birth place"),
+        ("death_date", "Death date"),
+        ("interviewer", "Interviewer"),
+        ("interview_location", "Interview location"),
+        ("interview_date", "Interview date"),
+        ("biographical_history", "Biographical history"),
+        ("summary", "Reference summary"),
+    ]
+    lines = ["\n\nINTERVIEWEE REFERENCE INFORMATION (authoritative source — use for correct spellings, dates, and facts):"]
+    for key, label in field_labels:
+        val = info.get(key)
+        if val:
+            lines.append(f"{label}: {val}")
+    if len(lines) == 1:
+        return ""
     return "\n".join(lines)
 
 

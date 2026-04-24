@@ -10,6 +10,11 @@
 </div>
 
 {% if state.text_blocks %}
+<div class="btn-row" style="margin-bottom: 16px;">
+    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">← Restart</a>
+    <a href="{{ url_for('labeling_page') }}" class="btn btn-primary">Continue to Labeling →</a>
+</div>
+
 <div class="panel">
     <div class="panel-label">Text Blocks ({{ state.text_blocks|length }})</div>
     {% for block in state.text_blocks %}
@@ -19,11 +24,6 @@
         <div class="chapter-snippet">{{ block.text[:300] if block.text else '' }}{% if block.text and block.text|length > 300 %}...{% endif %}</div>
     </div>
     {% endfor %}
-</div>
-
-<div class="btn-row">
-    <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">← Restart</a>
-    <a href="{{ url_for('labeling_page') }}" class="btn btn-primary">Continue to Labeling →</a>
 </div>
 {% else %}
 <div class="panel">

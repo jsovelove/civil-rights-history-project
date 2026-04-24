@@ -3,14 +3,20 @@ Step 2 — Labeling: Assign topic categories and subtopics to each text block.
 """
 
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 from .shared import (
     ProcessorContext, MAIN_TOPICS,
     call_openai_json, load_prompt
 )
 
-# Maximum blocks per API call — keeps output JSON well within token limits
-LABEL_CHUNK_SIZE = 30
+# Smaller chunks = fewer output tokens per call = each call finishes faster.
+# Since all chunks run in parallel, wall clock ≈ time of one chunk.
+LABEL_CHUNK_SIZE = 15
+
+# Enough workers so all chunks fire at once for typical interviews.
+# 85 blocks / 15 = 6 chunks — all launch simultaneously.
+LABEL_MAX_WORKERS = 6
 
 
 def label_text_blocks(
@@ -26,8 +32,8 @@ def label_text_blocks(
     The user_prompt should contain {analysis_text} and the system_prompt
     should contain {topics_list} as placeholders.
 
-    For large interviews, blocks are processed in chunks to avoid
-    output token truncation.
+    For large interviews, blocks are processed in parallel chunks to avoid
+    output token truncation while keeping wall-clock time low.
     """
     if not text_blocks:
         return []
@@ -42,66 +48,50 @@ def label_text_blocks(
     if user_prompt is None:
         user_prompt = load_prompt(ctx, 'label_text_blocks_for_toc_user.txt')
 
-    # ── Chunk blocks and label each chunk ──────────────────────────
+    # ── Build chunk specs ─────────────────────────────────────────
     n = len(text_blocks)
-    all_labeled = {}  # block_number -> labeled dict
-
+    chunks = []
     for chunk_start in range(0, n, LABEL_CHUNK_SIZE):
         chunk_end = min(chunk_start + LABEL_CHUNK_SIZE, n)
-        chunk = text_blocks[chunk_start:chunk_end]
-        chunk_size = len(chunk)
+        chunks.append((chunk_start, chunk_end))
 
-        print(f"Labeling blocks {chunk_start + 1}–{chunk_end} of {n}")
+    # ── Process chunks in parallel ────────────────────────────────
+    all_labeled = {}  # block_number -> labeled dict
+    errors = []
 
-        # Build analysis text for this chunk
-        analysis_text = _build_analysis_text(chunk, chunk_start)
+    # Single chunk — skip thread overhead
+    if len(chunks) == 1:
+        result = _label_chunk(ctx, text_blocks, chunks[0][0], chunks[0][1], n, system_prompt, user_prompt)
+        if isinstance(result, Exception):
+            raise result
+        all_labeled.update(result)
+    else:
+        print(f"Labeling {n} blocks in {len(chunks)} parallel chunks")
+        workers = min(LABEL_MAX_WORKERS, len(chunks))
 
-        # Substitute into user prompt
-        chunk_user_prompt = user_prompt.replace('{analysis_text}', analysis_text)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(
+                    _label_chunk, ctx, text_blocks,
+                    cs, ce, n, system_prompt, user_prompt
+                ): (cs, ce)
+                for cs, ce in chunks
+            }
 
-        # Token budget for this chunk
-        toc_max_tokens = min(9000, 800 + 140 * chunk_size)
+            for future in as_completed(futures):
+                cs, ce = futures[future]
+                try:
+                    result = future.result()
+                    if isinstance(result, Exception):
+                        errors.append(result)
+                    else:
+                        all_labeled.update(result)
+                        print(f"  Chunk {cs+1}–{ce} done, running total: {len(all_labeled)}/{n}")
+                except Exception as e:
+                    errors.append(e)
 
-        resp = call_openai_json(
-            ctx, system_prompt, chunk_user_prompt,
-            model=ctx.toc_model, max_tokens=toc_max_tokens
-        )
-
-        if isinstance(resp, dict) and "error" in resp:
-            raise RuntimeError(f"TOC labeling OpenAI error: {resp['error']}")
-
-        # Extract labeled blocks from response
-        blocks = resp.get("blocks", []) if isinstance(resp, dict) else []
-
-        # Detect if model returned 1-indexed chunk-relative numbers instead of
-        # global block numbers (common when chunks start past block 30).
-        # If all returned block_numbers fit within [1..chunk_size] but the chunk
-        # starts at an offset, remap them to global numbering.
-        if chunk_start > 0 and blocks:
-            returned_nums = []
-            for item in blocks:
-                bn = item.get("block_number")
-                if isinstance(bn, str):
-                    m = re.search(r"\d+", bn)
-                    bn = int(m.group()) if m else None
-                if isinstance(bn, int):
-                    returned_nums.append(bn)
-            if returned_nums and max(returned_nums) <= chunk_size:
-                print(f"  Remapping chunk-relative block numbers (1–{chunk_size}) → global ({chunk_start + 1}–{chunk_end})")
-                for item in blocks:
-                    bn = item.get("block_number")
-                    if isinstance(bn, str):
-                        m = re.search(r"\d+", bn)
-                        bn = int(m.group()) if m else None
-                    if isinstance(bn, int) and 1 <= bn <= chunk_size:
-                        item["block_number"] = bn + chunk_start
-
-        for item in blocks:
-            parsed = _normalize_block(item, n)
-            if parsed:
-                all_labeled[parsed["block_number"]] = parsed
-
-        print(f"  Got {len(blocks)} labels, running total: {len(all_labeled)}/{n}")
+        if errors and not all_labeled:
+            raise errors[0]
 
     # ── Validate coverage ──────────────────────────────────────────
     if len(all_labeled) == 0:
@@ -126,6 +116,75 @@ def label_text_blocks(
             })
 
     return filled
+
+
+def _label_chunk(
+    ctx: ProcessorContext,
+    text_blocks: List[Dict[str, Any]],
+    chunk_start: int,
+    chunk_end: int,
+    total_blocks: int,
+    system_prompt: str,
+    user_prompt: str,
+) -> Dict[int, Dict[str, Any]]:
+    """
+    Label a single chunk of blocks. Returns a dict of block_number -> labeled dict.
+    Designed to be called from a thread pool.
+    """
+    chunk = text_blocks[chunk_start:chunk_end]
+    chunk_size = len(chunk)
+
+    print(f"Labeling blocks {chunk_start + 1}–{chunk_end} of {total_blocks}")
+
+    # Build analysis text for this chunk
+    analysis_text = _build_analysis_text(chunk, chunk_start)
+
+    # Substitute into user prompt
+    chunk_user_prompt = user_prompt.replace('{analysis_text}', analysis_text)
+
+    # Token budget for this chunk
+    toc_max_tokens = min(9000, 800 + 140 * chunk_size)
+
+    resp = call_openai_json(
+        ctx, system_prompt, chunk_user_prompt,
+        model=ctx.toc_model, max_tokens=toc_max_tokens
+    )
+
+    if isinstance(resp, dict) and "error" in resp:
+        raise RuntimeError(f"TOC labeling OpenAI error: {resp['error']}")
+
+    # Extract labeled blocks from response
+    blocks = resp.get("blocks", []) if isinstance(resp, dict) else []
+
+    # Detect if model returned 1-indexed chunk-relative numbers instead of
+    # global block numbers (common when chunks start past block 30).
+    if chunk_start > 0 and blocks:
+        returned_nums = []
+        for item in blocks:
+            bn = item.get("block_number")
+            if isinstance(bn, str):
+                m = re.search(r"\d+", bn)
+                bn = int(m.group()) if m else None
+            if isinstance(bn, int):
+                returned_nums.append(bn)
+        if returned_nums and max(returned_nums) <= chunk_size:
+            print(f"  Remapping chunk-relative block numbers (1–{chunk_size}) → global ({chunk_start + 1}–{chunk_end})")
+            for item in blocks:
+                bn = item.get("block_number")
+                if isinstance(bn, str):
+                    m = re.search(r"\d+", bn)
+                    bn = int(m.group()) if m else None
+                if isinstance(bn, int) and 1 <= bn <= chunk_size:
+                    item["block_number"] = bn + chunk_start
+
+    labeled = {}
+    for item in blocks:
+        parsed = _normalize_block(item, total_blocks)
+        if parsed:
+            labeled[parsed["block_number"]] = parsed
+
+    print(f"  Got {len(blocks)} labels for blocks {chunk_start + 1}–{chunk_end}")
+    return labeled
 
 
 def _build_analysis_text(

@@ -65,6 +65,13 @@
     </div>
 </form>
 
+{% if state.tuning_results %}
+<div class="btn-row" style="margin-top: 16px; margin-bottom: 16px;">
+    <a href="{{ url_for('engagement_page') if state.steps_enabled.engagement else url_for('results_page') }}" class="btn btn-primary">Continue to {{ 'Engagement' if state.steps_enabled.engagement else 'Results' }} →</a>
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('tuning-form').submit()">Re-run Tuning</button>
+</div>
+{% endif %}
+
 <!-- Results -->
 {% if state.tuning_results %}
 <div style="margin-top: 24px;">
@@ -157,11 +164,6 @@
     </div>
     {% endif %}
 
-</div>
-
-<div class="btn-row" style="margin-top: 16px;">
-    <a href="{{ url_for('engagement_page') if state.steps_enabled.engagement else url_for('results_page') }}" class="btn btn-primary">Continue to {{ 'Engagement' if state.steps_enabled.engagement else 'Results' }} →</a>
-    <button type="button" class="btn btn-secondary" onclick="document.getElementById('tuning-form').submit()">Re-run Tuning</button>
 </div>
 {% endif %}
 {% endblock %}
