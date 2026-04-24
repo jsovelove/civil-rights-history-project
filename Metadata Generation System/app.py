@@ -347,6 +347,9 @@ def _new_state():
         
         # pending batch files from zip upload (list of (name, path) tuples)
         "pending_batch_files": None,
+
+        # optional primary source metadata for the current interview
+        "primary_source_info": None,
     }
 
 
@@ -450,6 +453,7 @@ def _reset_downstream():
     # Reset processor so it reinits with the current API key and block size
     state["processor"] = None
     state["step_metrics"] = []
+    state["primary_source_info"] = None
 
 
 def _reset_after_summary_changes():
@@ -466,18 +470,28 @@ def get_ctx():
     """Lazy-init the ProcessorContext so we only create it once per browser session."""
     if state["processor"] is None:
         from processor import ProcessorContext
+        from processor.logger import ProcessingLogger
 
         prompts_dir = _find_path('processor_prompts')
         facts_path = _find_path('civil_rights_facts.json')
         rubric_path = _find_path('StandardizedRubric_1.md')
 
-        state["processor"] = ProcessorContext(
+        ctx = ProcessorContext(
             api_key=current_api_key(),
             chapter_block_size=state["block_size"],
             prompts_dir=prompts_dir or 'processor_prompts',
             facts_path=facts_path or 'civil_rights_facts.json',
             rubric_path=rubric_path or 'StandardizedRubric_1.md',
         )
+
+        ctx.logger = ProcessingLogger(
+            logs_dir=os.path.join(BASE_DIR, 'logs'),
+            session_id=_get_session_id(),
+            interview_filename=state.get("srt_path") or "unknown.srt",
+            api_key=current_api_key(),
+        )
+
+        state["processor"] = ctx
     return state["processor"]
 
 
@@ -799,12 +813,80 @@ def upload_run():
             return _render_upload('Enter an API key before running the pipeline.')
 
     use_sample = request.form.get('use_sample') == 'on'
+    use_transcripts = request.form.get('use_transcripts') == 'on'
     uploaded_file = request.files.get('srt_file')
-    if not use_sample and (not uploaded_file or not uploaded_file.filename):
+    if not use_sample and not use_transcripts and (not uploaded_file or not uploaded_file.filename):
         return _render_upload('Select an .srt file or use the bundled sample interview.')
     
     block_size = int(request.form.get('block_size', 23))
+
+    # Read module toggles (must happen before any early-return branch)
+    state["steps_enabled"]["questions"] = request.form.get('enable_questions') == 'on'
+    state["question_placement"] = "after_summary"
+    state["steps_enabled"]["engagement"] = request.form.get('enable_engagement') == 'on'
+    state["steps_enabled"]["clips"] = request.form.get('enable_clips') == 'on'
+
+    # Optional YouTube video link
+    yt_url = request.form.get('youtube_url', '').strip()
+    state["youtube_url"] = yt_url
+    state["youtube_video_id"] = extract_youtube_id(yt_url)
+
+    # Optional primary source info JSON (single-interview metadata)
+    primary_source_file = request.files.get('primary_source_json')
+    if primary_source_file and primary_source_file.filename:
+        try:
+            state["primary_source_info"] = json.loads(primary_source_file.read().decode('utf-8'))
+        except Exception:
+            state["primary_source_info"] = None
+    else:
+        state["primary_source_info"] = None
     
+    # Handle "Use sample batch" — bundled zip of 4 transcripts
+    if use_transcripts:
+        sample_zip = os.path.join(BASE_DIR, 'sample_batch.zip')
+        if not os.path.isfile(sample_zip):
+            return _render_upload('Bundled sample batch zip not found on server.')
+
+        session_dir = _session_upload_dir(reset=True)
+        srt_files = []
+        with zipfile.ZipFile(sample_zip, 'r') as zf:
+            for member in zf.namelist():
+                if member.lower().endswith('.srt') and not member.startswith('__MACOSX'):
+                    basename = os.path.basename(member)
+                    if not basename:
+                        continue
+                    dest = os.path.join(session_dir, secure_filename(basename))
+                    with zf.open(member) as src, open(dest, 'wb') as dst:
+                        dst.write(src.read())
+                    srt_files.append((basename.replace('.srt', ''), dest))
+
+        if not srt_files:
+            return _render_upload('No .srt files found in the sample batch zip.')
+
+        srt_files.sort(key=lambda x: x[0])
+        first_name, first_path = srt_files[0]
+        _reset_downstream()
+        state["using_sample"] = False
+        state["pending_batch_files"] = srt_files[1:] if len(srt_files) > 1 else None
+
+        from srt_parser import parse_srt_file
+        segments = parse_srt_file(first_path)
+        plaintext = ' '.join([s.text for s in segments])
+
+        state["srt_path"] = first_path
+        state["block_size"] = block_size
+        state["segments"] = segments
+        state["plaintext_transcript"] = plaintext
+
+        ctx = get_ctx()
+        ctx.chapter_block_size = block_size
+
+        from processor.blocking import build_text_blocks
+        text_blocks = build_text_blocks(ctx, segments, plaintext)
+        state["text_blocks"] = text_blocks
+
+        return redirect(url_for('blocking_output'))
+
     # Handle zip upload: extract all SRTs, load first one, queue the rest
     if not use_sample and uploaded_file.filename.lower().endswith('.zip'):
         session_dir = _session_upload_dir(reset=True)
@@ -861,17 +943,6 @@ def upload_run():
 
     if not use_sample and not uploaded_file.filename.lower().endswith('.srt'):
         return _render_upload('Please upload an .srt or .zip file.')
-
-    # Read module toggles
-    state["steps_enabled"]["questions"] = request.form.get('enable_questions') == 'on'
-    state["question_placement"] = "after_summary"
-    state["steps_enabled"]["engagement"] = request.form.get('enable_engagement') == 'on'
-    state["steps_enabled"]["clips"] = request.form.get('enable_clips') == 'on'
-
-    # Optional YouTube video link
-    yt_url = request.form.get('youtube_url', '').strip()
-    state["youtube_url"] = yt_url
-    state["youtube_video_id"] = extract_youtube_id(yt_url)
 
     # Reset all downstream state from previous runs
     _reset_downstream()
@@ -1104,7 +1175,8 @@ def summarization_run_main():
     main_summary = generate_main_summary(
         ctx, transcript, interview_name,
         system_prompt=state["main_summary_sys_prompt"],
-        user_prompt=state["main_summary_user_prompt"]
+        user_prompt=state["main_summary_user_prompt"],
+        primary_source_info=state.get("primary_source_info"),
     )
     _record_step_metric("Main Summary", time.time() - _t0, ctx.total_tokens_used - _tok0)
     state["main_summary"] = main_summary
@@ -1137,7 +1209,8 @@ def summarization_run_chapters():
     chapters = generate_chapters(
         ctx, segments, interview_name, plaintext, chapter_breaks,
         system_prompt=state["chapter_sys_prompt"],
-        user_prompt=state["chapter_user_prompt"]
+        user_prompt=state["chapter_user_prompt"],
+        primary_source_info=state.get("primary_source_info"),
     )
     _record_step_metric("Chapter Summaries", time.time() - _t0, ctx.total_tokens_used - _tok0)
     state["chapters"] = chapters
@@ -1324,7 +1397,7 @@ def tuning_run():
     ctx = get_ctx()
     transcript = state["plaintext_transcript"]
 
-    from processor.tuning import run_tuning_loop, score_chapter
+    from processor.tuning import run_tuning_loop, score_chapter, score_chapters_batch
     from processor.blocking import extract_plaintext_section
 
     tuning_results = {"main_summary": None, "chapters": []}
@@ -1345,26 +1418,60 @@ def tuning_run():
             eval_user_prompt=state["eval_user_prompt"],
             revision_sys_prompt=state["revision_sys_prompt"],
             revision_user_prompt=state["revision_user_prompt"],
+            primary_source_info=state.get("primary_source_info"),
         )
         tuning_results["main_summary"] = result
         state["main_summary"] = result["summary"]
 
-    # Score chapters with actual chapter text
+    # Score chapters. Strategy: batch all chapters into one API call when
+    # the chapter count is small enough to fit comfortably (≤15). Above
+    # that, or if batching fails, fall back to parallelized per-chapter
+    # scoring. Both paths produce identical output structure.
     if state["chapters"] and state["chapter_breaks"]:
+        from concurrent.futures import ThreadPoolExecutor
+
+        # Pre-extract all chapter texts once so both paths can reuse them.
+        chapter_texts = []
         for i, chapter in enumerate(state["chapters"]):
-            # Extract real chapter text from the transcript using break indices
             if i < len(state["chapter_breaks"]):
                 start_idx, end_idx = state["chapter_breaks"][i]
-                chapter_text = extract_plaintext_section(
+                ctext = extract_plaintext_section(
                     state["plaintext_transcript"],
                     state["segments"],
                     start_idx,
                     end_idx
                 )
             else:
-                chapter_text = ""
+                ctext = ""
+            chapter_texts.append(ctext)
 
-            scores = score_chapter(ctx, chapter, chapter_text)
+        BATCH_THRESHOLD = 15
+        scores_by_index = {}
+
+        if len(state["chapters"]) <= BATCH_THRESHOLD:
+            chapters_with_text = [
+                {"chapter": ch, "chapter_text": txt}
+                for ch, txt in zip(state["chapters"], chapter_texts)
+            ]
+            batch_results = score_chapters_batch(ctx, chapters_with_text)
+            if batch_results:
+                for i, scores in enumerate(batch_results):
+                    scores_by_index[i] = scores
+
+        # Fallback: any chapters not scored by the batch call get scored
+        # individually in parallel. Also handles the >BATCH_THRESHOLD case.
+        unscored = [i for i in range(len(state["chapters"])) if i not in scores_by_index]
+        if unscored:
+            def _score_one(i):
+                return i, score_chapter(ctx, state["chapters"][i], chapter_texts[i])
+
+            with ThreadPoolExecutor(max_workers=5) as pool:
+                for i, scores in pool.map(_score_one, unscored):
+                    scores_by_index[i] = scores
+
+        # Reassemble in chapter order.
+        for i, chapter in enumerate(state["chapters"]):
+            scores = scores_by_index.get(i, {})
             chapter["quality_metrics"] = scores
             tuning_results["chapters"].append({
                 "chapter": chapter,
@@ -1623,6 +1730,13 @@ def results_continue_batch():
         "tuning_results": state["tuning_results"],
         "engagement_scores": state["engagement_scores"],
         "clips_data": state["clips_data"],
+        "cost_data": {
+            "total_cost_usd": state["processor"].total_cost_usd if state["processor"] else 0,
+            "total_prompt_tokens": state["processor"].total_prompt_tokens if state["processor"] else 0,
+            "total_completion_tokens": state["processor"].total_completion_tokens if state["processor"] else 0,
+            "call_count": len(state["processor"].call_log) if state["processor"] else 0,
+            "call_log": list(state["processor"].call_log) if state["processor"] else [],
+        },
         "error": None,
     }
     first_name = first_result["interview_name"]
@@ -1669,6 +1783,13 @@ def api_state():
                 safe_state[k] = str(v)
     return jsonify(safe_state)
 
+@app.route('/api/costs', methods=['GET'])
+def api_costs():
+    """Return per-call cost breakdown for the current session."""
+    ctx = state.get("processor")
+    if not ctx:
+        return jsonify({"error": "No pipeline run yet."})
+    return jsonify(ctx.get_cost_summary())
 
 # ══════════════════════════════════════════════════════════════════════
 #  BATCH PROCESSING
@@ -1715,7 +1836,7 @@ def _capture_batch_params():
     }
 
 
-def _process_single_interview(srt_path, interview_name, params, progress_fn, youtube_video_id=None, partial_result=None, save_partial_fn=None):
+def _process_single_interview(srt_path, interview_name, params, progress_fn, youtube_video_id=None, partial_result=None, save_partial_fn=None, primary_source_info=None):
     """
     Run the full pipeline on a single SRT file.
     Returns a dict with all pipeline outputs.
@@ -1728,7 +1849,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
     from processor.toc import build_hierarchical_toc
     from processor.chapterization import detect_topic_transitions, build_chapter_preview
     from processor.summarization import generate_main_summary, generate_chapters
-    from processor.tuning import run_tuning_loop, score_chapter
+    from processor.tuning import run_tuning_loop, score_chapter, score_chapters_batch
     from processor.questions import compute_question_stats, generate_questions, normalize_question_rows
 
     # Create a fresh ProcessorContext for this interview
@@ -1791,6 +1912,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         ctx, plaintext, interview_name,
         system_prompt=params["main_summary_sys_prompt"],
         user_prompt=params["main_summary_user_prompt"],
+        primary_source_info=primary_source_info,
     )
     result["main_summary"] = main_summary
     _save()
@@ -1800,6 +1922,7 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
         ctx, segments, interview_name, plaintext, chapter_breaks,
         system_prompt=params["chapter_sys_prompt"],
         user_prompt=params["chapter_user_prompt"],
+        primary_source_info=primary_source_info,
     )
     result["chapters"] = chapters
     _save()
@@ -1850,19 +1973,48 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
             eval_user_prompt=params["eval_user_prompt"],
             revision_sys_prompt=params["revision_sys_prompt"],
             revision_user_prompt=params["revision_user_prompt"],
+            primary_source_info=primary_source_info,
         )
         tuning_results["main_summary"] = tuning_result
         result["main_summary"] = tuning_result["summary"]
 
     progress_fn("Scoring chapters")
     if chapters and chapter_breaks:
-        for i, chapter in enumerate(chapters):
+        from concurrent.futures import ThreadPoolExecutor
+
+        chapter_texts = []
+        for i in range(len(chapters)):
             if i < len(chapter_breaks):
                 start_idx, end_idx = chapter_breaks[i]
-                chapter_text = extract_plaintext_section(plaintext, segments, start_idx, end_idx)
+                ctext = extract_plaintext_section(plaintext, segments, start_idx, end_idx)
             else:
-                chapter_text = ""
-            scores = score_chapter(ctx, chapter, chapter_text)
+                ctext = ""
+            chapter_texts.append(ctext)
+
+        BATCH_THRESHOLD = 15
+        scores_by_index = {}
+
+        if len(chapters) <= BATCH_THRESHOLD:
+            chapters_with_text = [
+                {"chapter": ch, "chapter_text": txt}
+                for ch, txt in zip(chapters, chapter_texts)
+            ]
+            batch_results = score_chapters_batch(ctx, chapters_with_text)
+            if batch_results:
+                for i, scores in enumerate(batch_results):
+                    scores_by_index[i] = scores
+
+        unscored = [i for i in range(len(chapters)) if i not in scores_by_index]
+        if unscored:
+            def _score_one(i):
+                return i, score_chapter(ctx, chapters[i], chapter_texts[i])
+
+            with ThreadPoolExecutor(max_workers=5) as pool:
+                for i, scores in pool.map(_score_one, unscored):
+                    scores_by_index[i] = scores
+
+        for i, chapter in enumerate(chapters):
+            scores = scores_by_index.get(i, {})
             chapter["quality_metrics"] = scores
             tuning_results["chapters"].append({"chapter": chapter, "scores": scores})
 
@@ -1923,6 +2075,15 @@ def _process_single_interview(srt_path, interview_name, params, progress_fn, you
     else:
         result["clips_data"] = None
 
+    # Save cost/token data so batch results can display it
+    result["cost_data"] = {
+        "total_cost_usd": ctx.total_cost_usd,
+        "total_prompt_tokens": ctx.total_prompt_tokens,
+        "total_completion_tokens": ctx.total_completion_tokens,
+        "call_count": len(ctx.call_log),
+        "call_log": list(ctx.call_log),
+    }
+
     return result
 
 
@@ -1958,11 +2119,13 @@ def _run_batch(sid, srt_files, params):
         try:
             srt_basename = os.path.basename(path)
             yt_id = params.get("video_links_map", {}).get(srt_basename)
+            psi = params.get("primary_source_map", {}).get(srt_basename)
             result = _process_single_interview(
-                path, name, params, update_step, 
+                path, name, params, update_step,
                 youtube_video_id=yt_id,
                 partial_result=partial_result,
-                save_partial_fn=save_partial
+                save_partial_fn=save_partial,
+                primary_source_info=psi,
             )
             # Mark as complete
             result.pop("_processing", None)
@@ -1984,9 +2147,19 @@ def _run_batch(sid, srt_files, params):
 
 @app.route('/batch', methods=['GET'])
 def batch_page():
-    """Show batch upload page with captured parameters."""
+    """Show batch upload page, or redirect to progress/results if a job exists."""
     if not has_api_key():
         return redirect(url_for('upload_page'))
+
+    # If a batch job exists for this session, send user back to it
+    sid = _get_session_id()
+    with _BATCH_LOCK:
+        job = _BATCH_JOBS.get(sid)
+    if job:
+        if job.get("running"):
+            return redirect(url_for('batch_progress'))
+        elif job.get("results"):
+            return redirect(url_for('batch_results'))
 
     params = _capture_batch_params()
     # Check that user has actually completed a single-interview run
@@ -2054,6 +2227,24 @@ def batch_start():
             pass  # silently ignore malformed JSON
     params["video_links_map"] = video_links_map
 
+    # Optional: parse primary source JSON (oral_histories.json format) and build
+    # a basename → metadata lookup keyed by transcript_file basename.
+    primary_source_file = request.files.get('primary_source_json')
+    primary_source_map = {}
+    if primary_source_file and primary_source_file.filename:
+        try:
+            data = json.loads(primary_source_file.read().decode('utf-8'))
+            for entry_data in data.values():
+                tf = entry_data.get('transcript_file', '')
+                if tf:
+                    basename = secure_filename(os.path.basename(tf))
+                    primary_source_map[basename] = {
+                        k: v for k, v in entry_data.items() if k != 'transcript_file'
+                    }
+        except Exception:
+            pass  # silently ignore malformed JSON
+    params["primary_source_map"] = primary_source_map
+
     # Initialize job
     with _BATCH_LOCK:
         _BATCH_JOBS[sid] = {
@@ -2068,6 +2259,15 @@ def batch_start():
     thread.start()
 
     return redirect(url_for('batch_progress'))
+
+
+@app.route('/batch/reset', methods=['POST'])
+def batch_reset():
+    """Clear the current batch job so the user can start a new one."""
+    sid = _get_session_id()
+    with _BATCH_LOCK:
+        _BATCH_JOBS.pop(sid, None)
+    return redirect(url_for('batch_page'))
 
 
 @app.route('/batch/progress', methods=['GET'])

@@ -1,7 +1,9 @@
+import bisect
 import hashlib
 import json
 import os
 import re
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -362,7 +364,22 @@ def _row_context_priority(row: Dict[str, Any]) -> int:
     return score
 
 
-def _segment_index_for_row(row: Dict[str, Any], segments: List[Any]) -> Optional[int]:
+def _build_segment_time_index(segments: List[Any]) -> List[tuple]:
+    """Pre-compute sorted (start_seconds, index) pairs for binary search."""
+    index = []
+    for i, seg in enumerate(segments):
+        t = parse_time_to_seconds(str(getattr(seg, "start_time", "") or ""))
+        if t is not None:
+            index.append((t, i))
+    index.sort()
+    return index
+
+
+def _segment_index_for_row(
+    row: Dict[str, Any],
+    segments: List[Any],
+    _time_index: Optional[List[tuple]] = None,
+) -> Optional[int]:
     raw = row.get("segment_idx")
     try:
         idx = int(raw) if raw is not None else None
@@ -376,6 +393,20 @@ def _segment_index_for_row(row: Dict[str, Any], segments: List[Any]) -> Optional
     if target_seconds is None or not segments:
         return None
 
+    # Use pre-built index with bisect for O(log n) lookup.
+    if _time_index:
+        pos = bisect.bisect_left(_time_index, (target_seconds,))
+        best_idx = None
+        best_dist = float("inf")
+        for p in range(max(0, pos - 1), min(len(_time_index), pos + 2)):
+            t, seg_i = _time_index[p]
+            d = abs(t - target_seconds)
+            if d < best_dist:
+                best_dist = d
+                best_idx = seg_i
+        return best_idx
+
+    # Fallback: linear scan.
     best_idx = None
     best_distance = float("inf")
     for i, seg in enumerate(segments):
@@ -467,10 +498,12 @@ def _build_rewrite_context_map(
     prioritized.sort(key=lambda item: (-item[0], item[1]))
     selected_rows = [item[2] for item in prioritized[:max_context_rows]]
 
+    time_index = _build_segment_time_index(segments)
+
     context_map: Dict[str, Dict[str, Any]] = {}
     for row in selected_rows:
         qid = str(row.get("id") or "").strip()
-        idx = _segment_index_for_row(row, segments)
+        idx = _segment_index_for_row(row, segments, _time_index=time_index)
         if idx is None:
             continue
 
@@ -673,6 +706,26 @@ def generate_questions(
     if not candidates:
         return []
 
+    # Clamp context parameters (mirrors the clamping done before _rewrite_for_readability)
+    try:
+        _log_max_ctx = max(0, min(40, int(rewrite_context_max_rows)))
+    except (TypeError, ValueError):
+        _log_max_ctx = MAX_REWRITE_CONTEXT_ROWS
+    try:
+        _log_before = max(0, min(600, int(rewrite_context_before_chars)))
+    except (TypeError, ValueError):
+        _log_before = CONTEXT_BEFORE_CHAR_BUDGET
+    try:
+        _log_after = max(0, min(600, int(rewrite_context_after_chars)))
+    except (TypeError, ValueError):
+        _log_after = CONTEXT_AFTER_CHAR_BUDGET
+
+    if ctx.logger:
+        ctx.logger.log_questions_params(_log_max_ctx, _log_before, _log_after)
+
+    _q_tokens_before = ctx.total_tokens_used
+    _q_t0 = time.time()
+
     candidate_map = {int(c["candidate_id"]): c for c in candidates}
 
     if not system_prompt:
@@ -814,4 +867,13 @@ def generate_questions(
         before_char_budget=before_char_budget,
         after_char_budget=after_char_budget,
     )
-    return normalize_question_rows(rewritten_rows)
+    final_rows = normalize_question_rows(rewritten_rows)
+
+    if ctx.logger:
+        stats = compute_question_stats(final_rows)
+        ctx.logger.log_questions_api(
+            model, time.time() - _q_t0, ctx.total_tokens_used - _q_tokens_before
+        )
+        ctx.logger.log_questions_stats(stats)
+
+    return final_rows

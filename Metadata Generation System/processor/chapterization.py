@@ -2,6 +2,7 @@
 Step 4 — Chapterization: Detect topic transitions to determine chapter break indices.
 """
 
+import time
 from typing import List, Dict, Any, Tuple, Optional
 from .shared import ProcessorContext, call_openai_json, load_prompt
 
@@ -80,8 +81,12 @@ def detect_topic_transitions(
     user_prompt = user_prompt.replace('{topic_context}', topic_context)
 
     # ── Call OpenAI ────────────────────────────────────────────────
+    tokens_before = ctx.total_tokens_used
+    t0 = time.time()
     try:
         response = call_openai_json(ctx, system_prompt, user_prompt, model=ctx.toc_model)
+        elapsed = time.time() - t0
+        tokens_used = ctx.total_tokens_used - tokens_before
 
         if response and "chapter_breaks" in response:
             breaks = []
@@ -97,9 +102,12 @@ def detect_topic_transitions(
                 breaks.append((start_segment_idx, end_segment_idx))
 
             print("RAW OPENAI BREAKS (segment idx):", breaks)
+            if ctx.logger:
+                ctx.logger.log_chapterization(ctx.toc_model, elapsed, tokens_used, len(breaks))
             return breaks
 
     except Exception as e:
+        elapsed = time.time() - t0
         print(f"Error detecting topic transitions: {e}")
 
     return create_fallback_chapters(text_blocks)

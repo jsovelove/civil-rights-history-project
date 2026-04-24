@@ -76,6 +76,11 @@
                 <span>Use the bundled Amos C. Brown sample interview instead of uploading a ZIP.</span>
             </label>
 
+            <label class="app-row-center-gap">
+                <input type="checkbox" name="use_transcripts" id="use-transcripts-checkbox">
+                <span>Use the bundled batch of 4 sample interviews instead of uploading a ZIP.</span>
+            </label>
+
             <input type="file" name="srt_file" id="srt-input" accept=".zip" required class="app-file-input-hidden" aria-hidden="true" tabindex="-1">
             <div class="pf-v6-c-file-upload" id="upload-zone">
                 <div class="upload-zone">
@@ -177,6 +182,7 @@
     const fileInput = document.getElementById('srt-input');
     const fileLabel = document.getElementById('file-label');
     const sampleCheckbox = document.getElementById('use-sample-checkbox');
+    const transcriptsCheckbox = document.getElementById('use-transcripts-checkbox');
     const uploadZone = document.getElementById('upload-zone');
     const browseBtn = document.getElementById('file-browse-btn');
 
@@ -184,8 +190,12 @@
         fileInput.click();
     });
 
+    function isBundledSelected() {
+        return sampleCheckbox.checked || transcriptsCheckbox.checked;
+    }
+
     function setZoneActive(isActive) {
-        if (sampleCheckbox.checked) return;
+        if (isBundledSelected()) return;
         const zone = uploadZone.querySelector('.upload-zone');
         zone.style.borderColor = isActive ? 'var(--pf-t--global--color--brand--default)' : '';
         zone.style.backgroundColor = isActive ? 'var(--pf-t--global--background--color--secondary--hover)' : '';
@@ -208,12 +218,16 @@
 
     function updateSourceMode() {
         const zone = uploadZone.querySelector('.upload-zone');
-        if (sampleCheckbox.checked) {
+        if (isBundledSelected()) {
             fileInput.required = false;
             fileInput.value = '';
             zone.style.opacity = '0.65';
             browseBtn.disabled = true;
-            fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
+            if (sampleCheckbox.checked) {
+                fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
+            } else {
+                fileLabel.innerHTML = '<strong>Bundled batch selected</strong> — no upload needed';
+            }
         } else {
             fileInput.required = true;
             zone.style.opacity = '1';
@@ -222,10 +236,20 @@
         }
     }
 
+    // Make checkboxes mutually exclusive
+    sampleCheckbox.addEventListener('change', function() {
+        if (this.checked) transcriptsCheckbox.checked = false;
+        updateSourceMode();
+    });
+    transcriptsCheckbox.addEventListener('change', function() {
+        if (this.checked) sampleCheckbox.checked = false;
+        updateSourceMode();
+    });
+
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             applySelectedFile(this.files[0]);
-        } else if (!sampleCheckbox.checked) {
+        } else if (!isBundledSelected()) {
             showDefaultLabel();
         }
     });
@@ -251,7 +275,7 @@
         event.stopPropagation();
         setZoneActive(false);
 
-        if (sampleCheckbox.checked) return;
+        if (isBundledSelected()) return;
         const files = event.dataTransfer.files;
         if (!files || files.length === 0) return;
 
@@ -262,7 +286,6 @@
         applySelectedFile(file);
     });
 
-    sampleCheckbox.addEventListener('change', updateSourceMode);
     updateSourceMode();
 
     wireRunButton('upload-form', 'run-btn', 'Running blocking...');

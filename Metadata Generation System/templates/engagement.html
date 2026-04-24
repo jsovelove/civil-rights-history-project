@@ -170,12 +170,19 @@
 {% endif %}
 
 <div class="app-actions">
-    <a href="{{ url_for('clips_page') }}" class="pf-v6-c-button pf-m-primary">Continue to clips</a>
+    <a href="{{ url_for('clips_page') if state.steps_enabled.clips else url_for('results_page') }}" class="pf-v6-c-button pf-m-primary">Continue to {{ 'clips' if state.steps_enabled.clips else 'results' }}</a>
     <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run engagement scoring? Current scores will be replaced.')) document.getElementById('engagement-form').submit();">Re-run scoring</button>
 </div>
 {% else %}
 {{ ui.empty_state("No engagement results yet", "Run engagement scoring to generate the audience-facing quality assessment.") }}
 {% endif %}
+
+<div class="app-actions">
+    <a href="{{ url_for('clips_page') if state.steps_enabled.clips else url_for('results_page') }}" class="pf-v6-c-button pf-m-primary">Continue to {{ 'clips' if state.steps_enabled.clips else 'results' }}</a>
+    {% if not state.engagement_scores %}
+    <span class="app-muted">You can skip this step</span>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}

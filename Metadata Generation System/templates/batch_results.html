@@ -5,7 +5,199 @@
 {% block title %}Batch Results — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Batch Results", "Review interview results while the batch is still running. The selected interview stays readable, and unfinished sections fall back to loading placeholders.", "Batch review") }}
+{{ ui.page_header("Batch Results", "Review interview results while the batch is still running. Finished sections render immediately; unfinished sections show loading placeholders.", "Batch review") }}
+
+<style>
+.section-pending,
+.section-empty {
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    margin-bottom: 0;
+    padding: 14px 16px;
+    font-size: 13px;
+    text-align: center;
+}
+.section-pending {
+    opacity: 0.75;
+    color: #888;
+    border: 1px dashed #3a4350;
+    background: #13171c;
+}
+.section-empty {
+    color: #666;
+    border: 1px dashed #2b3138;
+    background: #111418;
+}
+.processing-banner {
+    background: #1a2a3a;
+    border: 1px solid #2d5a8e;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.processing-banner .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #2d5a8e;
+    border-top-color: #8ad;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.expand-block {
+    margin-top: 12px;
+    border-top: 1px solid #20252b;
+    padding-top: 12px;
+}
+.expand-block > summary {
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #8ad;
+    font-size: 13px;
+    user-select: none;
+}
+.expand-block > summary::-webkit-details-marker { display: none; }
+.expand-block > summary::before {
+    content: '▸';
+    font-size: 11px;
+    transition: transform 0.15s ease;
+}
+.expand-block[open] > summary::before { transform: rotate(90deg); }
+.expand-label-open { display: none; }
+.expand-block[open] .expand-label-open { display: inline; }
+.expand-block[open] .expand-label-closed { display: none; }
+.collapsed-list { margin-top: 12px; }
+.section-shell { min-height: 88px; }
+.batch-result-content { overflow-anchor: none; }
+.panel, .section-shell, .processing-banner, .section-pending, .section-empty { overflow-anchor: none; }
+.section-shell.section-shell--cost { min-height: 126px; }
+.section-shell.section-shell--summary { min-height: 180px; }
+.section-shell.section-shell--chapters,
+.section-shell.section-shell--toc,
+.section-shell.section-shell--breaks,
+.section-shell.section-shell--clips { min-height: 160px; }
+.section-shell.section-shell--questions,
+.section-shell.section-shell--block-topics,
+.section-shell.section-shell--tuning,
+.section-shell.section-shell--engagement,
+.section-shell.section-shell--json { min-height: 120px; }
+.compact-grid-header {
+    display: grid;
+    grid-template-columns: 30px 1fr 100px 100px 80px;
+    gap: 4px;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 6px;
+}
+.compact-grid-row {
+    display: grid;
+    grid-template-columns: 30px 1fr 100px 100px 80px;
+    gap: 4px;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+.batch-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.batch-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    background: #151a20;
+    color: #b8c0c8;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.batch-tab:hover { transform: translateY(-1px); }
+.batch-tab::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #5d6773;
+    flex-shrink: 0;
+}
+.batch-tab.tab-complete { background: #142019; border-color: #2e6a45; color: #c3f3d2; }
+.batch-tab.tab-complete::before { background: #63d98b; box-shadow: 0 0 0 3px rgba(99,217,139,.16); }
+.batch-tab.tab-processing { background: #162234; border-color: #2d5a8e; color: #c7e1ff; }
+.batch-tab.tab-processing::before { background: #67b3ff; box-shadow: 0 0 0 3px rgba(103,179,255,.16); }
+.batch-tab.tab-error { background: #2a1719; border-color: #b42318; color: #ffcac5; }
+.batch-tab.tab-error::before { background: #ff7b72; box-shadow: 0 0 0 3px rgba(255,123,114,.16); }
+.batch-tab.batch-tab--disabled { background: #101419; border-color: #2b3138; color: #66707b; opacity: 0.8; }
+.batch-tab.batch-tab--disabled::before { background: #4b545e; box-shadow: none; }
+.batch-tab.active { box-shadow: inset 0 0 0 2px #f2d675, 0 0 0 1px rgba(242,214,117,.18); }
+.batch-tab.active.tab-complete { background: #193023; }
+.batch-tab.active.tab-processing { background: #1b2d46; }
+.batch-tab.active.tab-error { background: #371b1f; }
+.tab-state-label {
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    line-height: 1;
+    opacity: 0.9;
+}
+.batch-tab.tab-complete .tab-state-label { color: #8ee7a9; background: rgba(99,217,139,.08); }
+.batch-tab.tab-processing .tab-state-label { color: #8ec8ff; background: rgba(103,179,255,.08); }
+.batch-tab.tab-error .tab-state-label { color: #ff9d97; background: rgba(255,123,114,.08); }
+.batch-tab.batch-tab--disabled .tab-state-label { color: #87919b; background: rgba(135,145,155,.06); }
+.tab-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(103,179,255,.3);
+    border-top-color: #8ec8ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}
+.preview-stack { display: grid; gap: 10px; margin-top: 10px; }
+.preview-card, .intro-card {
+    background: #0f1318;
+    border: 1px solid #20252b;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+.intro-card { margin-top: 10px; }
+.reading-preview {
+    margin-top: 10px;
+    color: #cfd6dd;
+    font-size: 14px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    overflow: hidden;
+}
+.reading-full { margin-top: 12px; color: #d6dde4; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
+.preview-text { margin-top: 8px; color: #c4ccd4; font-size: 13px; line-height: 1.55; }
+.preview-text--clamp-4 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+.preview-muted { color: #7f8a95; font-size: 12px; }
+.preview-accent { color: #8ad; font-size: 12px; }
+.preview-summary-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 12px; color: #8a949e; }
+.preview-summary-row strong { color: #c8d0d8; }
+.preview-keywords { margin-top: 8px; color: #707b86; font-size: 12px; }
+.preview-meta-list { display: grid; gap: 6px; margin-top: 10px; }
+.preview-meta-line { color: #b9c2cb; font-size: 13px; line-height: 1.45; }
+.section-count-note { margin-top: 8px; color: #66707b; font-size: 12px; }
+</style>
 
 {% if is_running %}
 {% call ui.alert("Batch still processing", "info") %}
@@ -24,201 +216,718 @@
     <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary">Start over</a>
 </div>
 
-<div class="pf-v6-c-tabs" role="region" aria-label="Interview results tabs">
-    <ul class="pf-v6-c-tabs__list" role="tablist">
-        {% for name in interview_order %}
-        {% set r = results.get(name, {}) %}
-        {% set has_result = name in results %}
-        {% if has_result %}
-        <li class="pf-v6-c-tabs__item{% if name == selected %} pf-m-current{% endif %}" role="presentation">
-            <a href="{% if is_running %}{{ url_for('batch_results', i=name) }}&from=progress{% else %}{{ url_for('batch_results', i=name) }}{% endif %}"
-               class="pf-v6-c-tabs__link"
-               {% if name == selected %}aria-current="page"{% endif %}>
-                <span class="pf-v6-c-tabs__item-text">{{ name }}{% if r.get('_processing', false) %} · loading{% elif r.get('error') %} · error{% endif %}</span>
-            </a>
-        </li>
+<div class="batch-tabs">
+    {% for name in interview_order %}
+    {% set r = results.get(name, {}) %}
+    {% set has_result = name in results %}
+    {% set is_processing = r.get('_processing', false) %}
+    {% set has_error = r.get('error') %}
+    {% if has_result %}
+    <a href="{% if is_running %}{{ url_for('batch_results', i=name) }}&from=progress{% else %}{{ url_for('batch_results', i=name) }}{% endif %}"
+       class="batch-tab {% if name == selected %}active{% endif %} {% if has_error %}tab-error{% elif is_processing %}tab-processing{% else %}tab-complete{% endif %}">
+        <span>{{ name }}</span>
+        {% if has_error %}
+        <span class="tab-state-label">Error</span>
+        {% elif is_processing %}
+        <span class="tab-state-label">In progress</span>
+        <span class="tab-spinner"></span>
         {% else %}
-        <li class="pf-v6-c-tabs__item pf-m-disabled" role="presentation">
-            <span class="pf-v6-c-tabs__link" aria-disabled="true"><span class="pf-v6-c-tabs__item-text">{{ name }}</span></span>
-        </li>
+        <span class="tab-state-label">Complete</span>
         {% endif %}
-        {% endfor %}
-    </ul>
+    </a>
+    {% else %}
+    <span class="batch-tab batch-tab--disabled">
+        <span>{{ name }}</span>
+        <span class="tab-state-label">Waiting</span>
+    </span>
+    {% endif %}
+    {% endfor %}
 </div>
 
 {% if selected_result %}
-<div class="app-summary-grid">
-    <div class="app-summary-stat">
-        <div class="app-summary-stat-label">Summary</div>
-        <div class="app-summary-stat-value">{{ 'Ready' if selected_result.main_summary else 'Pending' }}</div>
-    </div>
-    <div class="app-summary-stat">
-        <div class="app-summary-stat-label">Chapters</div>
-        <div class="app-summary-stat-value">{{ selected_result.chapters|length if selected_result.chapters else 0 }}</div>
-    </div>
-    <div class="app-summary-stat">
-        <div class="app-summary-stat-label">Questions</div>
-        <div class="app-summary-stat-value">{{ selected_result.questions|length if selected_result.questions else 0 }}</div>
-    </div>
-    <div class="app-summary-stat">
-        <div class="app-summary-stat-label">Clips</div>
-        <div class="app-summary-stat-value">{{ selected_result.clips_data.clips|length if selected_result.clips_data and selected_result.clips_data.clips is defined else 0 }}</div>
-    </div>
-</div>
+{% set sr = selected_result %}
+{% set sr_processing = sr._processing if sr and sr._processing is defined else false %}
+{% set visible_questions = sr.questions | rejectattr('status', 'equalto', 'rejected') | list if sr.questions else [] %}
 
-{% if selected_result._processing %}
-{% call ui.alert("Currently processing", "info") %}
-<p>Current step: <span id="current-step-label">{{ selected_result._current_step or 'Starting' }}</span></p>
-{% endcall %}
-{% endif %}
-
-{% if selected_result.error %}
-{% call ui.alert("Interview failed", "danger") %}
-<p>{{ selected_result.error }}</p>
-{% endcall %}
-{% else %}
-{% if selected_result.main_summary %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Main summary</h2>
+<div class="batch-result-content">
+    {% if sr_processing %}
+    <div class="processing-banner" id="processing-banner">
+        <div class="spinner"></div>
+        <div>
+            <div style="color: #8ad; font-weight: 600;">Currently Processing</div>
+            <div style="color: #888; font-size: 13px;">Step: {{ sr._current_step or 'Starting' }}</div>
         </div>
     </div>
-    <div class="pf-v6-c-card__body">
-        <div class="output-block"><pre>{{ selected_result.main_summary.get('summary', '') if selected_result.main_summary is mapping else selected_result.main_summary }}</pre></div>
-    </div>
-</section>
-{% elif selected_result._processing %}
-<div class="app-skeleton-stack">
-    <div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-text-xl pf-m-width-50"></div><div class="pf-v6-c-skeleton pf-m-width-75 app-mt-md"></div><div class="pf-v6-c-skeleton pf-m-width-66 app-mt-sm"></div></div>
-</div>
-{% endif %}
+    {% endif %}
 
-{% if selected_result.chapters %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Chapters</h2>
-        </div>
+    {% if sr.error %}
+    <div class="panel" id="panel-error" style="border-left: 3px solid #b42318;">
+        <div class="panel-label" style="color: #b42318;">Error</div>
+        <pre style="color: #e88; font-size: 13px;">{{ sr.error }}</pre>
     </div>
-    <div class="pf-v6-c-card__body app-stack">
-        {% for ch in selected_result.chapters %}
-        <div class="chapter-card">
-            <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-            <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
-            <div class="app-mt-sm">{{ ch.summary }}</div>
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% elif selected_result._processing %}
-<div class="app-skeleton-stack"><div class="app-skeleton-card"><div class="pf-v6-c-skeleton pf-m-width-33 pf-m-text-lg"></div><div class="pf-v6-c-skeleton pf-m-width-75 app-mt-md"></div></div></div>
-{% endif %}
+    {% else %}
 
-{% if selected_result.questions %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Interviewer questions</h2>
-        </div>
-    </div>
-    <div class="pf-v6-c-card__body app-stack">
-        {% for q in selected_result.questions if q.status != 'rejected' %}
-        <div class="chapter-card">
-            <div class="app-row-label">
-                <span class="pf-v6-c-label pf-m-compact {% if q.status == 'verified' %}pf-m-green{% elif q.status == 'needs_review' %}pf-m-orange{% else %}pf-m-blue{% endif %}">
-                    <span class="pf-v6-c-label__content">{{ q.status | replace('_', ' ') | title }}</span>
-                </span>
-                <span class="chapter-time">{{ q.start_time }} → {{ q.end_time }}</span>
+    <div class="panel section-shell section-shell--cost" id="panel-cost">
+        <div class="panel-label">Pipeline Cost</div>
+        {% if sr.cost_data and sr.cost_data.total_cost_usd is defined %}
+        {% set cd = sr.cost_data %}
+        <div style="display: flex; align-items: baseline; gap: 20px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div>
+                <span style="font-size: 28px; font-weight: 700; color: #8e8;">${{ "%.4f"|format(cd.total_cost_usd) }}</span>
+                <span style="font-size: 13px; color: #666; margin-left: 4px;">total cost</span>
             </div>
-            <div>{{ q.question_text }}</div>
+            <div>
+                <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ "{:,}".format(cd.total_prompt_tokens) }}</span>
+                <span style="font-size: 13px; color: #666; margin-left: 4px;">input tokens</span>
+            </div>
+            <div>
+                <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ "{:,}".format(cd.total_completion_tokens) }}</span>
+                <span style="font-size: 13px; color: #666; margin-left: 4px;">output tokens</span>
+            </div>
+            <div>
+                <span style="font-size: 16px; color: #aaa;">{{ cd.call_count }}</span>
+                <span style="font-size: 13px; color: #666; margin-left: 4px;">API calls</span>
+            </div>
         </div>
-        {% endfor %}
+        {% if cd.call_log %}
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show call log</span>
+                <span class="expand-label-open">Hide call log</span>
+            </summary>
+            <div style="margin-top: 12px;">
+                <div class="compact-grid-header">
+                    <span>#</span><span>Model</span>
+                    <span style="text-align: right;">Input tok</span>
+                    <span style="text-align: right;">Output tok</span>
+                    <span style="text-align: right;">Cost</span>
+                </div>
+                {% for call in cd.call_log %}
+                <div class="compact-grid-row">
+                    <span style="color: #555;">{{ loop.index }}</span>
+                    <span style="color: {% if call.model == 'gpt-4o' %}#e8b86d{% else %}#8ad{% endif %};">{{ call.model }}</span>
+                    <span style="color: #999; text-align: right;">{{ "{:,}".format(call.prompt_tokens) }}</span>
+                    <span style="color: #999; text-align: right;">{{ "{:,}".format(call.completion_tokens) }}</span>
+                    <span style="color: #8e8; text-align: right;">${{ "%.4f"|format(call.cost_usd) }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Pipeline Cost — waiting for cost metadata...</div>
+        {% else %}
+        <div class="section-empty">Pipeline Cost not available.</div>
+        {% endif %}
     </div>
-</section>
-{% endif %}
 
-{% if selected_result.engagement_scores and selected_result.engagement_scores.overall_score is defined %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Engagement score</h2>
+    <div class="panel section-shell section-shell--summary" id="panel-summary">
+        <div class="panel-label">Main Summary</div>
+        {% if sr.main_summary %}
+        {% set summary_text = sr.main_summary.get('summary', '') if sr.main_summary is mapping else sr.main_summary %}
+        <div class="reading-preview">{{ summary_text }}</div>
+        <div class="preview-summary-row">
+            {% if sr.main_summary is mapping and sr.main_summary.key_themes %}
+            <div><strong>Key Themes:</strong> {{ sr.main_summary.key_themes[:3] | join(', ') }}{% if sr.main_summary.key_themes|length > 3 %} +{{ sr.main_summary.key_themes|length - 3 }} more{% endif %}</div>
+            {% endif %}
+            {% if sr.main_summary is mapping and sr.main_summary.quality_metrics %}
+                {% if sr.main_summary.quality_metrics.accuracy_score is defined and sr.main_summary.quality_metrics.quality_score is defined %}
+                {{ ui.score_label("Accuracy: " ~ sr.main_summary.quality_metrics.accuracy_score, sr.main_summary.quality_metrics.accuracy_score, 80, 60) }}
+                {{ ui.score_label("Quality: " ~ sr.main_summary.quality_metrics.quality_score, sr.main_summary.quality_metrics.quality_score, 80, 60) }}
+                {% endif %}
+            {% endif %}
         </div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show full summary</span>
+                <span class="expand-label-open">Hide full summary</span>
+            </summary>
+            <div class="reading-full">{{ summary_text }}</div>
+            {% if sr.main_summary is mapping and sr.main_summary.key_themes %}
+            <div style="margin-top: 10px; font-size: 13px; color: #aaa;"><strong>Key Themes:</strong> {{ sr.main_summary.key_themes | join(', ') }}</div>
+            {% endif %}
+            {% if sr.main_summary is mapping and sr.main_summary.historical_significance %}
+            <div style="margin-top: 8px; font-size: 13px; color: #aaa; line-height: 1.55;"><strong>Historical Significance:</strong> {{ sr.main_summary.historical_significance }}</div>
+            {% endif %}
+        </details>
+        {% elif sr_processing %}
+        <div class="section-pending">Main Summary — waiting...</div>
+        {% else %}
+        <div class="section-empty">Main Summary not available.</div>
+        {% endif %}
     </div>
-    <div class="pf-v6-c-card__body">
-        <div class="app-masthead-value">{{ selected_result.engagement_scores.overall_score.total }}/100</div>
-        <div class="app-muted">{{ selected_result.engagement_scores.overall_score.category }}</div>
-    </div>
-</section>
-{% endif %}
 
-{% if selected_result.clips_data and selected_result.clips_data.clips is defined %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Clips</h2>
+    <div class="panel section-shell section-shell--chapters" id="panel-chapters">
+        <div class="panel-label">Chapters{% if sr.chapters %} ({{ sr.chapters|length }}){% endif %}</div>
+        {% if sr.chapters %}
+        <div class="preview-stack">
+            {% for ch in sr.chapters[:1] %}
+            <div class="preview-card">
+                <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+                {% if ch.main_topic_category %}<div class="preview-accent" style="margin-top: 4px;">{{ ch.main_topic_category }}</div>{% endif %}
+                <div class="preview-text preview-text--clamp-4">{{ ch.summary }}</div>
+                {% if ch.keywords %}<div class="preview-keywords">Keywords: {{ ch.keywords | join(', ') }}</div>{% endif %}
+            </div>
+            {% endfor %}
         </div>
+        {% if sr.chapters|length > 1 %}
+        <div class="section-count-note">{{ sr.chapters|length - 1 }} more chapter{{ '' if sr.chapters|length - 1 == 1 else 's' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining chapters</span>
+                <span class="expand-label-open">Hide remaining chapters</span>
+            </summary>
+            <div class="collapsed-list">
+                {% for ch in sr.chapters[1:] %}
+                <div class="chapter-card">
+                    <div style="display: flex; gap: 16px; align-items: flex-start;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
+                        <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+                        {% if ch.main_topic_category %}<div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>{% endif %}
+                        <div style="margin-top: 8px; font-size: 13px; color: #bbb;">{{ ch.summary }}</div>
+                        {% if ch.keywords %}<div style="margin-top: 6px; font-size: 12px; color: #666;">Keywords: {{ ch.keywords | join(', ') }}</div>{% endif %}
+                        {% if ch.quality_metrics %}
+                        <div style="margin-top: 6px;">
+                            {% if ch.quality_metrics.accuracy_score is defined and ch.quality_metrics.quality_score is defined %}
+                            {{ ui.score_label("Acc: " ~ ch.quality_metrics.accuracy_score, ch.quality_metrics.accuracy_score, 80, 60) }}
+                            {{ ui.score_label("Qual: " ~ ch.quality_metrics.quality_score, ch.quality_metrics.quality_score, 80, 60) }}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if sr.youtube_video_id %}
+                    <div style="flex-shrink: 0;">
+                        <iframe class="app-video-frame"
+                            title="Chapter {{ ch.chapter_number }} video preview"
+                            src="https://www.youtube.com/embed/{{ sr.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                    </div>
+                    {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Chapters — waiting...</div>
+        {% else %}
+        <div class="section-empty">Chapters not available.</div>
+        {% endif %}
     </div>
-    <div class="pf-v6-c-card__body app-stack">
-        {% for clip in selected_result.clips_data.clips[:10] %}
-        <div class="chapter-card">
-            <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
-            <div class="chapter-time">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}</div>
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
 
-{% call ui.advanced_section("Full JSON output", False, "Inspect the complete payload for the selected interview.") %}
-<div class="output-block app-scroll-y">
-    <pre id="full-json"></pre>
+    <div class="panel section-shell section-shell--questions" id="panel-questions">
+        <div class="panel-label">Interviewer Questions{% if visible_questions %} ({{ visible_questions|length }}){% endif %}</div>
+        {% if visible_questions %}
+        <div class="preview-stack">
+            {% for q in visible_questions[:2] %}
+            <div class="preview-card">
+                <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
+                <div class="preview-text">{{ q.question_text }}</div>
+                <div class="preview-muted" style="margin-top: 6px;">Confidence: {{ q.confidence }} ({{ q.confidence_band }})</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if visible_questions|length > 2 %}
+        <div class="section-count-note">{{ visible_questions|length - 2 }} more question{{ '' if visible_questions|length - 2 == 1 else 's' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining questions</span>
+                <span class="expand-label-open">Hide remaining questions</span>
+            </summary>
+            <div class="collapsed-list">
+                {% for q in visible_questions[2:] %}
+                <div class="chapter-card">
+                    <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
+                    <div style="font-size: 13px; color: #bbb; margin-top: 6px;">{{ q.question_text }}</div>
+                    <div style="margin-top: 6px; font-size: 12px; color: #777;">Confidence: {{ q.confidence }} ({{ q.confidence_band }})</div>
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Interviewer Questions — waiting...</div>
+        {% else %}
+        <div class="section-empty">Interviewer Questions not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--toc" id="panel-toc">
+        <div class="panel-label">Table of Contents{% if sr.toc_bundle and sr.toc_bundle.toc %} ({{ sr.toc_bundle.toc|length }}){% endif %}</div>
+        {% if sr.toc_bundle and sr.toc_bundle.toc %}
+        <div class="preview-stack">
+            {% for entry in sr.toc_bundle.toc[:2] %}
+            <div class="preview-card">
+                <div class="chapter-num">{{ entry.topic }}</div>
+                <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
+                {% if entry.subtopics %}
+                <div class="preview-meta-list">
+                    {% for sub in entry.subtopics[:3] %}
+                    <div class="preview-meta-line">↳ {{ sub.label }}{% if sub.start_time and sub.end_time %} ({{ sub.start_time }} → {{ sub.end_time }}){% endif %}</div>
+                    {% endfor %}
+                    {% if entry.subtopics|length > 3 %}<div class="preview-muted">+ {{ entry.subtopics|length - 3 }} more subtopic{{ '' if entry.subtopics|length - 3 == 1 else 's' }}</div>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if sr.toc_bundle.toc|length > 2 %}
+        <div class="section-count-note">{{ sr.toc_bundle.toc|length - 2 }} more TOC entr{{ 'y' if sr.toc_bundle.toc|length - 2 == 1 else 'ies' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining TOC</span>
+                <span class="expand-label-open">Hide remaining TOC</span>
+            </summary>
+            <div class="collapsed-list">
+                {% for entry in sr.toc_bundle.toc[2:] %}
+                <div class="chapter-card">
+                    <div class="chapter-num">{{ entry.topic }}</div>
+                    <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
+                    {% if entry.subtopics %}
+                    <div style="margin-top: 6px;">
+                        {% for sub in entry.subtopics %}
+                        <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Table of Contents — waiting...</div>
+        {% else %}
+        <div class="section-empty">Table of Contents not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--breaks" id="panel-breaks">
+        <div class="panel-label">Chapter Breaks{% if sr.chapter_breaks_preview %} ({{ sr.chapter_breaks_preview|length }}){% endif %}</div>
+        {% if sr.chapter_breaks_preview %}
+        <div class="preview-stack">
+            {% for ch in sr.chapter_breaks_preview[:2] %}
+            <div class="preview-card">
+                <div class="chapter-num">Chapter {{ ch.chapter }}</div>
+                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words</div>
+                {% if ch.snippet %}<div class="preview-text preview-text--clamp-4">{{ ch.snippet }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if sr.chapter_breaks_preview|length > 2 %}
+        <div class="section-count-note">{{ sr.chapter_breaks_preview|length - 2 }} more chapter break{{ '' if sr.chapter_breaks_preview|length - 2 == 1 else 's' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining chapter breaks</span>
+                <span class="expand-label-open">Hide remaining chapter breaks</span>
+            </summary>
+            <div class="collapsed-list">
+                {% for ch in sr.chapter_breaks_preview[2:] %}
+                <div class="chapter-card">
+                    <div class="chapter-num">Chapter {{ ch.chapter }}</div>
+                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    {% if ch.snippet %}<div class="chapter-snippet">{{ ch.snippet }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Chapter Breaks — waiting...</div>
+        {% else %}
+        <div class="section-empty">Chapter Breaks not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--block-topics" id="panel-block-topics">
+        <div class="panel-label">Block Topics{% if sr.block_topics %} ({{ sr.block_topics|length }}){% endif %}</div>
+        {% if sr.block_topics %}
+        <div class="intro-card">
+            {% for bt in sr.block_topics[:4] %}
+            <div class="preview-meta-line">B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}</div>
+            {% endfor %}
+        </div>
+        {% if sr.block_topics|length > 4 %}
+        <div class="section-count-note">{{ sr.block_topics|length - 4 }} more block topic{{ '' if sr.block_topics|length - 4 == 1 else 's' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining block topics</span>
+                <span class="expand-label-open">Hide remaining block topics</span>
+            </summary>
+            <div style="margin-top: 12px;">
+                {% for bt in sr.block_topics[4:] %}
+                <div style="font-size: 12px; color: #777; margin-bottom: 4px;">B{{ bt.block_number }}: {{ bt.main_topic_category }} — {{ bt.subtopics | join(', ') }}</div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Block Topics — waiting...</div>
+        {% else %}
+        <div class="section-empty">Block Topics not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--tuning" id="panel-tuning">
+        <div class="panel-label">Tuning Results</div>
+        {% if sr.tuning_results %}
+        <div class="intro-card">
+            {% if sr.tuning_results.main_summary %}
+            {% set ms = sr.tuning_results.main_summary %}
+            <div class="preview-meta-line">
+                Main summary:
+                {% if ms.scores %}Accuracy {{ ms.scores.get('accuracy_score', 'N/A') }} · Quality {{ ms.scores.get('quality_score', 'N/A') }}{% endif %}
+                {% if ms.regenerated %} · Regenerated ({{ ms.retries }} retries){% endif %}
+            </div>
+            {% endif %}
+            {% if sr.tuning_results.chapters %}
+            {% for item in sr.tuning_results.chapters[:3] %}
+            <div class="preview-meta-line">Ch {{ loop.index }}: Accuracy {{ item.scores.get('accuracy_score', 'N/A') }} · Quality {{ item.scores.get('quality_score', 'N/A') }}</div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        {% if sr.tuning_results.chapters and sr.tuning_results.chapters|length > 3 %}
+        <div class="section-count-note">{{ sr.tuning_results.chapters|length - 3 }} more tuning row{{ '' if sr.tuning_results.chapters|length - 3 == 1 else 's' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining tuning details</span>
+                <span class="expand-label-open">Hide remaining tuning details</span>
+            </summary>
+            <div style="margin-top: 12px;">
+                {% for item in sr.tuning_results.chapters[3:] %}
+                <div style="font-size: 12px; color: #777; margin-bottom: 4px;">Ch {{ loop.index + 3 }}: Accuracy {{ item.scores.get('accuracy_score', 'N/A') }} · Quality {{ item.scores.get('quality_score', 'N/A') }}</div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Tuning Results — waiting...</div>
+        {% else %}
+        <div class="section-empty">Tuning Results not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--engagement" id="panel-engagement">
+        <div class="panel-label">Engagement Scoring</div>
+        {% if sr.engagement_scores and sr.engagement_scores.overall_score is defined %}
+        {% set ev = sr.engagement_scores %}
+        {% set maxes = get_engagement_maxes() %}
+        <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px;">
+            <span style="font-size: 36px; font-weight: 700; color: {% if ev.overall_score.total >= 80 %}#8e8{% elif ev.overall_score.total >= 60 %}#ee8{% else %}#e88{% endif %};">{{ ev.overall_score.total }}/100</span>
+            <span style="font-size: 16px; color: #aaa;">{{ ev.overall_score.category }}</span>
+        </div>
+        {% if ev.dimension_scores is defined %}
+        {% set ds = ev.dimension_scores %}
+        {% set dims = [
+            ("Narrative Quality",   ds.narrative_quality.total   if ds.narrative_quality   is defined else 0, 30),
+            ("Historical Value",    ds.historical_value.total    if ds.historical_value    is defined else 0, 25),
+            ("Emotional Resonance", ds.emotional_resonance.total if ds.emotional_resonance is defined else 0, 25),
+            ("Accessibility",       ds.accessibility.total       if ds.accessibility       is defined else 0, 20),
+        ] %}
+        <div style="display: grid; gap: 10px; margin-bottom: 16px;">
+            {% for dim_name, dim_score, dim_max in dims %}
+            <div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                    <span style="color: #ccc;">{{ dim_name }}</span>
+                    <span style="color: {% if dim_score / dim_max >= 0.8 %}#8e8{% elif dim_score / dim_max >= 0.6 %}#ee8{% else %}#e88{% endif %}; font-weight: 700;">{{ dim_score }}/{{ dim_max }}</span>
+                </div>
+                <div style="height: 8px; background: #1a1d21; border-radius: 4px; overflow: hidden;">
+                    <div style="height: 100%; width: {{ (dim_score / dim_max * 100) | round }}%; background: {% if dim_score / dim_max >= 0.8 %}#2d6a2d{% elif dim_score / dim_max >= 0.6 %}#6a6a2d{% else %}#6a2d2d{% endif %}; border-radius: 4px;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show scoring breakdown</span>
+                <span class="expand-label-open">Hide scoring breakdown</span>
+            </summary>
+            <div style="margin-top: 12px;">
+                {% for dim_label, dim_key, subs in [
+                    ("Narrative Quality","narrative_quality",[("Story Structure & Coherence","story_structure_coherence"),("Vivid Details & Examples","vivid_details_examples"),("Emotional Authenticity","emotional_authenticity")]),
+                    ("Historical Value","historical_value",[("Unique Firsthand Perspective","unique_firsthand_perspective"),("Specificity of Details","specificity_of_details"),("Fills Historical Gaps","fills_historical_gaps")]),
+                    ("Emotional Resonance","emotional_resonance",[("Transformation & Growth","transformation_growth"),("Tension, Conflict & Triumph","tension_conflict_triumph"),("Relatable Experiences","relatable_experiences")]),
+                    ("Accessibility","accessibility",[("Language Clarity","language_clarity"),("Narrative Flow","narrative_flow"),("Broader Themes Connection","broader_themes_connection")]),
+                ] %}
+                {% if ds[dim_key] is defined %}
+                {% set dim = ds[dim_key] %}
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">{{ dim_label }}</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        {% for sub_name, sub_key in subs %}
+                        {% if dim[sub_key] is defined %}
+                        {% set sub = dim[sub_key] %}
+                        {% set sub_max = maxes.get(sub_key, 0) %}
+                        {{ ui.score_label(sub_name ~ ": " ~ sub.score|default("?") ~ "/" ~ (sub_max if sub_max else "?"), sub.score if (sub.score is defined) else none, (sub_max * 0.8) if sub_max > 0 else 999, (sub_max * 0.6) if sub_max > 0 else 999) }}
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if ev.key_strengths %}
+                <div style="margin-top: 8px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">Strengths</div>
+                {% for s in ev.key_strengths %}<div style="font-size: 13px; color: #8e8; margin-top: 4px;">• {{ s }}</div>{% endfor %}
+                {% endif %}
+                {% if ev.key_limitations %}
+                <div style="margin-top: 10px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">Limitations</div>
+                {% for l in ev.key_limitations %}<div style="font-size: 13px; color: #e88; margin-top: 4px;">• {{ l }}</div>{% endfor %}
+                {% endif %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Engagement Scoring — waiting...</div>
+        {% else %}
+        <div class="section-empty">Engagement Scoring not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--clips" id="panel-clips">
+        <div class="panel-label">Clips{% if sr.clips_data and sr.clips_data.clips is defined %} ({{ sr.clips_data.clips | length }}){% endif %}</div>
+        {% if sr.clips_data and sr.clips_data.clips is defined %}
+        {% set cd = sr.clips_data %}
+        {% if cd.extraction_summary is defined %}
+        {% set es = cd.extraction_summary %}
+        <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #222;">
+            {% if es.total_clips is defined %}<div><span style="font-size: 24px; font-weight: 700; color: #8ad;">{{ es.total_clips }}</span> <span style="font-size: 12px; color: #666;">clips</span></div>{% endif %}
+            {% if es.average_clip_score is defined %}<div><span style="font-size: 24px; font-weight: 700; color: {% if es.average_clip_score >= 80 %}#8e8{% elif es.average_clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ "%.1f"|format(es.average_clip_score) }}</span> <span style="font-size: 12px; color: #666;">avg score</span></div>{% endif %}
+            {% if es.total_clips_duration %}<div><span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration }}</span> <span style="font-size: 12px; color: #666;">total duration</span></div>{% endif %}
+        </div>
+        {% endif %}
+        <div class="preview-stack">
+            {% for clip in cd.clips[:1] %}
+            {% set clip_score = clip.scores.total_score | default(0) %}
+            <div class="preview-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+                    <div>
+                        <div class="chapter-num" style="font-size: 14px;">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
+                        <div class="chapter-time" style="margin-top: 2px;">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}{% if clip.duration %} · {{ clip.duration }}{% endif %}</div>
+                    </div>
+                    <span style="font-size: 20px; font-weight: 700; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %}; flex-shrink: 0;">{{ clip_score }}/100</span>
+                </div>
+                {% if clip.content_summary is defined and clip.content_summary.primary_focus %}<div class="preview-text preview-text--clamp-4">{{ clip.content_summary.primary_focus }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if cd.clips|length > 1 %}
+        <div class="section-count-note">{{ cd.clips|length - 1 }} more clip{{ '' if cd.clips|length - 1 == 1 else 's' }} hidden</div>
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show remaining clips</span>
+                <span class="expand-label-open">Hide remaining clips</span>
+            </summary>
+            <div class="collapsed-list">
+                {% for clip in cd.clips[1:] %}
+                {% set clip_score = clip.scores.total_score | default(0) %}
+                <div class="chapter-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+                        <div>
+                            <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
+                            <div class="chapter-time">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}{% if clip.duration %} · {{ clip.duration }}{% endif %}</div>
+                        </div>
+                        <span style="font-size: 18px; font-weight: 700; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %}; flex-shrink: 0;">{{ clip_score }}/100</span>
+                    </div>
+                    {% if clip.content_summary is defined and clip.content_summary.primary_focus %}<div style="margin-top: 6px; font-size: 13px; color: #bbb;">{{ clip.content_summary.primary_focus }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+        {% elif sr_processing %}
+        <div class="section-pending">Clips — waiting...</div>
+        {% else %}
+        <div class="section-empty">Clips not available.</div>
+        {% endif %}
+    </div>
+
+    <div class="panel section-shell section-shell--json" id="panel-json">
+        <div class="panel-label">Full JSON Output</div>
+        {% if sr %}
+        <details class="expand-block">
+            <summary>
+                <span class="expand-label-closed">Show full JSON</span>
+                <span class="expand-label-open">Hide full JSON</span>
+            </summary>
+            <div class="output-block" style="max-height: 400px; overflow-y: auto; margin-top: 12px;">
+                <pre id="full-json"></pre>
+            </div>
+        </details>
+        {% else %}
+        <div class="section-empty">Full JSON Output not available.</div>
+        {% endif %}
+    </div>
+
+    {% endif %}
 </div>
-{% endcall %}
 {% endif %}
+
+{% if selected_result and not selected_result.error %}
+<script id="selected-result-data" type="application/json">{{ selected_result | tojson }}</script>
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
-{% if selected_result and not selected_result.error %}
+{% if selected_result %}
 <script>
-    const data = {{ selected_result | tojson }};
-    const output = document.getElementById('full-json');
-    if (output) {
-        output.textContent = JSON.stringify(data, null, 2);
-    }
-</script>
-{% endif %}
-{% if is_running and selected_result and selected_result._processing %}
-<script>
-    const _selectedName = {{ selected | tojson }};
-    const _statusUrl = {{ url_for('batch_status') | tojson }};
-    const _stepLabel = document.getElementById('current-step-label');
-    let _reloaded = false;
+    (function() {
+        function renderFullJson() {
+            const dataNode = document.getElementById('selected-result-data');
+            const pre = document.getElementById('full-json');
+            if (!dataNode || !pre) return;
+            try {
+                const parsed = JSON.parse(dataNode.textContent);
+                pre.textContent = JSON.stringify(parsed, null, 2);
+            } catch (err) {
+                console.error('Failed to render full JSON output.', err);
+            }
+        }
 
-    function pollForCompletion() {
-        if (_reloaded) return;
-        fetch(_statusUrl)
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (!data.progress) return;
-                const completed = new Set(data.progress.completed || []);
-                if (completed.has(_selectedName)) {
-                    _reloaded = true;
-                    location.reload();
-                    return;
-                }
-                if (_stepLabel && data.running && data.progress.current_name === _selectedName) {
-                    _stepLabel.textContent = data.progress.current_step || 'Processing';
-                }
-                setTimeout(pollForCompletion, 3000);
-            })
-            .catch(function() {
-                setTimeout(pollForCompletion, 5000);
+        function normalizeText(value) {
+            return (value || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function getDetailKey(details) {
+            const panel = details.closest('.panel');
+            const label = panel && panel.querySelector('.panel-label')
+                ? normalizeText(panel.querySelector('.panel-label').textContent) : '';
+            const summaryNode = details.querySelector('summary');
+            const summary = summaryNode ? normalizeText(summaryNode.textContent) : '';
+            return label + '||' + summary;
+        }
+
+        function getOpenDetails() {
+            return new Set(Array.from(document.querySelectorAll('details.expand-block[open]')).map(getDetailKey));
+        }
+
+        function restoreOpenDetails(openKeys) {
+            document.querySelectorAll('details.expand-block').forEach(function(details) {
+                if (openKeys.has(getDetailKey(details))) { details.open = true; }
             });
-    }
+        }
 
-    setTimeout(pollForCompletion, 3000);
+        function getScrollSnapshot() {
+            const tracked = Array.from(document.querySelectorAll('.batch-result-content .processing-banner, .batch-result-content .panel'));
+            const referenceY = Math.max(80, Math.min(160, Math.round(window.innerHeight * 0.2)));
+            for (let i = 0; i < tracked.length; i++) {
+                const rect = tracked[i].getBoundingClientRect();
+                if (rect.bottom > referenceY) { return { mode: 'tracked', index: i, top: rect.top }; }
+            }
+            return { mode: 'absolute', y: window.scrollY };
+        }
+
+        function restoreScrollSnapshot(snapshot) {
+            if (!snapshot) return;
+            if (snapshot.mode === 'tracked') {
+                const tracked = Array.from(document.querySelectorAll('.batch-result-content .processing-banner, .batch-result-content .panel'));
+                const target = tracked[snapshot.index];
+                if (target) { window.scrollBy(0, target.getBoundingClientRect().top - snapshot.top); return; }
+            }
+            if (typeof snapshot.y === 'number') { window.scrollTo(0, snapshot.y); }
+        }
+
+        function syncNode(selector, nextDoc) {
+            const current = document.querySelector(selector);
+            const incoming = nextDoc.querySelector(selector);
+            if (!current && !incoming) return false;
+            if (!current || !incoming) { if (current) current.remove(); return true; }
+            if (current.outerHTML === incoming.outerHTML) return false;
+            current.replaceWith(incoming);
+            return true;
+        }
+
+        function syncProcessingBanner(nextDoc) {
+            const current = document.getElementById('processing-banner');
+            const incoming = nextDoc.getElementById('processing-banner');
+            const container = document.querySelector('.batch-result-content');
+            if (!container) return false;
+            if (!current && !incoming) return false;
+            if (current && !incoming) { current.remove(); return true; }
+            if (!current && incoming) { container.insertAdjacentElement('afterbegin', incoming); return true; }
+            if (current.outerHTML === incoming.outerHTML) return false;
+            current.replaceWith(incoming);
+            return true;
+        }
+
+        function syncResultDataNode(nextDoc) {
+            const current = document.getElementById('selected-result-data');
+            const incoming = nextDoc.getElementById('selected-result-data');
+            if (!current && !incoming) return false;
+            if (current && !incoming) { current.remove(); return true; }
+            if (!current && incoming) { document.body.appendChild(incoming); return true; }
+            if (current.textContent === incoming.textContent) return false;
+            current.replaceWith(incoming);
+            return true;
+        }
+
+        async function pollForUpdates() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('_batch_poll_ts', String(Date.now()));
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'batch-results-poll' }
+            });
+            if (!response.ok) throw new Error('Polling request failed with status ' + response.status);
+            const html = await response.text();
+            const parser = new DOMParser();
+            const nextDoc = parser.parseFromString(html, 'text/html');
+
+            const currentDataNode = document.getElementById('selected-result-data');
+            const incomingDataNode = nextDoc.getElementById('selected-result-data');
+            const currentDataText = currentDataNode ? currentDataNode.textContent : '';
+            const incomingDataText = incomingDataNode ? incomingDataNode.textContent : '';
+
+            const currentTabs = document.querySelector('.batch-tabs');
+            const incomingTabs = nextDoc.querySelector('.batch-tabs');
+            const tabsChanged = !!(currentTabs && incomingTabs && currentTabs.outerHTML !== incomingTabs.outerHTML);
+
+            const currentBanner = document.getElementById('processing-banner');
+            const incomingBanner = nextDoc.getElementById('processing-banner');
+            const bannerChanged = (!currentBanner && !!incomingBanner) || (!!currentBanner && !incomingBanner) ||
+                (!!currentBanner && !!incomingBanner && currentBanner.outerHTML !== incomingBanner.outerHTML);
+
+            const dataChanged = currentDataText !== incomingDataText;
+            if (!dataChanged && !tabsChanged && !bannerChanged) return;
+
+            const openKeys = getOpenDetails();
+            const scrollSnapshot = getScrollSnapshot();
+
+            if (tabsChanged) syncNode('.batch-tabs', nextDoc);
+            if (bannerChanged) syncProcessingBanner(nextDoc);
+
+            if (dataChanged) {
+                ['#panel-error','#panel-cost','#panel-summary','#panel-chapters','#panel-questions',
+                 '#panel-toc','#panel-breaks','#panel-block-topics','#panel-tuning','#panel-engagement',
+                 '#panel-clips','#panel-json'].forEach(function(sel) { syncNode(sel, nextDoc); });
+                syncResultDataNode(nextDoc);
+            }
+
+            restoreOpenDetails(openKeys);
+            restoreScrollSnapshot(scrollSnapshot);
+            renderFullJson();
+        }
+
+        async function runPollingLoop() {
+            try { await pollForUpdates(); } catch (err) { console.error('Batch results live update failed.', err); }
+            finally {
+                if (document.getElementById('processing-banner')) {
+                    window.setTimeout(runPollingLoop, 2500);
+                }
+            }
+        }
+
+        renderFullJson();
+
+        {% if selected_result and selected_result._processing %}
+        window.setTimeout(runPollingLoop, 2500);
+        {% endif %}
+    })();
 </script>
 {% endif %}
 {% endblock %}

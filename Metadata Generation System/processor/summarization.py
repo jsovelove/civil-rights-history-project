@@ -2,15 +2,20 @@
 Step 5 — Summarization: Generate main summary and individual chapter summaries.
 """
 
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional, Tuple
 from .shared import (
     ProcessorContext, MAIN_TOPICS, CIVIL_RIGHTS_EVENTS,
     call_openai_json, load_prompt,
-    get_relevant_facts, format_facts_for_prompt,
+    get_relevant_facts, format_facts_for_prompt, format_primary_source_for_prompt,
     match_keyword_to_standard, get_keyword_context_for_ai,
     calculate_keyword_relevance
 )
 from .blocking import extract_plaintext_section
+
+# Maximum parallel chapter summary API calls
+CHAPTER_MAX_WORKERS = 5
 
 
 def generate_main_summary(
@@ -19,6 +24,7 @@ def generate_main_summary(
     interview_name: str,
     system_prompt: Optional[str] = None,
     user_prompt: Optional[str] = None,
+    primary_source_info: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     """Generate the main interview summary. No scoring loop here — that's in tuning."""
     if system_prompt is None:
@@ -33,12 +39,18 @@ def generate_main_summary(
     user_prompt = user_prompt.replace('{interview_name}', interview_name)
     user_prompt = user_prompt.replace('{truncated_transcript}', truncated)
 
-    # Append relevant facts
+    # Append relevant facts then primary source reference info
     relevant_facts = get_relevant_facts(ctx, transcript)
     facts_text = format_facts_for_prompt(relevant_facts)
     user_prompt += facts_text
+    user_prompt += format_primary_source_for_prompt(primary_source_info)
 
+    tokens_before = ctx.total_tokens_used
+    t0 = time.time()
     response = call_openai_json(ctx, system_prompt, user_prompt)
+    elapsed = time.time() - t0
+    if ctx.logger:
+        ctx.logger.log_main_summary("gpt-4o", elapsed, ctx.total_tokens_used - tokens_before)
     return response
 
 
@@ -50,14 +62,18 @@ def generate_chapters(
     chapter_breaks: Optional[List[Tuple[int, int]]] = None,
     system_prompt: Optional[str] = None,
     user_prompt: Optional[str] = None,
+    primary_source_info: Optional[Dict] = None,
 ) -> List[Dict[str, Any]]:
-    """Generate summaries for all chapters."""
+    """Generate summaries for all chapters in parallel."""
     if not segments or not chapter_breaks:
         return []
 
     print(f"Generating summaries for {len(chapter_breaks)} chapters")
+    chap_tokens_before = ctx.total_tokens_used
+    chap_t0 = time.time()
 
-    chapters = []
+    # Build the work items: extract text and metadata for each chapter
+    work_items = []
     for i, (start_idx, end_idx) in enumerate(chapter_breaks):
         chapter_segments = segments[start_idx:end_idx + 1]
 
@@ -76,16 +92,95 @@ def generate_chapters(
         start_time = chapter_segments[0].start_time
         end_time = chapter_segments[-1].end_time
 
-        print(f"Processing chapter {i + 1} ({len(chapter_segments)} segments, {word_count} words)...")
+        work_items.append({
+            "index": i,
+            "chapter_num": i + 1,
+            "chapter_text": chapter_text,
+            "start_time": start_time,
+            "end_time": end_time,
+            "word_count": word_count,
+            "segment_count": len(chapter_segments),
+        })
+
+    if not work_items:
+        return []
+
+    # Single chapter — skip thread overhead
+    if len(work_items) == 1:
+        item = work_items[0]
+        print(f"Processing chapter {item['chapter_num']} ({item['segment_count']} segments, {item['word_count']} words)...")
         chapter = generate_single_chapter(
-            ctx, chapter_text, i + 1, start_time, end_time,
-            system_prompt=system_prompt, user_prompt=user_prompt
+            ctx, item["chapter_text"], item["chapter_num"],
+            item["start_time"], item["end_time"],
+            system_prompt=system_prompt, user_prompt=user_prompt,
+            primary_source_info=primary_source_info,
         )
+        if chapter and ctx.logger:
+            ctx.logger.log_chapter_summary_item(
+                item["chapter_num"], item["segment_count"], item["word_count"]
+            )
+        return [chapter] if chapter else []
 
-        if chapter:
-            chapters.append(chapter)
+    # Multiple chapters — process in parallel
+    print(f"Processing {len(work_items)} chapters in parallel")
+    workers = min(CHAPTER_MAX_WORKERS, len(work_items))
+    results_by_index = {}
 
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(
+                _generate_chapter_worker,
+                ctx, item, system_prompt, user_prompt, primary_source_info
+            ): item
+            for item in work_items
+        }
+
+        for future in as_completed(futures):
+            item = futures[future]
+            try:
+                chapter = future.result()
+                if chapter:
+                    results_by_index[item["index"]] = chapter
+                    print(f"  Chapter {item['chapter_num']} done")
+            except Exception as e:
+                print(f"  Chapter {item['chapter_num']} failed: {e}")
+
+    # Reassemble in original order
+    chapters = []
+    for item in sorted(work_items, key=lambda x: x["index"]):
+        if item["index"] in results_by_index:
+            chapters.append(results_by_index[item["index"]])
+
+    if ctx.logger:
+        ctx.logger.log_chapter_summaries_total(
+            "gpt-4o",
+            time.time() - chap_t0,
+            ctx.total_tokens_used - chap_tokens_before,
+            len(chapters),
+        )
     return chapters
+
+
+def _generate_chapter_worker(
+    ctx: ProcessorContext,
+    item: Dict[str, Any],
+    system_prompt: Optional[str],
+    user_prompt: Optional[str],
+    primary_source_info: Optional[Dict] = None,
+) -> Optional[Dict[str, Any]]:
+    """Worker function for parallel chapter generation."""
+    print(f"Processing chapter {item['chapter_num']} ({item['segment_count']} segments, {item['word_count']} words)...")
+    chapter = generate_single_chapter(
+        ctx, item["chapter_text"], item["chapter_num"],
+        item["start_time"], item["end_time"],
+        system_prompt=system_prompt, user_prompt=user_prompt,
+        primary_source_info=primary_source_info,
+    )
+    if chapter and ctx.logger:
+        ctx.logger.log_chapter_summary_item(
+            item["chapter_num"], item["segment_count"], item["word_count"]
+        )
+    return chapter
 
 
 def generate_single_chapter(
@@ -96,6 +191,7 @@ def generate_single_chapter(
     end_time: str,
     system_prompt: Optional[str] = None,
     user_prompt: Optional[str] = None,
+    primary_source_info: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     """Generate summary + metadata for a single chapter."""
     topics_list = '", "'.join(MAIN_TOPICS)
@@ -140,10 +236,11 @@ people, places, events, themes, and concepts discussed in this chapter."""
     user_prompt = user_prompt.replace('{civil_rights_events}', chr(10).join([f"- {e}" for e in CIVIL_RIGHTS_EVENTS]))
     user_prompt = user_prompt.replace('{truncated_text}', truncated)
 
-    # Append facts
+    # Append facts then primary source reference info
     relevant_facts = get_relevant_facts(ctx, chapter_text)
     facts_text = format_facts_for_prompt(relevant_facts)
     user_prompt += facts_text
+    user_prompt += format_primary_source_for_prompt(primary_source_info)
 
     response = call_openai_json(ctx, system_prompt, user_prompt)
 
@@ -153,6 +250,7 @@ people, places, events, themes, and concepts discussed in this chapter."""
     response['chapter_number'] = chapter_num
     response['start_time'] = start_time
     response['end_time'] = end_time
+
 
     # ── Assign metadata (topic category + events) ──────────────────
     metadata = assign_metadata(ctx, chapter_text)

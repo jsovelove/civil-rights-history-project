@@ -89,6 +89,13 @@
     </div>
 </form>
 
+{% if state.main_summary or state.chapters %}
+<div class="btn-row" style="margin-top: 16px; margin-bottom: 16px;">
+    <a href="{{ url_for('questions_page') if state.steps_enabled.questions and state.question_placement == 'after_summary' else url_for('tuning_page') }}" class="btn btn-primary">Continue to {{ 'Questions' if state.steps_enabled.questions and state.question_placement == 'after_summary' else 'Tuning' }} →</a>
+    <a href="{{ url_for('chapterization_page') }}" class="btn btn-secondary">← Back</a>
+</div>
+{% endif %}
+
 {% if state.chapters %}
 <section class="pf-v6-c-card">
     <div class="pf-v6-c-card__header">

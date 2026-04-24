@@ -8,12 +8,44 @@ Scores interviews across four dimensions (100 points total):
   - Accessibility (20 pts)
 
 Adapted from standalone evaluate_interview.py to work within the pipeline.
+
+OPTIMIZATION NOTE: This step is a single API call. The only meaningful
+speedup is running it concurrently with tuning at the orchestration level
+(it depends on summarization output, not tuning output).
 """
 
 import json
 import os
+import time
 from typing import Dict, Any, List, Tuple, Optional
 from .shared import ProcessorContext, call_openai_json, load_prompt
+
+
+def build_engagement_system_prompt(
+    ctx: ProcessorContext,
+    system_prompt: Optional[str] = None,
+    rubric: Optional[str] = None,
+    schema_json_text: Optional[str] = None,
+) -> str:
+    """Pre-build the full system prompt (system + rubric + schema).
+
+    Call this once before a batch run and pass the result into
+    run_engagement_scoring via system_prompt= to avoid re-reading
+    the same files for every interview.
+    """
+    if system_prompt is None:
+        system_prompt = load_prompt(ctx, 'engagement_system.txt')
+    if rubric is None:
+        rubric = _load_engagement_rubric(ctx)
+
+    if schema_json_text is not None:
+        schema_instruction = _parse_schema_text(schema_json_text)
+        if schema_instruction is None:
+            schema_instruction = _load_engagement_schema(ctx)
+    else:
+        schema_instruction = _load_engagement_schema(ctx)
+
+    return f"{system_prompt}\n\n{rubric}\n\n{schema_instruction}"
 
 
 def run_engagement_scoring(
@@ -24,6 +56,7 @@ def run_engagement_scoring(
     user_prompt: Optional[str] = None,
     rubric: Optional[str] = None,
     schema_json_text: Optional[str] = None,
+    _prebuilt_system_prompt: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Run the full engagement evaluation on an interview.
@@ -38,6 +71,9 @@ def run_engagement_scoring(
             - plaintext_transcript (str)
         system_prompt: Override for system prompt
         user_prompt: Override for user prompt template
+        _prebuilt_system_prompt: If provided, skip rubric/schema loading and
+            use this as the complete system prompt. Use build_engagement_system_prompt()
+            to create this ahead of time for batch runs.
 
     Returns:
         Evaluation dict with dimension_scores, overall_score, etc.
@@ -45,39 +81,19 @@ def run_engagement_scoring(
     # Build metadata from pipeline state
     metadata = _extract_metadata(pipeline_data)
 
-    # Build the evaluation prompt — uses plaintext (not raw SRT) to stay
-    # within token limits. Chapter previews supply timestamp context.
+    # Build the evaluation prompt
     eval_prompt = _build_evaluation_prompt(srt_content, pipeline_data, metadata)
 
-    # Resolve rubric
-    if rubric is None:
-        rubric = _load_engagement_rubric(ctx)
-
-    # Resolve schema
-    if schema_json_text is not None:
-        try:
-            schema = json.loads(schema_json_text)
-            schema_instruction = "\nOUTPUT FORMAT - RESPOND WITH VALID JSON ONLY:\n\n"
-            schema_instruction += json.dumps(schema, indent=2)
-            schema_instruction += """
-
-IMPORTANT:
-- Return ONLY valid JSON
-- Do not include any text outside the JSON structure
-- Ensure all numeric scores are integers
-- Ensure all required fields are present
-"""
-        except (json.JSONDecodeError, Exception):
-            schema_instruction = _load_engagement_schema(ctx)
+    # Resolve full system prompt
+    if _prebuilt_system_prompt is not None:
+        full_system = _prebuilt_system_prompt
     else:
-        schema_instruction = _load_engagement_schema(ctx)
-
-    # Resolve system prompt
-    if system_prompt is None:
-        system_prompt = load_prompt(ctx, 'engagement_system.txt')
-
-    # Combine system prompt with rubric and schema
-    full_system = f"{system_prompt}\n\n{rubric}\n\n{schema_instruction}"
+        full_system = build_engagement_system_prompt(
+            ctx,
+            system_prompt=system_prompt,
+            rubric=rubric,
+            schema_json_text=schema_json_text,
+        )
 
     # Resolve user prompt
     if user_prompt is None:
@@ -85,14 +101,20 @@ IMPORTANT:
     else:
         final_user_prompt = user_prompt.replace('{evaluation_prompt}', eval_prompt)
 
-    est_tokens = len(full_system + final_user_prompt) // 4
+    est_tokens = (len(full_system) + len(final_user_prompt)) // 4
     print(f"Engagement scoring: ~{est_tokens:,} estimated input tokens")
 
-    # Use gpt-4o-mini to stay within typical rate limits.
-    # The rubric is detailed enough to guide mini well.
+    _eng_model = "gpt-4o-mini"
+    _eng_tokens_before = ctx.total_tokens_used
+    _eng_t0 = time.time()
+
+    _eng_model = "gpt-4o-mini"
+    _eng_tokens_before = ctx.total_tokens_used
+    _eng_t0 = time.time()
+
     result = call_openai_json(
         ctx, full_system, final_user_prompt,
-        model="gpt-4o-mini",
+        model=_eng_model,
         max_tokens=8000
     )
 
@@ -105,6 +127,14 @@ IMPORTANT:
     if not is_valid:
         print(f"Engagement validation warnings: {errors}")
         result["_validation_errors"] = errors
+
+    if ctx.logger:
+        ctx.logger.log_engagement(
+            _eng_model,
+            time.time() - _eng_t0,
+            ctx.total_tokens_used - _eng_tokens_before,
+            result,
+        )
 
     return result
 
@@ -122,19 +152,21 @@ def _extract_metadata(pipeline_data: Dict[str, Any]) -> Dict[str, Any]:
     if segments:
         last = segments[-1]
         duration_formatted = getattr(last, 'end_time', 'Unknown')
-        # Rough seconds from HH:MM:SS,mmm format
         try:
             parts = str(duration_formatted).replace(',', '.').split(':')
             duration_seconds = int(float(parts[0])) * 3600 + int(float(parts[1])) * 60 + float(parts[2])
         except (ValueError, IndexError):
             pass
 
+    word_count = len(plaintext.split())
+    minutes = max(duration_seconds / 60, 1)
+
     return {
         "duration_formatted": duration_formatted,
         "duration_seconds": duration_seconds,
         "total_segments": len(segments),
-        "word_count": len(plaintext.split()),
-        "speaking_pace_wpm": round(len(plaintext.split()) / max(duration_seconds / 60, 1)),
+        "word_count": word_count,
+        "speaking_pace_wpm": round(word_count / minutes),
         "number_of_chapters": len(chapters),
     }
 
@@ -233,6 +265,27 @@ def _load_engagement_rubric(ctx: ProcessorContext) -> str:
     except FileNotFoundError:
         print("Warning: engagement_rubric.txt not found, using empty rubric")
         return ""
+
+
+def _parse_schema_text(schema_json_text: str) -> Optional[str]:
+    """Parse user-provided schema JSON text into a formatted instruction string.
+    Returns None if parsing fails (caller should fall back to file-based schema)."""
+    try:
+        schema = json.loads(schema_json_text)
+        return (
+            "\nOUTPUT FORMAT - RESPOND WITH VALID JSON ONLY:\n\n"
+            + json.dumps(schema, indent=2)
+            + """
+
+IMPORTANT:
+- Return ONLY valid JSON
+- Do not include any text outside the JSON structure
+- Ensure all numeric scores are integers
+- Ensure all required fields are present
+"""
+        )
+    except (json.JSONDecodeError, Exception):
+        return None
 
 
 def _load_engagement_schema(ctx: ProcessorContext) -> str:

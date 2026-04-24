@@ -45,13 +45,13 @@
             <div class="app-row-start">
                 <div class="app-fill">
                     <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.segments }} segments · {{ ch.words }} words</div>
+                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
                     <div class="chapter-snippet app-mt-sm">{{ ch.snippet }}</div>
                 </div>
                 {% if state.youtube_video_id %}
                 <div class="app-shrink-0">
                     <iframe class="app-video-frame"
-                        title="Video preview for chapter {{ ch.chapter_number }} — {{ ch.title }}"
+                        title="Video preview for chapter {{ ch.chapter }}"
                         src="https://www.youtube.com/embed/{{ state.youtube_video_id }}?start={{ ch.start_time | to_seconds }}&end={{ ch.end_time | to_seconds }}"
                         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen></iframe>

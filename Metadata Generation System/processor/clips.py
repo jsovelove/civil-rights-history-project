@@ -15,7 +15,9 @@ Clips are scored on two dimensions (100 points total):
 
 import json
 import os
+import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, List, Optional, Tuple
 
 from .shared import ProcessorContext, call_openai_json, load_prompt
@@ -111,10 +113,21 @@ def run_clip_extraction(
 
     print(f"  → {len(batches)} batch(es)")
 
+    _clips_model = "gpt-4o"
+    _clips_tokens_before = ctx.total_tokens_used
+    _clips_t0 = time.time()
+
+    last_name = _extract_last_name(pipeline_data.get("interview_name", ""))
+
+    clip_offset = 0
     batch_results = []
-    for start_ch, end_ch in batches:
+
+    def _run_batch(batch_idx, start_ch, end_ch):
+        """Process a single batch — safe to run in a thread."""
         chapter_range = (start_ch, end_ch) if start_ch is not None else None
-        request = _build_extraction_request(srt_content, pipeline_data, chapter_range)
+        request = _build_extraction_request(
+            srt_content, pipeline_data, chapter_range, clip_start=clip_offset + 1
+        )
 
         est_input = len(system_prompt + request) // 4
         label = f"ch {start_ch}-{end_ch}" if chapter_range else "all chapters"
@@ -129,31 +142,63 @@ def run_clip_extraction(
 
         if isinstance(result, dict) and "error" in result and len(result) <= 2:
             print(f"  Batch [{label}] API error: {result['error']}")
-            continue
+            return batch_idx, None
 
-        # Unwrap single-key envelope if the model added one
         if "clips" not in result and len(result) == 1:
             inner = next(iter(result.values()))
             if isinstance(inner, dict) and "clips" in inner:
                 result = inner
 
-        # Ensure every clip has a total_score even if the model omitted it.
-        # Guard against the model occasionally returning clip entries as strings.
         for clip in result.get("clips", []):
             if isinstance(clip, dict):
                 _ensure_total_score(clip)
 
-        batch_results.append(result)
+        return batch_idx, result
+
+    if len(batches) == 1:
+        # Single batch — skip thread pool overhead.
+        _, result = _run_batch(0, batches[0][0], batches[0][1])
+        if result is not None:
+            batch_results.append(result)
+            clip_offset += len(result.get("clips", []))
+    else:
+        # Multiple batches — run concurrently. Each batch hits a different
+        # chapter range with its own dedicated gpt-4o call; no shared state.
+        indexed_results: List[Optional[Dict]] = [None] * len(batches)
+        with ThreadPoolExecutor(max_workers=min(4, len(batches))) as executor:
+            futures = {
+                executor.submit(_run_batch, i, s, e): i
+                for i, (s, e) in enumerate(batches)
+            }
+            for future in as_completed(futures):
+                idx, result = future.result()
+                if result is not None:
+                    indexed_results[idx] = result
+
+        # Preserve original batch order for deterministic merging.
+        batch_results = [r for r in indexed_results if r is not None]
 
     if not batch_results:
         return {"error": "All extraction batches failed", "clips": []}
 
     combined = batch_results[0] if len(batch_results) == 1 else _merge_batches(batch_results)
+    _renumber_clips(combined, last_name)
 
     is_valid, errors = validate_extraction(combined)
     if not is_valid:
         print(f"Clip extraction validation warnings: {errors}")
         combined["_validation_errors"] = errors
+
+    if ctx.logger:
+        ctx.logger.log_clips_summary(
+            _clips_model,
+            time.time() - _clips_t0,
+            ctx.total_tokens_used - _clips_tokens_before,
+            combined,
+        )
+        for clip in combined.get("clips", []):
+            if isinstance(clip, dict):
+                ctx.logger.log_clip(clip)
 
     return combined
 
@@ -214,6 +259,23 @@ def _ensure_total_score(clip: Dict) -> None:
         tec_total = tec.get("total", 0) if isinstance(tec, dict) else 0
         eq_total = eq.get("total", 0) if isinstance(eq, dict) else 0
         scores["total_score"] = tec_total + eq_total
+
+
+def _extract_last_name(interview_name: str) -> str:
+    """Return uppercased last name from interview_name for use as clip ID prefix."""
+    name = interview_name.split("_interview")[0].split("_transcript")[0]
+    name = name.replace("_", " ").strip()
+    parts = name.split()
+    if len(parts) >= 2:
+        return parts[-1].upper()
+    return name.upper() if name else "INTERVIEW"
+
+
+def _renumber_clips(combined: Dict, last_name: str) -> None:
+    """Rewrite clip_ids sequentially so multi-batch numbering is always correct."""
+    for i, clip in enumerate(combined.get("clips", [])):
+        if isinstance(clip, dict):
+            clip["clip_id"] = f"{last_name}_{i + 1:03d}"
 
 
 def _merge_batches(batch_results: List[Dict]) -> Dict:
@@ -306,6 +368,7 @@ def _build_extraction_request(
     srt_content: str,
     pipeline_data: Dict[str, Any],
     chapter_range: Optional[Tuple[int, int]] = None,
+    clip_start: int = 1,
 ) -> str:
     """Build the per-batch extraction request from pipeline state."""
     segments = pipeline_data.get("segments", [])
@@ -412,8 +475,9 @@ Do not extract clips from other chapters. This is batch {start_ch}-{end_ch} of a
     else:
         request += "Extract ALL viable clips from this interview.\n\n"
 
-    request += """For each clip provide:
-- Unique clip_id (format: INTERVIEW_XXX where XXX is clip number)
+    last_name = _extract_last_name(interview_name)
+    request += f"""For each clip provide:
+- Unique clip_id (format: {last_name}_XXX where XXX is a zero-padded 3-digit number starting at {clip_start:03d})
 - Complete scores (0-100 total)
 - Accurate thematic tags (exact Main Topic and Key Event names)
 - Transcript excerpts with exact timestamps

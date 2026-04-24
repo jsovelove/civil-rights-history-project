@@ -34,6 +34,8 @@ def build_text_blocks(
         })
 
     print(f"Created {len(text_blocks)} text blocks for content analysis")
+    if ctx.logger:
+        ctx.logger.log_blocking(len(segments), len(text_blocks), block_size)
     return text_blocks
 
 
