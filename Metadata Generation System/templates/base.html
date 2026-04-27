@@ -57,53 +57,72 @@
             }
         }
 
-        /* Mini-rail: hide labels and size the row so the connector line is
-           visible BETWEEN icons (not behind them).
-
-           Two-part fix:
-
-           1. Step-main contains ~400 chars of label text. With only
-              `width: 0; visibility: hidden` it wraps one-char-per-line and
-              balloons to ~600px tall, dragging the row's connector ::before
-              (height: 100%) along with it. Zero out font-size/line-height/
-              height so the text takes no vertical space.
-
-           2. With step-main flat, the row collapses to the icon's height
-              (~24px) and the connector line — drawn inside the connector
-              cell at height: 100% — has nowhere to show below the icon, so
-              it's hidden behind the icon. Force a min-height on the connector
-              cell so each row is tall enough for the line to extend down to
-              the next icon. */
+        /* Mini-rail: hide labels, size rows, draw connector lines.
+           Step-main is hidden with display:none — the one property needed.
+           Connector cells get min-height so the ::before line has room to
+           span between icon centres. All rules for .app-stepper are merged
+           into one block here to avoid order-of-declaration confusion. */
         html.app-sidebar-collapsed .app-stepper {
             --pf-v6-c-progress-stepper--m-vertical__step-main--MarginBlockEnd: 0 !important;
             --pf-v6-c-progress-stepper--GridTemplateColumns: 1fr !important;
             --pf-v6-c-progress-stepper--m-vertical--GridTemplateColumns: 1fr !important;
-            --pf-v6-c-progress-stepper__step-connector--before--InsetInlineStart: 50% !important;
-            --pf-v6-c-progress-stepper--m-vertical__step-connector--before--InsetInlineStart: 50% !important;
+            /* PF6 may set grid-template-rows (e.g. auto 1fr per step). Explicit
+               rows persist even when step-main is display:none, which would leave
+               an orphaned 1fr row between step 1 and step 2. Reset to none so
+               every row is implicit and sized equally by grid-auto-rows. */
+            --pf-v6-c-progress-stepper--GridTemplateRows: none !important;
+            --pf-v6-c-progress-stepper--m-vertical--GridTemplateRows: none !important;
+            grid-template-rows: none !important;
+            width: 100%;
+            flex: 1 1 auto;
+            justify-content: center;
+            grid-auto-rows: minmax(44px, 1fr) !important;
         }
         html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-main {
             display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-            font-size: 0 !important;
-            line-height: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            overflow: hidden !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
         }
+        /* The <li> step has display:contents so it has no rendered box.
+           Style the connector cell directly. Two separate rules are merged
+           here to avoid duplicate selectors. */
         html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-connector {
+            position: relative;
             justify-content: center;
             min-height: 44px;
             height: 100%;
+            overflow: visible;
         }
-
-        /* Stretch the rail to fill the sidebar height: each row gets a fair
-           share of the available vertical space (with a 44px floor so they
-           never get cramped on small screens). The connector ::before
-           inherits row height, so the lines visually link icon-to-icon
-           across the full sidebar. */
+        /* Connector line positioning in mini-rail mode.
+           PF6 default: ::before starts at inset-block-start:0 (top of cell).
+           With icons vertically centred, this leaves a gap of half a row-height
+           between each icon and the line connecting to it.
+           Fix: start the line at -50% (= centre of the PREVIOUS cell) and give
+           it height:100% (= one full row). It then runs exactly from the centre
+           of the previous icon to the centre of the current icon.
+           Step 1 has no previous icon, so suppress its ::before. */
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-connector::before {
+            display: block !important;
+            position: absolute !important;
+            inset-block-start: -50% !important;
+            height: 100% !important;
+            inset-inline-start: 50% !important;
+            transform: translateX(-50%) !important;
+        }
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step:first-child .pf-v6-c-progress-stepper__step-connector::before {
+            display: none !important;
+        }
+        /* PF6 suppresses the ::before on the last step with content:none and higher
+           specificity. Match that specificity and restore content + all positioning. */
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step:last-child .pf-v6-c-progress-stepper__step-connector::before {
+            content: "" !important;
+            display: block !important;
+            position: absolute !important;
+            inset-block-start: -50% !important;
+            height: 100% !important;
+            inset-inline-start: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 0 !important;
+            border-inline-start: var(--pf-v6-c-progress-stepper__step-connector--before--BorderInlineStartWidth, 2px) solid var(--pf-v6-c-progress-stepper__step-connector--before--BorderInlineStartColor, var(--pf-t--global--border--color--default)) !important;
+        }
         html.app-sidebar-collapsed .pf-v6-c-page__sidebar-body {
             display: flex !important;
             flex-direction: column;
@@ -112,18 +131,6 @@
         html.app-sidebar-collapsed .pf-v6-c-page__sidebar-body,
         html.app-sidebar-collapsed .app-sidebar {
             overflow: visible !important;
-        }
-        html.app-sidebar-collapsed .app-stepper {
-            width: 100%;
-            flex: 1 1 auto;
-            justify-content: center;
-            grid-auto-rows: minmax(44px, 1fr) !important;
-        }
-        /* The <li> step has `display: contents` from PF6, so it has no box
-           of its own. Keep the connector cell for the line only; put hover,
-           cursor, tooltip, and click behavior on the visible bubble. */
-        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-connector {
-            position: relative;
         }
         html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-icon {
             cursor: pointer;
@@ -136,25 +143,13 @@
             outline: 1px solid rgba(103, 179, 255, 0.55);
             outline-offset: 2px;
         }
-        /* Hover tooltip (uses data-label set on the <li>, but anchored to the
-           icon bubble since the <li> has no box). Pulls data-label from
-           the parent <li> via a custom property set by JS — see base.html. */
-        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-icon:hover::after {
-            content: var(--app-step-label, attr(aria-label));
-            position: absolute;
-            left: calc(100% + 14px);
-            top: 50%;
-            transform: translateY(-50%);
-            background: #1b1f24;
-            color: #e4e7eb;
-            border: 1px solid #2a2f36;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 1000;
+        /* Tooltip is a PF6 .pf-v6-c-tooltip element appended to <body> by JS.
+           Body-level placement with position:fixed escapes the sidebar's
+           stacking context so it always renders above all page content. */
+        #app-rail-tooltip {
+            position: fixed !important;
+            z-index: 9999;
             pointer-events: none;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
     </style>
     <script>
@@ -303,7 +298,7 @@
                             <div class="pf-v6-c-progress-stepper__step-title app-step-link app-step-link--disabled">
                                 {{ step.number }}. {{ step.label }}
                                 {% if step.is_toggled_off %}
-                                <span class="app-step-off-badge">Off</span>
+                                <span class="pf-v6-c-label pf-m-compact pf-m-outline"><span class="pf-v6-c-label__content">Off</span></span>
                                 {% endif %}
                             </div>
                             {% endif %}
@@ -425,6 +420,50 @@
 
     {% block scripts %}{% endblock %}
 
+    <script>
+        (function () {
+            // Body-appended PF6 tooltip for all .app-info-tip elements.
+            // Fixed positioning escapes any stacking context or overflow:hidden
+            // on ancestor containers (cards, form groups, page layout).
+            var infoTooltip = document.createElement('div');
+            infoTooltip.id = 'app-info-tooltip';
+            infoTooltip.className = 'pf-v6-c-tooltip pf-m-top';
+            infoTooltip.setAttribute('role', 'tooltip');
+            infoTooltip.setAttribute('aria-hidden', 'true');
+            infoTooltip.hidden = true;
+            infoTooltip.innerHTML =
+                '<div class="pf-v6-c-tooltip__arrow"></div>' +
+                '<div class="pf-v6-c-tooltip__content"></div>';
+            document.body.appendChild(infoTooltip);
+            var infoTooltipContent = infoTooltip.querySelector('.pf-v6-c-tooltip__content');
+
+            document.querySelectorAll('.app-info-tip').forEach(function (tip) {
+                var text = tip.getAttribute('data-tip') || '';
+                var icon = tip.querySelector('.app-info-tip__icon');
+                if (!text || !icon) return;
+
+                function show() {
+                    var rect = icon.getBoundingClientRect();
+                    infoTooltipContent.textContent = text;
+                    infoTooltip.hidden = false;
+                    infoTooltip.removeAttribute('aria-hidden');
+                    infoTooltip.style.left = Math.round(rect.left + rect.width / 2) + 'px';
+                    infoTooltip.style.top = (rect.top - 8) + 'px';
+                    infoTooltip.style.transform = 'translateX(-50%) translateY(-100%)';
+                }
+                function hide() {
+                    infoTooltip.hidden = true;
+                    infoTooltip.setAttribute('aria-hidden', 'true');
+                }
+
+                tip.addEventListener('mouseenter', show);
+                tip.addEventListener('focus', show);
+                tip.addEventListener('mouseleave', hide);
+                tip.addEventListener('blur', hide);
+            });
+        })();
+    </script>
+
     <!-- ── Help / User guide modal ── -->
     <div class="pf-v6-c-backdrop app-help-backdrop" id="help-backdrop" hidden aria-hidden="true">
         <div class="pf-v6-l-bullseye">
@@ -533,23 +572,53 @@
                 sync();
             });
 
+            // Create a single shared PF6 tooltip element appended to <body>.
+            // Body-level placement with position:fixed means it is completely
+            // outside the sidebar's stacking context, so it can never be
+            // clipped or painted behind sibling page regions.
+            var railTooltip = document.createElement('div');
+            railTooltip.id = 'app-rail-tooltip';
+            railTooltip.className = 'pf-v6-c-tooltip pf-m-right';
+            railTooltip.setAttribute('role', 'tooltip');
+            railTooltip.setAttribute('aria-hidden', 'true');
+            railTooltip.hidden = true;
+            railTooltip.innerHTML =
+                '<div class="pf-v6-c-tooltip__arrow"></div>' +
+                '<div class="pf-v6-c-tooltip__content"></div>';
+            document.body.appendChild(railTooltip);
+            var railTooltipContent = railTooltip.querySelector('.pf-v6-c-tooltip__content');
+
             // PF6 sets `.pf-v6-c-progress-stepper__step { display: contents }`,
-            // so the <li> has no rendered box. Hoist click + label onto the
-            // visible step icon so the space between steps stays non-interactive.
+            // so the <li> has no rendered box. Wire click and tooltip to the
+            // visible icon bubble instead.
             document.querySelectorAll('.app-stepper .pf-v6-c-progress-stepper__step').forEach(function (step) {
-                var connector = step.querySelector('.pf-v6-c-progress-stepper__step-connector');
                 var icon = step.querySelector('.pf-v6-c-progress-stepper__step-icon');
                 var link = step.querySelector('a.app-step-link');
                 var label = step.getAttribute('data-label') || '';
-                if (icon && label) {
-                    icon.style.setProperty('--app-step-label', '"' + label.replace(/"/g, '\\"') + '"');
-                }
+
                 if (icon && link) {
                     icon.addEventListener('click', function (e) {
                         if (!html.classList.contains('app-sidebar-collapsed')) return;
                         if (e.target.closest('a')) return;
                         e.preventDefault();
                         window.location.href = link.getAttribute('href');
+                    });
+                }
+
+                if (icon && label) {
+                    icon.addEventListener('mouseenter', function () {
+                        if (!html.classList.contains('app-sidebar-collapsed')) return;
+                        var rect = icon.getBoundingClientRect();
+                        railTooltipContent.textContent = label;
+                        railTooltip.hidden = false;
+                        railTooltip.removeAttribute('aria-hidden');
+                        railTooltip.style.left = (rect.right + 10) + 'px';
+                        railTooltip.style.top = Math.round(rect.top + rect.height / 2) + 'px';
+                        railTooltip.style.transform = 'translateY(-50%)';
+                    });
+                    icon.addEventListener('mouseleave', function () {
+                        railTooltip.hidden = true;
+                        railTooltip.setAttribute('aria-hidden', 'true');
                     });
                 }
             });

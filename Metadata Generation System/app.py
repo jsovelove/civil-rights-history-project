@@ -68,12 +68,12 @@ def fmt_duration_filter(seconds: float) -> str:
     """Format a float number of seconds as a human-readable duration."""
     if seconds is None:
         return '—'
-    s = float(seconds)
+    s = max(0, int(round(float(seconds))))
     if s < 60:
-        return f"{s:.1f}s"
+        return f"{s}s"
     m, rem = divmod(s, 60)
     if m < 60:
-        return f"{int(m)}m {rem:.1f}s"
+        return f"{int(m)}m {int(rem)}s"
     h, m = divmod(m, 60)
     return f"{int(h)}h {int(m)}m {int(rem)}s"
 

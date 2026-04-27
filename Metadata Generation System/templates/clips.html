@@ -5,7 +5,7 @@
 {% block title %}9. Clip Extraction — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 9 — Clip Extraction", "Identify and score viable clips for playlists, educational materials, and museum exhibits. Summary stats stay prominent; the long prompt stack stays tucked away.", "Pipeline step") }}
+{{ ui.page_header("Step 9 — Clip Extraction", "Identify and score viable clips.", "Pipeline step") }}
 
 {% if clips_error %}
 {% call ui.alert("Clip extraction failed", "danger") %}
@@ -13,13 +13,13 @@
 {% endcall %}
 {% endif %}
 
-{{ ui.status_card("Clip extraction status", "Run extraction after engagement scoring to evaluate clip quality and topic coverage across the interview.", [
+{{ ui.status_card("Clip extraction status", None, [
     ("Token limit", state.clips_token_limit | default(30000)),
     ("Clips extracted", state.clips_data.clips|length if state.clips_data and state.clips_data.clips is defined else 0),
 ]) }}
 
 <form action="{{ url_for('clips_run') }}" method="post" id="clips-form" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Advanced extraction settings", not state.clips_data, "Token limit plus prompt sections for clip extraction.") %}
+    {% call ui.advanced_section("Advanced extraction settings", False, "Token limit and prompt sections.") %}
     <div class="app-grid-3">
         <div class="pf-v6-c-form__group">
             <div class="pf-v6-c-form__group-label">
@@ -67,7 +67,7 @@
     </div>
     <div class="app-summary-stat">
         <div class="app-summary-stat-label">Total duration</div>
-        <div class="app-summary-stat-value">{{ es.total_clips_duration if es.total_clips_duration else '—' }}</div>
+        <div class="app-summary-stat-value">{{ es.total_clips_duration | hms if es.total_clips_duration else '—' }}</div>
     </div>
     <div class="app-summary-stat">
         <div class="app-summary-stat-label">Topic coverage</div>
@@ -91,7 +91,7 @@
                     <div class="app-row-between">
                         <div>
                             <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
-                            <div class="chapter-time">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}{% if clip.duration %} · {{ clip.duration }}{% endif %}</div>
+                            <div class="chapter-time">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}{% if clip.duration %} · {{ clip.duration | hms }}{% endif %}</div>
                         </div>
                         <div class="app-masthead-value">{{ clip_score }}/100</div>
                     </div>
@@ -106,7 +106,10 @@
                     </div>
                     {% endif %}
                     {% if clip.content_summary is defined and clip.content_summary.primary_focus %}
-                    <div class="app-mt-md">{{ clip.content_summary.primary_focus }}</div>
+                    <details class="app-compact-details">
+                        <summary>Content summary</summary>
+                        <div class="app-mt-sm">{{ clip.content_summary.primary_focus }}</div>
+                    </details>
                     {% endif %}
                 </div>
                 {% if state.youtube_video_id %}
@@ -125,13 +128,8 @@
 </section>
 
 {% if cd.extraction_notes is defined %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Extraction notes</h2>
-        </div>
-    </div>
-    <div class="pf-v6-c-card__body app-stack">
+{% call ui.advanced_section("Extraction notes", False) %}
+    <div class="app-stack">
         {% if cd.extraction_notes.interview_strengths %}
         <div><strong>Interview strengths:</strong> {{ cd.extraction_notes.interview_strengths }}</div>
         {% endif %}
@@ -139,7 +137,7 @@
         <div><strong>Coverage gaps:</strong> {{ cd.extraction_notes.coverage_gaps }}</div>
         {% endif %}
     </div>
-</section>
+{% endcall %}
 {% endif %}
 
 <div class="app-actions">
@@ -147,7 +145,7 @@
     <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run clip extraction? Current clips will be replaced.')) document.getElementById('clips-form').submit();">Re-run extraction</button>
 </div>
 {% else %}
-{{ ui.empty_state("No clips yet", "Run clip extraction to identify candidate clips and score their quality.") }}
+{{ ui.empty_state("No clips yet", "Run clip extraction to continue.") }}
 
 <div class="app-actions">
     <a href="{{ url_for('results_page') }}" class="pf-v6-c-button pf-m-primary">Continue to results</a>

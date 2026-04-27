@@ -5,7 +5,7 @@
 {% block title %}6. Questions — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 6 — Question Detection", "Generate interviewer questions, review them, and carry curated output into tuning. Editing stays available without dominating the page.", "Pipeline step") }}
+{{ ui.page_header("Step 6 — Question Detection", "Generate and review interviewer questions.", "Pipeline step") }}
 
 {% if questions_message %}
 {% call ui.alert("Question detection updated", "success") %}
@@ -19,14 +19,14 @@
 {% endcall %}
 {% endif %}
 
-{{ ui.status_card("Question review status", "Run question detection, then verify, reject, or annotate the generated interviewer questions before tuning.", [
+{{ ui.status_card("Question review status", None, [
     ("Detected questions", state.questions_stats.total if state.questions_stats else 0),
     ("Verified", state.questions_stats.status.verified if state.questions_stats else 0),
     ("Needs review", state.questions_stats.status.needs_review if state.questions_stats else 0),
 ]) }}
 
 <form action="{{ url_for('questions_run') }}" method="post" id="questions-run-form" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Advanced detection and rewrite settings", not state.questions_rows, "Detection prompts, rewrite prompts, and context controls.") %}
+    {% call ui.advanced_section("Advanced detection and rewrite settings", not state.questions_rows, "Prompts and context controls.") %}
     <div class="prompt-grid">
         <div class="panel">
             <div class="panel-label">Detection system prompt</div>
@@ -90,15 +90,11 @@
         </div>
         <div class="pf-v6-c-card__body app-stack">
             {% if state.questions_stats %}
-            <div class="app-muted">
-                Total: {{ state.questions_stats.total }} |
-                High: {{ state.questions_stats.confidence.high }} |
-                Medium: {{ state.questions_stats.confidence.medium }} |
-                Low: {{ state.questions_stats.confidence.low }} |
-                Unreviewed: {{ state.questions_stats.status.unreviewed }} |
-                Verified: {{ state.questions_stats.status.verified }} |
-                Needs review: {{ state.questions_stats.status.needs_review }} |
-                Rejected: {{ state.questions_stats.status.rejected }}
+            <div class="pf-v6-c-label-group">
+                <span class="pf-v6-c-label pf-m-blue pf-m-compact"><span class="pf-v6-c-label__content">Total {{ state.questions_stats.total }}</span></span>
+                <span class="pf-v6-c-label pf-m-green pf-m-compact"><span class="pf-v6-c-label__content">High {{ state.questions_stats.confidence.high }}</span></span>
+                <span class="pf-v6-c-label pf-m-orange pf-m-compact"><span class="pf-v6-c-label__content">Needs review {{ state.questions_stats.status.needs_review }}</span></span>
+                <span class="pf-v6-c-label pf-m-grey pf-m-compact"><span class="pf-v6-c-label__content">Rejected {{ state.questions_stats.status.rejected }}</span></span>
             </div>
             {% endif %}
 
@@ -119,15 +115,15 @@
                         <tr data-question-id="{{ q.id }}">
                             <td>
                                 <textarea class="question-text" rows="2">{{ q.question_text }}</textarea>
-                                {% if q.original_question_text and q.original_question_text != q.question_text %}
-                                <div class="app-muted app-mt-sm">Original: {{ q.original_question_text }}</div>
-                                {% endif %}
-                                {% if q.rewrite_applied %}
-                                <div class="app-muted app-mt-xs">Readability rewrite applied{% if q.rewrite_notes %}: {{ q.rewrite_notes }}{% endif %}</div>
-                                {% endif %}
-                                {% if q.context_before or q.context_after %}
-                                <details class="app-mt-sm">
-                                    <summary>Context for rewrite</summary>
+                                {% if (q.original_question_text and q.original_question_text != q.question_text) or q.rewrite_applied or q.context_before or q.context_after %}
+                                <details class="app-compact-details">
+                                    <summary>Rewrite details</summary>
+                                    {% if q.original_question_text and q.original_question_text != q.question_text %}
+                                    <div class="app-muted app-mt-sm">Original: {{ q.original_question_text }}</div>
+                                    {% endif %}
+                                    {% if q.rewrite_applied %}
+                                    <div class="app-muted app-mt-xs">Readability rewrite applied{% if q.rewrite_notes %}: {{ q.rewrite_notes }}{% endif %}</div>
+                                    {% endif %}
                                     {% if q.context_chapter_title %}
                                     <div class="app-muted app-mt-xs">Chapter: {{ q.context_chapter_title }}</div>
                                     {% endif %}
@@ -143,7 +139,7 @@
                             <td class="mono">{{ q.start_time | hms }} → {{ q.end_time | hms }}</td>
                             <td>
                                 <span class="confidence-dot confidence-{{ q.confidence_band }}"></span>
-                                <span class="mono">{{ '%.3f'|format(q.confidence) }}</span>
+                                <span class="mono">{{ '%.2f'|format(q.confidence) }}</span>
                             </td>
                             <td>
                                 <select class="question-status">
@@ -164,7 +160,7 @@
                 <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run detection? Current questions will be replaced.')) document.getElementById('questions-run-form').submit();">Re-run detection</button>
             </div>
             {% else %}
-            {{ ui.empty_state("No interviewer questions yet", "Run question detection to populate this review table. If nothing is found, you can still continue to tuning.") }}
+            {{ ui.empty_state("No interviewer questions yet", "Run question detection to populate this review table.") }}
             {% endif %}
         </div>
     </section>

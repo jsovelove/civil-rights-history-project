@@ -5,17 +5,17 @@
 {% block title %}5. Summarization — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 5 — Summarization", "Generate the interview-level summary and chapter summaries. The page emphasizes readable outputs first and keeps prompt editing in advanced controls.", "Pipeline step") }}
+{{ ui.page_header("Step 5 — Summarization", "Generate interview and chapter summaries.", "Pipeline step") }}
 
-{{ ui.status_card("Summary status", "Generate the main interview summary and chapter summaries before question detection or tuning.", [
+{{ ui.status_card("Summary status", None, [
     ("Main summary", "Ready" if state.main_summary else "Not generated"),
     ("Chapter summaries", state.chapters|length if state.chapters else 0),
     ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
 ]) }}
 
 <form action="{{ url_for('summarization_run_main') }}" method="post" id="main-form" class="pf-v6-c-form app-stack">
-    <div class="pf-v6-c-content"><p class="app-muted"><strong>Step 1 of 2</strong> — Generate the interview-level summary first.</p></div>
-    {% call ui.advanced_section("Main summary prompts", not state.main_summary, "Edit the prompts used to generate the interview-level summary.") %}
+    <div class="pf-v6-c-content"><p class="app-muted"><strong>Step 1 of 2</strong> — Main summary</p></div>
+    {% call ui.advanced_section("Main summary prompts", False, "System and user prompts.") %}
     <div class="prompt-grid">
         <div class="panel">
             <div class="panel-label">System prompt</div>
@@ -68,9 +68,9 @@
 
 <form action="{{ url_for('summarization_run_chapters') }}" method="post" id="chapters-form" class="pf-v6-c-form app-stack">
     <div class="pf-v6-c-content">
-        <p class="app-muted"><strong>Step 2 of 2</strong> — Generate per-chapter summaries.</p>
+        <p class="app-muted"><strong>Step 2 of 2</strong> — Chapter summaries</p>
     </div>
-    {% call ui.advanced_section("Chapter summary prompts", not state.chapters, "Edit the prompts used for each chapter summary.") %}
+    {% call ui.advanced_section("Chapter summary prompts", False, "System and user prompts.") %}
     <div class="prompt-grid">
         <div class="panel">
             <div class="panel-label">System prompt</div>
@@ -102,14 +102,19 @@
                     <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
                     <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }}</div>
                     <div class="app-mt-md">{{ ch.summary }}</div>
-                    {% if ch.keywords %}
-                    <div class="app-muted app-mt-sm">Keywords: {{ ch.keywords | join(', ') }}</div>
-                    {% endif %}
-                    {% if ch.quality_metrics %}
-                    <div class="app-mt-sm">
-                        {{ ui.score_label("Accuracy: " ~ ch.quality_metrics.accuracy_score, ch.quality_metrics.accuracy_score, 80, 60) }}
-                        {{ ui.score_label("Quality: " ~ ch.quality_metrics.quality_score, ch.quality_metrics.quality_score, 80, 60) }}
-                    </div>
+                    {% if ch.keywords or ch.quality_metrics %}
+                    <details class="app-compact-details">
+                        <summary>Keywords and scores</summary>
+                        {% if ch.keywords %}
+                        <div class="app-muted app-mt-sm">Keywords: {{ ch.keywords | join(', ') }}</div>
+                        {% endif %}
+                        {% if ch.quality_metrics %}
+                        <div class="app-mt-sm">
+                            {{ ui.score_label("Accuracy: " ~ ch.quality_metrics.accuracy_score, ch.quality_metrics.accuracy_score, 80, 60) }}
+                            {{ ui.score_label("Quality: " ~ ch.quality_metrics.quality_score, ch.quality_metrics.quality_score, 80, 60) }}
+                        </div>
+                        {% endif %}
+                    </details>
                     {% endif %}
                 </div>
                 {% if state.youtube_video_id %}
@@ -134,7 +139,7 @@
     <a href="{{ url_for('chapterization_page') }}" class="pf-v6-c-button pf-m-secondary">Back</a>
 </div>
 {% else %}
-{{ ui.empty_state("No summaries yet", "Run the summary generators to create the interview-level summary and chapter summaries.") }}
+{{ ui.empty_state("No summaries yet", "Run the summary generators to continue.") }}
 {% endif %}
 {% endblock %}
 

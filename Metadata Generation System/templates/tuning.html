@@ -5,9 +5,9 @@
 {% block title %}7. Tuning — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 7 — Tuning", "Score summaries against the rubric, review issues, and regenerate until the configured thresholds are met or retries are exhausted.", "Pipeline step") }}
+{{ ui.page_header("Step 7 — Tuning", "Score and regenerate summaries.", "Pipeline step") }}
 
-{{ ui.status_card("Tuning status", "Use scoring thresholds to balance quality, accuracy, and runtime for the Smithsonian-facing demo.", [
+{{ ui.status_card("Tuning status", None, [
     ("Quality threshold", state.quality_threshold),
     ("Accuracy threshold", state.accuracy_threshold),
     ("Max retries", state.max_retries),
@@ -15,7 +15,7 @@
 ]) }}
 
 <form action="{{ url_for('tuning_run') }}" method="post" id="tuning-form" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Advanced scoring controls", not state.tuning_results, "Thresholds plus evaluation and revision prompts.") %}
+    {% call ui.advanced_section("Advanced scoring controls", False, "Thresholds and prompts.") %}
     <div class="app-grid-3">
         <div class="pf-v6-c-form__group">
             <div class="pf-v6-c-form__group-label">
@@ -92,14 +92,20 @@
             {% endif %}
         </div>
         {% if ms.scores.errors is defined and ms.scores.errors %}
-        <div class="app-muted">
+        <details class="app-compact-details">
+            <summary>Scoring issues</summary>
+            <div class="app-muted app-mt-sm">
             {% for err in ms.scores.errors %}
             <div>• {{ err }}</div>
             {% endfor %}
-        </div>
+            </div>
+        </details>
         {% endif %}
         {% if ms.summary.summary is defined %}
-        <div class="output-block"><pre>{{ ms.summary.summary }}</pre></div>
+        <details class="app-compact-details">
+            <summary>Generated summary</summary>
+            <div class="output-block app-mt-sm"><pre>{{ ms.summary.summary }}</pre></div>
+        </details>
         {% endif %}
     </div>
 </section>
@@ -127,13 +133,19 @@
                 {% endif %}
             </div>
             {% if item.scores.errors is defined and item.scores.errors %}
-            <div class="app-muted app-mt-sm">
+            <details class="app-compact-details">
+                <summary>Scoring issues</summary>
+                <div class="app-muted app-mt-sm">
                 {% for err in item.scores.errors %}
                 <div>• {{ err }}</div>
                 {% endfor %}
-            </div>
+                </div>
+            </details>
             {% endif %}
-            <div class="output-block app-mt-md"><pre>{{ item.chapter.summary }}</pre></div>
+            <details class="app-compact-details">
+                <summary>Chapter summary</summary>
+                <div class="output-block app-mt-sm"><pre>{{ item.chapter.summary }}</pre></div>
+            </details>
         </div>
         {% endfor %}
     </div>
@@ -145,7 +157,7 @@
     <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run tuning? Current scores will be replaced.')) document.getElementById('tuning-form').submit();">Re-run tuning</button>
 </div>
 {% else %}
-{{ ui.empty_state("No tuning results yet", "Run scoring and regeneration to evaluate the summaries against the rubric.") }}
+{{ ui.empty_state("No tuning results yet", "Run scoring and regeneration to continue.") }}
 {% endif %}
 {% endblock %}
 

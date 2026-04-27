@@ -449,7 +449,7 @@
     <div class="panel-label">Chapter Breaks ({{ state.chapter_breaks_preview|length }})</div>
     <div class="results-preview-list">
         {% for ch in state.chapter_breaks_preview[:4] %}
-        {{ preview_item("Ch " ~ ch.chapter ~ " · " ~ (ch.start_time | hms) ~ " → " ~ (ch.end_time | hms), ch.words ~ " words · idx " ~ ch.start_idx ~ "–" ~ ch.end_idx) }}
+        {{ preview_item("Ch " ~ ch.chapter ~ " · " ~ (ch.start_time | hms) ~ " → " ~ (ch.end_time | hms), ch.words ~ " words") }}
         {% endfor %}
     </div>
     {% if state.chapter_breaks_preview|length > 4 %}
@@ -463,7 +463,11 @@
         <div style="margin-top: 12px;">
             {% for ch in state.chapter_breaks_preview %}
             <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
-                Ch {{ ch.chapter }}: {{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
+                Ch {{ ch.chapter }}: {{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.words }} words
+                <details class="app-compact-details">
+                    <summary>Index range</summary>
+                    <div class="chapter-time app-mt-xs">idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                </details>
             </div>
             {% endfor %}
         </div>
@@ -558,7 +562,7 @@
         {% endif %}
         {% if es.total_clips_duration %}
         <div>
-            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration }}</span>
+            <span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration | hms }}</span>
             <span style="font-size: 13px; color: #666; margin-left: 4px;">total duration</span>
         </div>
         {% endif %}

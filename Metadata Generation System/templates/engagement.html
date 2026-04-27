@@ -5,7 +5,7 @@
 {% block title %}8. Engagement Scoring — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 8 — Engagement Scoring", "Score the interview across narrative quality, historical value, emotional resonance, and accessibility. The redesign highlights the headline outcome first and leaves prompt assets collapsed.", "Pipeline step") }}
+{{ ui.page_header("Step 8 — Engagement Scoring", "Score audience-facing interview quality.", "Pipeline step") }}
 
 {% if engagement_error %}
 {% call ui.alert("Engagement scoring failed", "danger") %}
@@ -13,13 +13,13 @@
 {% endcall %}
 {% endif %}
 
-{{ ui.status_card("Engagement status", "Run engagement scoring to surface the audience-facing strengths and limitations of the interview.", [
+{{ ui.status_card("Engagement status", None, [
     ("Scored interview", "Yes" if state.engagement_scores and state.engagement_scores.overall_score is defined else "No"),
     ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
 ]) }}
 
 <form action="{{ url_for('engagement_run') }}" method="post" id="engagement-form" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Advanced engagement prompt assets", not state.engagement_scores, "System prompt, rubric, and JSON schema.") %}
+    {% call ui.advanced_section("Advanced engagement prompt assets", False, "System prompt, rubric, and JSON schema.") %}
     <div class="pf-v6-c-tabs" role="region" aria-label="Engagement prompt sections">
         <ul class="pf-v6-c-tabs__list" role="tablist">
             <li class="pf-v6-c-tabs__item pf-m-current" role="presentation">
@@ -74,25 +74,29 @@
 
 {% if ev.interview_metadata is defined %}
 {% set meta = ev.interview_metadata %}
-{{ ui.status_card("Extracted interview metadata", "The scoring run also extracted descriptive metadata from the transcript.", [
-    ("Interviewee", meta.interviewee_name if meta.interviewee_name else "Unknown"),
-    ("Interviewer", meta.interviewer_name if meta.interviewer_name else "Unknown"),
-    ("Date", meta.interview_date if meta.interview_date else "Unknown"),
-    ("Location", meta.interview_location if meta.interview_location else "Unknown"),
-    ("Duration", meta.duration_formatted if meta.duration_formatted else "Unknown"),
-]) }}
+{% call ui.advanced_section("Extracted interview metadata", False, "Interviewee, interviewer, date, location, and duration.") %}
+<dl class="pf-v6-c-description-list pf-m-horizontal-on-md app-meta-list">
+    {% for label, value in [
+        ("Interviewee", meta.interviewee_name if meta.interviewee_name else "Unknown"),
+        ("Interviewer", meta.interviewer_name if meta.interviewer_name else "Unknown"),
+        ("Date", meta.interview_date if meta.interview_date else "Unknown"),
+        ("Location", meta.interview_location if meta.interview_location else "Unknown"),
+        ("Duration", meta.duration_formatted | hms if meta.duration_formatted else "Unknown"),
+    ] %}
+    <div class="pf-v6-c-description-list__group">
+        <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">{{ label }}</span></dt>
+        <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">{{ value }}</span></dd>
+    </div>
+    {% endfor %}
+</dl>
+{% endcall %}
 {% endif %}
 
 {% if ev.dimension_scores is defined %}
 {% set ds = ev.dimension_scores %}
 {% set maxes = get_engagement_maxes() %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Dimension details</h2>
-        </div>
-    </div>
-    <div class="pf-v6-c-card__body app-stack">
+{% call ui.advanced_section("Dimension details", False, "Rubric breakdown and justifications.") %}
+    <div class="app-stack">
         {% for dim_label, dim_key, subs in [
             ("Narrative Quality", "narrative_quality", [("Story Structure & Coherence","story_structure_coherence"),("Vivid Details & Examples","vivid_details_examples"),("Emotional Authenticity","emotional_authenticity")]),
             ("Historical Value", "historical_value", [("Unique Firsthand Perspective","unique_firsthand_perspective"),("Specificity of Details","specificity_of_details"),("Fills Historical Gaps","fills_historical_gaps")]),
@@ -124,48 +128,29 @@
         {% endif %}
         {% endfor %}
     </div>
-</section>
+{% endcall %}
 {% endif %}
 
 {% if ev.key_strengths %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Key strengths</h2>
-        </div>
-    </div>
-    <div class="pf-v6-c-card__body">
+{% call ui.advanced_section("Key strengths", False) %}
         {% for s in ev.key_strengths %}
         <div>• {{ s }}</div>
         {% endfor %}
-    </div>
-</section>
+{% endcall %}
 {% endif %}
 
 {% if ev.key_limitations %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Key limitations</h2>
-        </div>
-    </div>
-    <div class="pf-v6-c-card__body">
+{% call ui.advanced_section("Key limitations", False) %}
         {% for l in ev.key_limitations %}
         <div>• {{ l }}</div>
         {% endfor %}
-    </div>
-</section>
+{% endcall %}
 {% endif %}
 
 {% if ev.overall_assessment %}
-<section class="pf-v6-c-card">
-    <div class="pf-v6-c-card__header">
-        <div class="pf-v6-c-card__title">
-            <h2 class="pf-v6-c-card__title-text pf-v6-c-title pf-m-lg">Overall assessment</h2>
-        </div>
-    </div>
-    <div class="pf-v6-c-card__body">{{ ev.overall_assessment }}</div>
-</section>
+{% call ui.advanced_section("Overall assessment", False) %}
+{{ ev.overall_assessment }}
+{% endcall %}
 {% endif %}
 
 <div class="app-actions">
@@ -173,7 +158,7 @@
     <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run engagement scoring? Current scores will be replaced.')) document.getElementById('engagement-form').submit();">Re-run scoring</button>
 </div>
 {% else %}
-{{ ui.empty_state("No engagement results yet", "Run engagement scoring to generate the audience-facing quality assessment.") }}
+{{ ui.empty_state("No engagement results yet", "Run engagement scoring to continue.") }}
 
 <div class="app-actions">
     <a href="{{ url_for('clips_page') if state.steps_enabled.clips else url_for('results_page') }}" class="pf-v6-c-button pf-m-primary">Continue to {{ 'clips' if state.steps_enabled.clips else 'results' }}</a>

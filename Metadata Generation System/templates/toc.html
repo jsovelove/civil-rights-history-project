@@ -5,10 +5,10 @@
 {% block title %}3. TOC — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 3 — Table of Contents", "Build a hierarchical table of contents by merging labeled blocks. This is an internal structure step, so the UI focuses on previewing the result clearly.", "Pipeline step") }}
+{{ ui.page_header("Step 3 — Table of Contents", "Review the generated topic structure.", "Pipeline step") }}
 
 {% if state.toc_bundle %}
-{{ ui.status_card("TOC generated", "The labeling output has been consolidated into a table of contents that downstream chapterization can use.", [
+{{ ui.status_card("TOC generated", None, [
     ("TOC entries", state.toc_bundle.toc|length if state.toc_bundle.toc else 0),
     ("Video preview", "Available" if state.youtube_video_id else "Not provided"),
 ]) }}
@@ -26,13 +26,22 @@
             <div class="app-row-start">
                 <div class="app-fill">
                     <div class="chapter-num">{{ entry.topic }}</div>
-                    <div class="chapter-time">{{ entry.start_time | hms }} → {{ entry.end_time | hms }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+                    <div class="chapter-time">{{ entry.start_time | hms }} → {{ entry.end_time | hms }}</div>
                     {% if entry.subtopics %}
-                    <div class="app-stack app-mt-md">
+                    <details class="app-compact-details">
+                        <summary>Subtopics and block range</summary>
+                        <div class="chapter-time app-mt-xs">Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+                        <div class="app-stack app-mt-md">
                         {% for sub in entry.subtopics %}
                         <div class="chapter-time">↳ {{ sub.label }} ({{ sub.start_time | hms }} → {{ sub.end_time | hms }})</div>
                         {% endfor %}
-                    </div>
+                        </div>
+                    </details>
+                    {% else %}
+                    <details class="app-compact-details">
+                        <summary>Block range</summary>
+                        <div class="chapter-time app-mt-xs">Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+                    </details>
                     {% endif %}
                 </div>
                 {% if state.youtube_video_id %}
@@ -52,7 +61,7 @@
 {% endif %}
 
 <form action="{{ url_for('toc_update_output') }}" method="post" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Edit raw TOC output", False, "Modify the JSON directly before continuing. Only needed if you want to adjust a topic boundary or label.") %}
+    {% call ui.advanced_section("Edit raw TOC output", False, "JSON output.") %}
     <textarea name="edited_output" class="output-box">{{ state.toc_bundle | tojson(indent=2) }}</textarea>
     {% endcall %}
     <div class="app-actions">
@@ -61,6 +70,6 @@
     </div>
 </form>
 {% else %}
-{{ ui.empty_state("No TOC available", "Complete topic labeling first so the app can merge the labeled blocks into a table of contents.", url_for('labeling_page'), "Back to labeling") }}
+{{ ui.empty_state("No TOC available", "Complete topic labeling first.", url_for('labeling_page'), "Back to labeling") }}
 {% endif %}
 {% endblock %}

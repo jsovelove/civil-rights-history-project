@@ -548,7 +548,11 @@
                 {% for ch in sr.chapter_breaks_preview[2:] %}
                 <div class="chapter-card">
                     <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                    <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.words }} words</div>
+                    <details class="app-compact-details">
+                        <summary>Index range</summary>
+                        <div class="chapter-time app-mt-xs">idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    </details>
                     {% if ch.snippet %}<div class="chapter-snippet">{{ ch.snippet }}</div>{% endif %}
                 </div>
                 {% endfor %}
@@ -715,7 +719,7 @@
         <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #222;">
             {% if es.total_clips is defined %}<div><span style="font-size: 24px; font-weight: 700; color: #8ad;">{{ es.total_clips }}</span> <span style="font-size: 12px; color: #666;">clips</span></div>{% endif %}
             {% if es.average_clip_score is defined %}<div><span style="font-size: 24px; font-weight: 700; color: {% if es.average_clip_score >= 80 %}#8e8{% elif es.average_clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ "%.1f"|format(es.average_clip_score) }}</span> <span style="font-size: 12px; color: #666;">avg score</span></div>{% endif %}
-            {% if es.total_clips_duration %}<div><span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration }}</span> <span style="font-size: 12px; color: #666;">total duration</span></div>{% endif %}
+            {% if es.total_clips_duration %}<div><span style="font-size: 18px; font-weight: 600; color: #ccc;">{{ es.total_clips_duration | hms }}</span> <span style="font-size: 12px; color: #666;">total duration</span></div>{% endif %}
         </div>
         {% endif %}
         <div class="preview-stack">
@@ -725,7 +729,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
                     <div>
                         <div class="chapter-num" style="font-size: 14px;">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
-                        <div class="chapter-time" style="margin-top: 2px;">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}{% if clip.duration %} · {{ clip.duration }}{% endif %}</div>
+                        <div class="chapter-time" style="margin-top: 2px;">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}{% if clip.duration %} · {{ clip.duration | hms }}{% endif %}</div>
                     </div>
                     <span style="font-size: 20px; font-weight: 700; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %}; flex-shrink: 0;">{{ clip_score }}/100</span>
                 </div>
@@ -747,7 +751,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
                         <div>
                             <div class="chapter-num">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
-                            <div class="chapter-time">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}{% if clip.duration %} · {{ clip.duration }}{% endif %}</div>
+                            <div class="chapter-time">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}{% if clip.duration %} · {{ clip.duration | hms }}{% endif %}</div>
                         </div>
                         <span style="font-size: 18px; font-weight: 700; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %}; flex-shrink: 0;">{{ clip_score }}/100</span>
                     </div>

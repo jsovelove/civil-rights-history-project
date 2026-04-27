@@ -5,7 +5,7 @@
 {% block title %}2. Labeling — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 2 — Topic Labeling", "Label each text block with a main topic and subtopics. Results stay primary; prompt tuning stays available in an advanced section.", "Pipeline step") }}
+{{ ui.page_header("Step 2 — Topic Labeling", "Label text blocks with topics and subtopics.", "Pipeline step") }}
 
 {% if labeling_error %}
 {% call ui.alert("Labeling failed", "danger") %}
@@ -13,13 +13,13 @@
 {% endcall %}
 {% endif %}
 
-{{ ui.status_card("Labeling status", "Run labeling to classify the text blocks before building the table of contents.", [
+{{ ui.status_card("Labeling status", None, [
     ("Text blocks available", state.text_blocks|length if state.text_blocks else 0),
     ("Labeled blocks", state.block_topics|length if state.block_topics else 0),
 ]) }}
 
 <form action="{{ url_for('labeling_run') }}" method="post" id="labeling-form" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Advanced prompt controls", not state.block_topics, "Edit the system and user prompts used for labeling.") %}
+    {% call ui.advanced_section("Advanced prompt controls", False, "System and user prompts.") %}
     <div class="prompt-grid">
         <div class="panel">
             <div class="panel-label">System prompt</div>
@@ -50,14 +50,17 @@
         <div class="chapter-card">
             <div class="chapter-num">Block {{ bt.block_number }}</div>
             <div><strong>{{ bt.main_topic_category }}</strong> — {{ bt.subtopics | join(', ') }}</div>
-            <div class="chapter-time app-mt-xs">Confidence: {{ bt.confidence }}</div>
+            <details class="app-compact-details">
+                <summary>Details</summary>
+                <div class="chapter-time app-mt-xs">Confidence: {{ bt.confidence }}</div>
+            </details>
         </div>
         {% endfor %}
     </div>
 </section>
 
 <form action="{{ url_for('labeling_update_output') }}" method="post" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Edit raw labeling output", False, "Modify the JSON directly before continuing. Only needed if you want to correct a specific label.") %}
+    {% call ui.advanced_section("Edit raw labeling output", False, "JSON output.") %}
     <textarea name="edited_output" class="output-box">{{ state.block_topics | tojson(indent=2) }}</textarea>
     {% endcall %}
     <div class="app-actions">
@@ -66,7 +69,7 @@
     </div>
 </form>
 {% else %}
-{{ ui.empty_state("No labels yet", "Run topic labeling to generate block categories and subtopics for the TOC stage.") }}
+{{ ui.empty_state("No labels yet", "Run topic labeling to continue.") }}
 {% endif %}
 {% endblock %}
 

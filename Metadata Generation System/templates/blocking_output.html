@@ -5,10 +5,10 @@
 {% block title %}1. Blocking Output — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 1 — Blocking Output", "Review the text blocks generated from the uploaded transcript before moving into topic labeling.", "Output review") }}
+{{ ui.page_header("Step 1 — Blocking Output", "Review generated text blocks.", "Output review") }}
 
 {% if state.text_blocks %}
-{{ ui.status_card("Blocking complete", "The transcript has been segmented into text blocks and is ready for labeling.", [
+{{ ui.status_card("Blocking complete", None, [
     ("Blocks", state.text_blocks|length),
     ("Segments per block", state.block_size),
     ("Transcript source", "Bundled sample interview" if state.using_sample else state.srt_path.rsplit('\\', 1)[-1]),
@@ -24,8 +24,12 @@
         {% for block in state.text_blocks %}
         <div class="chapter-card">
             <div class="chapter-num">Block {{ loop.index }}</div>
-            <div class="chapter-time">{{ block.start_time | hms }} → {{ block.end_time | hms }} · Segments {{ block.start_idx }}–{{ block.end_idx }}</div>
+            <div class="chapter-time">{{ block.start_time | hms }} → {{ block.end_time | hms }}</div>
             <div class="chapter-snippet app-mt-sm">{{ block.text[:300] if block.text else '' }}{% if block.text and block.text|length > 300 %}...{% endif %}</div>
+            <details class="app-compact-details">
+                <summary>Segment range</summary>
+                <div class="chapter-time app-mt-xs">Segments {{ block.start_idx }}–{{ block.end_idx }}</div>
+            </details>
         </div>
         {% endfor %}
     </div>
@@ -36,6 +40,6 @@
     <a href="{{ url_for('labeling_page') }}" class="pf-v6-c-button pf-m-primary">Continue to labeling</a>
 </div>
 {% else %}
-{{ ui.empty_state("No text blocks generated", "Go back to upload and run blocking with a transcript or the bundled sample.", url_for('upload_page'), "Back to upload") }}
+{{ ui.empty_state("No text blocks generated", "Run blocking from upload first.", url_for('upload_page'), "Back to upload") }}
 {% endif %}
 {% endblock %}

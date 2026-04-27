@@ -5,9 +5,9 @@
 {% block title %}1. Upload — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 1 — Upload and Blocking", "Start with one interview ZIP or use the bundled sample. This demo explains the workflow clearly for first-time viewers while still exposing advanced controls for operators.", "Pipeline entry") }}
+{{ ui.page_header("Step 1 — Upload and Blocking", "Choose a transcript source and run blocking.", "Pipeline entry") }}
 
-{{ ui.status_card("Current session", "Configure the interview source, choose optional modules, and load an API key for this browser session.", [
+{{ ui.status_card("Current session", None, [
     ("Loaded file", "Bundled sample interview" if state.using_sample else (state.srt_path.rsplit('\\', 1)[-1] if state.srt_path else "None")),
     ("Block size", state.block_size),
     ("Questions", "Enabled" if state.steps_enabled.questions else "Disabled"),
@@ -33,7 +33,7 @@
             <div class="app-grid-2">
                 <div class="pf-v6-c-form__group">
                     <div class="pf-v6-c-form__group-label">
-                        <label class="pf-v6-c-form__label" for="api-key-input"><span class="pf-v6-c-form__label-text">OpenAI API key</span></label>
+                        {{ ui.label_with_info("OpenAI API key", "Stored only for this browser session. Leave blank to keep the current session key.", "api-key-input") }}
                     </div>
                     <div class="pf-v6-c-form__group-control">
                         <span class="pf-v6-c-form-control"><input
@@ -45,15 +45,11 @@
                             {% if not api_key_present and not dev_mode %}required{% endif %}
                             {% if dev_mode %}disabled{% endif %}
                         ></span>
-                        <p class="pf-v6-c-form__helper-text">
-                            {% if dev_mode %}
-                            Dev mode is on — no API key needed. Steps use mock data.
-                            {% elif api_key_present %}
-                            Current session key: {{ api_key_masked }}. Leave blank to keep using it.
-                            {% else %}
-                            Used only for this browser session.
-                            {% endif %}
-                        </p>
+                        {% if dev_mode %}
+                        <p class="pf-v6-c-form__helper-text">Dev mode is on.</p>
+                        {% elif api_key_present %}
+                        <p class="pf-v6-c-form__helper-text">Current key: {{ api_key_masked }}</p>
+                        {% endif %}
                         <div class="app-actions">
                             <a href="https://platform.openai.com/settings/organization/api-keys" target="_blank" rel="noopener noreferrer" class="pf-v6-c-button pf-m-secondary">Get API key</a>
                             {# <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key" target="_blank" rel="noopener noreferrer" class="pf-v6-c-button pf-m-secondary">Where to find it</a> #}
@@ -63,11 +59,10 @@
 
                 <div class="pf-v6-c-form__group">
                     <div class="pf-v6-c-form__group-label">
-                        <label class="pf-v6-c-form__label" for="youtube-url"><span class="pf-v6-c-form__label-text">Video preview URL</span></label>
+                        {{ ui.label_with_info("Video preview URL", "Optional. Enables contextual video embeds on TOC, chapter, summary, and clip screens.", "youtube-url") }}
                     </div>
                     <div class="pf-v6-c-form__group-control">
                         <span class="pf-v6-c-form-control"><input id="youtube-url" type="url" name="youtube_url" value="{{ state.youtube_url }}" placeholder="https://www.youtube.com/watch?v=..."></span>
-                        <p class="pf-v6-c-form__helper-text">Optional. When present, TOC, chapter, summary, and clip screens can show contextual video embeds.</p>
                     </div>
                 </div>
             </div>
@@ -88,9 +83,7 @@
                     <div class="upload-label" id="file-label"><strong>Click or drag and drop</strong> a ZIP file containing transcript data</div>
                     <button type="button" class="pf-v6-c-button pf-m-secondary" id="file-browse-btn">Choose file</button>
                 </div>
-                <div class="pf-v6-c-file-upload__helper-text">
-                    Upload one ZIP for a single run or a ZIP of multiple `.srt` files to stage the remaining interviews for batch processing.
-                </div>
+                <div class="pf-v6-c-file-upload__helper-text">ZIP transcript input</div>
             </div>
         </div>
     </section>
@@ -106,6 +99,7 @@
                 <div class="pf-v6-c-form__group-label">
                     <label class="pf-v6-c-form__label" id="block-size-label">
                         <span class="pf-v6-c-form__label-text">Segments per block</span>
+                        {{ ui.info_tip("Larger blocks create fewer, longer chapters. Smaller blocks create more granular topics. Default 23 works well for most interviews.", "Segments per block help") }}
                     </label>
                 </div>
                 <div class="pf-v6-c-form__group-control">
@@ -130,33 +124,29 @@
                         <span class="app-slider-value" id="block-size-val" aria-hidden="true">{{ state.block_size }}</span>
                     </div>
                     <input type="hidden" name="block_size" id="block-size-input" value="{{ state.block_size }}">
-                    <p class="pf-v6-c-form__helper-text">Larger blocks = fewer, longer chapters. Smaller = more granular topics. Default (23) works well for most interviews.</p>
                 </div>
             </div>
 
             <div class="app-grid-3">
-                <label class="chapter-card pf-v6-u-display-block">
+                <label class="chapter-card pf-v6-u-display-block{% if not state.steps_enabled.questions %} app-inactive{% endif %}">
                     <div class="app-row-label">
                         <input type="checkbox" name="enable_questions" {% if state.steps_enabled.questions %}checked{% endif %}>
-                        <strong>Question Detection</strong>
+                        <strong>Question Detection</strong>{{ ui.info_tip("Identifies interviewer questions and places review after summary generation.", "Question detection help") }}
                     </div>
-                    <div class="app-muted">Identifies interviewer questions and places that review step after summary generation.</div>
                 </label>
 
-                <label class="chapter-card pf-v6-u-display-block">
+                <label class="chapter-card pf-v6-u-display-block{% if not state.steps_enabled.engagement %} app-inactive{% endif %}">
                     <div class="app-row-label">
                         <input type="checkbox" name="enable_engagement" {% if state.steps_enabled.engagement %}checked{% endif %}>
-                        <strong>Engagement Scoring</strong>
+                        <strong>Engagement Scoring</strong>{{ ui.info_tip("Adds narrative, historical, emotional, and accessibility scoring with extra API usage.", "Engagement scoring help") }}
                     </div>
-                    <div class="app-muted">Adds narrative, historical, emotional, and accessibility scoring with extra API usage.</div>
                 </label>
 
-                <label class="chapter-card pf-v6-u-display-block">
+                <label class="chapter-card pf-v6-u-display-block{% if not state.steps_enabled.clips %} app-inactive{% endif %}">
                     <div class="app-row-label">
                         <input type="checkbox" name="enable_clips" {% if state.steps_enabled.clips %}checked{% endif %}>
-                        <strong>Clip Extraction</strong>
+                        <strong>Clip Extraction</strong>{{ ui.info_tip("Finds and scores viable clips for playlists, exhibits, and educational use.", "Clip extraction help") }}
                     </div>
-                    <div class="app-muted">Finds and scores viable clips for playlists, exhibits, and educational use.</div>
                 </label>
             </div>
             <input type="hidden" name="question_placement" value="after_summary">
@@ -169,7 +159,7 @@
 </form>
 
 {% if state.srt_path %}
-{{ ui.status_card("Loaded transcript", "The current transcript is ready for downstream processing.", [
+{{ ui.status_card("Loaded transcript", None, [
     ("Source", "Bundled sample interview" if state.using_sample else state.srt_path),
     ("Segments", state.segments|length if state.segments else "N/A"),
     ("Text blocks", state.text_blocks|length if state.text_blocks else "N/A"),
@@ -223,6 +213,7 @@
             fileInput.required = false;
             fileInput.value = '';
             zone.style.opacity = '0.65';
+            uploadZone.classList.add('app-inactive');
             browseBtn.disabled = true;
             if (sampleCheckbox.checked) {
                 fileLabel.innerHTML = '<strong>Bundled sample selected</strong> — no upload needed';
@@ -232,9 +223,16 @@
         } else {
             fileInput.required = true;
             zone.style.opacity = '1';
+            uploadZone.classList.remove('app-inactive');
             browseBtn.disabled = false;
             showDefaultLabel();
         }
+    }
+
+    function updateOptionalModuleCards() {
+        document.querySelectorAll('.app-grid-3 .chapter-card input[type="checkbox"]').forEach(function (checkbox) {
+            checkbox.closest('.chapter-card')?.classList.toggle('app-inactive', !checkbox.checked);
+        });
     }
 
     // Make checkboxes mutually exclusive
@@ -245,6 +243,9 @@
     transcriptsCheckbox.addEventListener('change', function() {
         if (this.checked) sampleCheckbox.checked = false;
         updateSourceMode();
+    });
+    document.querySelectorAll('.app-grid-3 .chapter-card input[type="checkbox"]').forEach(function (checkbox) {
+        checkbox.addEventListener('change', updateOptionalModuleCards);
     });
 
     fileInput.addEventListener('change', function() {
@@ -288,6 +289,7 @@
     });
 
     updateSourceMode();
+    updateOptionalModuleCards();
 
     wireRunButton('upload-form', 'run-btn', 'Running blocking...');
 

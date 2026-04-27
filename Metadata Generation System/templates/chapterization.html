@@ -5,15 +5,15 @@
 {% block title %}4. Chapterization — Pipeline Demo{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Step 4 — Chapterization", "Detect natural topic transitions and create chapter boundaries using the TOC context and chapterization prompts.", "Pipeline step") }}
+{{ ui.page_header("Step 4 — Chapterization", "Create chapter boundaries from the TOC.", "Pipeline step") }}
 
-{{ ui.status_card("Chapterization status", "Run chapterization to create the chapter boundaries used by summary, tuning, and clip extraction.", [
+{{ ui.status_card("Chapterization status", None, [
     ("TOC entries", state.toc_bundle.toc|length if state.toc_bundle and state.toc_bundle.toc else 0),
     ("Chapters detected", state.chapter_breaks_preview|length if state.chapter_breaks_preview else 0),
 ]) }}
 
 <form action="{{ url_for('chapterization_run') }}" method="post" id="chapter-form" class="pf-v6-c-form app-stack">
-    {% call ui.advanced_section("Advanced prompt controls", not state.chapter_breaks_preview, "Edit the system and user prompts for topic transition detection.") %}
+    {% call ui.advanced_section("Advanced prompt controls", False, "System and user prompts.") %}
     <div class="prompt-grid">
         <div class="panel">
             <div class="panel-label">System prompt</div>
@@ -45,8 +45,12 @@
             <div class="app-row-start">
                 <div class="app-fill">
                     <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                    <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }}</div>
                     <div class="chapter-snippet app-mt-sm">{{ ch.snippet }}</div>
+                    <details class="app-compact-details">
+                        <summary>Chapter metadata</summary>
+                        <div class="chapter-time app-mt-xs">{{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    </details>
                 </div>
                 {% if state.youtube_video_id %}
                 <div class="app-shrink-0">
@@ -67,7 +71,7 @@
     <button type="button" class="pf-v6-c-button pf-m-secondary" onclick="if(confirm('Re-run chapterization? Current chapter breaks will be replaced.')) document.getElementById('chapter-form').submit();">Re-run chapterization</button>
 </div>
 {% else %}
-{{ ui.empty_state("No chapters yet", "Run chapterization to create initial chapter boundaries from the TOC and transcript.") }}
+{{ ui.empty_state("No chapters yet", "Run chapterization to continue.") }}
 {% endif %}
 {% endblock %}
 
