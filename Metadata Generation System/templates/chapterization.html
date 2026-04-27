@@ -45,7 +45,7 @@
             <div class="app-row-start">
                 <div class="app-fill">
                     <div class="chapter-num">Chapter {{ ch.chapter }}</div>
-                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }} · {{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
+                    <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.segments }} segments · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
                     <div class="chapter-snippet app-mt-sm">{{ ch.snippet }}</div>
                 </div>
                 {% if state.youtube_video_id %}

@@ -140,7 +140,7 @@
                                 </details>
                                 {% endif %}
                             </td>
-                            <td class="mono">{{ q.start_time }} → {{ q.end_time }}</td>
+                            <td class="mono">{{ q.start_time | hms }} → {{ q.end_time | hms }}</td>
                             <td>
                                 <span class="confidence-dot confidence-{{ q.confidence_band }}"></span>
                                 <span class="mono">{{ '%.3f'|format(q.confidence) }}</span>

@@ -16,7 +16,8 @@
 ]) }}
 
 {% if api_key_error %}
-{% call ui.alert("API key required", "danger") %}
+{% set _is_key_error = 'API key' in api_key_error or 'api key' in api_key_error %}
+{% call ui.alert("API key required" if _is_key_error else "Upload error", "danger") %}
 <p>{{ api_key_error }}</p>
 {% endcall %}
 {% endif %}

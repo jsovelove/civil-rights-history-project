@@ -26,11 +26,11 @@
             <div class="app-row-start">
                 <div class="app-fill">
                     <div class="chapter-num">{{ entry.topic }}</div>
-                    <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
+                    <div class="chapter-time">{{ entry.start_time | hms }} → {{ entry.end_time | hms }} · Blocks {{ entry.start_block }}–{{ entry.end_block }}</div>
                     {% if entry.subtopics %}
                     <div class="app-stack app-mt-md">
                         {% for sub in entry.subtopics %}
-                        <div class="chapter-time">↳ {{ sub.label }} ({{ sub.start_time }} → {{ sub.end_time }})</div>
+                        <div class="chapter-time">↳ {{ sub.label }} ({{ sub.start_time | hms }} → {{ sub.end_time | hms }})</div>
                         {% endfor %}
                     </div>
                     {% endif %}

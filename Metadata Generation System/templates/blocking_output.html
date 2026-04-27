@@ -24,7 +24,7 @@
         {% for block in state.text_blocks %}
         <div class="chapter-card">
             <div class="chapter-num">Block {{ loop.index }}</div>
-            <div class="chapter-time">{{ block.start_time }} → {{ block.end_time }} · Segments {{ block.start_idx }}–{{ block.end_idx }}</div>
+            <div class="chapter-time">{{ block.start_time | hms }} → {{ block.end_time | hms }} · Segments {{ block.start_idx }}–{{ block.end_idx }}</div>
             <div class="chapter-snippet app-mt-sm">{{ block.text[:300] if block.text else '' }}{% if block.text and block.text|length > 300 %}...{% endif %}</div>
         </div>
         {% endfor %}
