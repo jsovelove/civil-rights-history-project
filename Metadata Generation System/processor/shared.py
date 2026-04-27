@@ -6,7 +6,7 @@ import os
 import re
 import json
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Callable, Dict, Any, List, Optional, Tuple
 from openai import OpenAI
 from difflib import SequenceMatcher
 
@@ -123,6 +123,7 @@ class ProcessorContext:
 
         # Attached by app.py after context creation (optional)
         self.logger = None
+        self.progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 
     def _load_facts(self, facts_path: str):
         try:
@@ -439,3 +440,14 @@ def seconds_to_time_format(seconds: float) -> str:
 def get_current_timestamp() -> str:
     from datetime import datetime
     return datetime.now().isoformat()
+
+
+def report_progress(ctx: ProcessorContext, step: str, current: int, total: int, detail: str) -> None:
+    callback = getattr(ctx, "progress_callback", None)
+    if callback:
+        callback({
+            "step": step,
+            "current": current,
+            "total": total,
+            "detail": detail,
+        })

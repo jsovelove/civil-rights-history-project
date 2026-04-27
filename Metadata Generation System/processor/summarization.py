@@ -10,7 +10,7 @@ from .shared import (
     call_openai_json, load_prompt,
     get_relevant_facts, format_facts_for_prompt, format_primary_source_for_prompt,
     match_keyword_to_standard, get_keyword_context_for_ai,
-    calculate_keyword_relevance
+    calculate_keyword_relevance, report_progress
 )
 from .blocking import extract_plaintext_section
 
@@ -27,6 +27,7 @@ def generate_main_summary(
     primary_source_info: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     """Generate the main interview summary. No scoring loop here — that's in tuning."""
+    report_progress(ctx, "Main Summary", 0, 1, "Generating interview-level summary")
     if system_prompt is None:
         system_prompt = load_prompt(ctx, 'generate_main_summary_system.txt')
 
@@ -51,6 +52,7 @@ def generate_main_summary(
     elapsed = time.time() - t0
     if ctx.logger:
         ctx.logger.log_main_summary("gpt-4o", elapsed, ctx.total_tokens_used - tokens_before)
+    report_progress(ctx, "Main Summary", 1, 1, "Main summary generated")
     return response
 
 
@@ -69,6 +71,7 @@ def generate_chapters(
         return []
 
     print(f"Generating summaries for {len(chapter_breaks)} chapters")
+    report_progress(ctx, "Chapter Summaries", 0, len(chapter_breaks), f"Preparing {len(chapter_breaks)} chapter summaries")
     chap_tokens_before = ctx.total_tokens_used
     chap_t0 = time.time()
 
@@ -119,12 +122,14 @@ def generate_chapters(
             ctx.logger.log_chapter_summary_item(
                 item["chapter_num"], item["segment_count"], item["word_count"]
             )
+        report_progress(ctx, "Chapter Summaries", 1 if chapter else 0, 1, "Chapter summary complete" if chapter else "Chapter summary failed")
         return [chapter] if chapter else []
 
     # Multiple chapters — process in parallel
     print(f"Processing {len(work_items)} chapters in parallel")
     workers = min(CHAPTER_MAX_WORKERS, len(work_items))
     results_by_index = {}
+    completed = 0
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {
@@ -142,8 +147,12 @@ def generate_chapters(
                 if chapter:
                     results_by_index[item["index"]] = chapter
                     print(f"  Chapter {item['chapter_num']} done")
+                completed += 1
+                report_progress(ctx, "Chapter Summaries", completed, len(work_items), f"Finished {completed} of {len(work_items)} chapter summaries")
             except Exception as e:
                 print(f"  Chapter {item['chapter_num']} failed: {e}")
+                completed += 1
+                report_progress(ctx, "Chapter Summaries", completed, len(work_items), f"Chapter {item['chapter_num']} failed; finished {completed} of {len(work_items)}")
 
     # Reassemble in original order
     chapters = []

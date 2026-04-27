@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 from .shared import (
     ProcessorContext, MAIN_TOPICS,
-    call_openai_json, load_prompt
+    call_openai_json, load_prompt, report_progress
 )
 
 # Smaller chunks = fewer output tokens per call = each call finishes faster.
@@ -17,6 +17,10 @@ LABEL_CHUNK_SIZE = 15
 # Enough workers so all chunks fire at once for typical interviews.
 # 85 blocks / 15 = 6 chunks — all launch simultaneously.
 LABEL_MAX_WORKERS = 6
+
+
+def _report_progress(ctx: ProcessorContext, current: int, total: int, detail: str) -> None:
+    report_progress(ctx, "Labeling", current, total, detail)
 
 
 def label_text_blocks(
@@ -54,6 +58,7 @@ def label_text_blocks(
     for chunk_start in range(0, n, LABEL_CHUNK_SIZE):
         chunk_end = min(chunk_start + LABEL_CHUNK_SIZE, n)
         chunks.append((chunk_start, chunk_end))
+    _report_progress(ctx, 0, n, f"Labeling {n} blocks in {len(chunks)} chunk{'s' if len(chunks) != 1 else ''}")
 
     # ── Process chunks in parallel ────────────────────────────────
     all_labeled = {}  # block_number -> labeled dict
@@ -65,6 +70,7 @@ def label_text_blocks(
         if isinstance(result, Exception):
             raise result
         all_labeled.update(result)
+        _report_progress(ctx, len(all_labeled), n, f"Finished labeling {len(all_labeled)} of {n} blocks")
     else:
         print(f"Labeling {n} blocks in {len(chunks)} parallel chunks")
         workers = min(LABEL_MAX_WORKERS, len(chunks))
@@ -87,6 +93,7 @@ def label_text_blocks(
                     else:
                         all_labeled.update(result)
                         print(f"  Chunk {cs+1}–{ce} done, running total: {len(all_labeled)}/{n}")
+                        _report_progress(ctx, len(all_labeled), n, f"Chunk {cs + 1}-{ce} done, running total: {len(all_labeled)}/{n}")
                 except Exception as e:
                     errors.append(e)
 
@@ -135,6 +142,7 @@ def _label_chunk(
     chunk_size = len(chunk)
 
     print(f"Labeling blocks {chunk_start + 1}–{chunk_end} of {total_blocks}")
+    _report_progress(ctx, 0, total_blocks, f"Labeling blocks {chunk_start + 1}-{chunk_end} of {total_blocks}")
 
     # Build analysis text for this chunk
     analysis_text = _build_analysis_text(chunk, chunk_start)

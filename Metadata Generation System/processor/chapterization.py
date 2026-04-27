@@ -4,7 +4,7 @@ Step 4 — Chapterization: Detect topic transitions to determine chapter break i
 
 import time
 from typing import List, Dict, Any, Tuple, Optional
-from .shared import ProcessorContext, call_openai_json, load_prompt
+from .shared import ProcessorContext, call_openai_json, load_prompt, report_progress
 
 
 def detect_topic_transitions(
@@ -19,6 +19,7 @@ def detect_topic_transitions(
     as list of (start_segment_idx, end_segment_idx) tuples.
     """
     if len(text_blocks) <= 2:
+        report_progress(ctx, "Chapterization", 1, 1, "Short transcript; using single chapter")
         return [(text_blocks[0]["start_idx"], text_blocks[-1]["end_idx"])]
 
     # ── Build analysis text ────────────────────────────────────────
@@ -41,6 +42,7 @@ def detect_topic_transitions(
         per_block = min(max_per_block, remaining // n)
 
     print(f"breaks prompt budget: max_total_chars={max_total_chars}, blocks={n}, per_block={per_block}")
+    report_progress(ctx, "Chapterization", 0, 2, f"Prepared {n} blocks for transition detection")
 
     analysis_parts = []
     for i, block in enumerate(text_blocks):
@@ -84,6 +86,7 @@ def detect_topic_transitions(
     tokens_before = ctx.total_tokens_used
     t0 = time.time()
     try:
+        report_progress(ctx, "Chapterization", 1, 2, "Detecting topic transitions")
         response = call_openai_json(ctx, system_prompt, user_prompt, model=ctx.toc_model)
         elapsed = time.time() - t0
         tokens_used = ctx.total_tokens_used - tokens_before
@@ -104,13 +107,16 @@ def detect_topic_transitions(
             print("RAW OPENAI BREAKS (segment idx):", breaks)
             if ctx.logger:
                 ctx.logger.log_chapterization(ctx.toc_model, elapsed, tokens_used, len(breaks))
+            report_progress(ctx, "Chapterization", 2, 2, f"Detected {len(breaks)} chapters")
             return breaks
 
     except Exception as e:
         elapsed = time.time() - t0
         print(f"Error detecting topic transitions: {e}")
 
-    return create_fallback_chapters(text_blocks)
+    breaks = create_fallback_chapters(text_blocks)
+    report_progress(ctx, "Chapterization", 2, 2, f"Used fallback to create {len(breaks)} chapters")
+    return breaks
 
 
 def create_fallback_chapters(text_blocks: List[Dict]) -> List[Tuple[int, int]]:

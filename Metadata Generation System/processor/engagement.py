@@ -18,7 +18,7 @@ import json
 import os
 import time
 from typing import Dict, Any, List, Tuple, Optional
-from .shared import ProcessorContext, call_openai_json, load_prompt
+from .shared import ProcessorContext, call_openai_json, load_prompt, report_progress
 
 
 def build_engagement_system_prompt(
@@ -103,6 +103,7 @@ def run_engagement_scoring(
 
     est_tokens = (len(full_system) + len(final_user_prompt)) // 4
     print(f"Engagement scoring: ~{est_tokens:,} estimated input tokens")
+    report_progress(ctx, "Engagement Scoring", 0, 2, f"Prepared engagement prompt (~{est_tokens:,} input tokens)")
 
     _eng_model = "gpt-4o-mini"
     _eng_tokens_before = ctx.total_tokens_used
@@ -117,6 +118,7 @@ def run_engagement_scoring(
         model=_eng_model,
         max_tokens=8000
     )
+    report_progress(ctx, "Engagement Scoring", 1, 2, "Validating engagement scores")
 
     if isinstance(result, dict) and "error" in result:
         print(f"Engagement scoring API error: {result['error']}")
@@ -136,6 +138,7 @@ def run_engagement_scoring(
             result,
         )
 
+    report_progress(ctx, "Engagement Scoring", 2, 2, "Engagement scoring complete")
     return result
 
 

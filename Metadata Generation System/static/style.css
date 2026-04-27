@@ -1,5 +1,6 @@
 :root {
-    --app-max-width: 1440px;
+    --app-max-width: 1280px;
+    --app-main-inline-padding: clamp(1rem, 3vw, 2.5rem);
 }
 
 * {
@@ -21,6 +22,9 @@ body {
     flex-direction: column;
     gap: 0.15rem;
 }
+
+/* Masthead spacing — see inline <style> in base.html for the actual fix
+   (we use PF6's `pf-m-display-inline` modifier on the <header>). */
 
 .app-brand-subtitle {
     font-size: 0.75rem;
@@ -86,30 +90,6 @@ body {
     text-overflow: ellipsis;
 }
 
-.app-module-chips-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    align-items: flex-start;
-}
-
-.app-module-chips {
-    align-items: center;
-}
-
-.app-chips-edit-link {
-    font-size: 0.68rem;
-    color: var(--pf-t--global--text--color--subtle);
-    text-decoration: none;
-    white-space: nowrap;
-    line-height: 1;
-}
-
-.app-chips-edit-link:hover {
-    text-decoration: underline;
-    color: var(--pf-t--global--color--brand--default);
-}
-
 .app-metrics-popover {
     position: relative;
 }
@@ -145,7 +125,6 @@ body {
 .app-sidebar {
     padding: 1.5rem 1rem 2rem;
     background: var(--pf-t--global--background--color--secondary--default);
-    border-inline-end: 1px solid var(--pf-t--global--border--color--default);
 }
 
 .app-sidebar-header {
@@ -198,7 +177,7 @@ body {
 }
 
 .app-main-body {
-    width: min(100%, var(--app-max-width));
+    width: min(100% - (var(--app-main-inline-padding) * 2), var(--app-max-width));
     margin: 0 auto;
     display: grid;
     gap: 1.25rem;
@@ -466,21 +445,6 @@ textarea.output-box {
 
 .upload-zone .upload-label {
     font-size: 1rem;
-}
-
-.batch-progress-bar {
-    width: 100%;
-    height: 1rem;
-    border-radius: 999px;
-    overflow: hidden;
-    background: var(--pf-t--global--background--color--secondary--default);
-    border: 1px solid var(--pf-t--global--border--color--default);
-}
-
-.batch-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--pf-t--global--color--brand--default), var(--pf-t--global--status--info--color--default));
-    transition: width 0.25s ease-in-out;
 }
 
 .queue-item {
@@ -781,12 +745,6 @@ textarea.output-box {
 .app-text-warning { color: var(--pf-t--global--status--warning--color--default); }
 .app-tall { min-height: 24rem; }
 
-.app-run-hint {
-    font-size: 0.8rem;
-    color: var(--pf-t--global--text--color--subtle);
-    align-self: center;
-}
-
 .app-hidden {
     display: none;
 }
@@ -899,7 +857,7 @@ textarea.output-box {
     }
 
     .app-main-body {
-        width: 100%;
+        width: min(100% - 1rem, var(--app-max-width));
     }
 
     .app-masthead-context {
@@ -922,4 +880,61 @@ textarea.output-box {
     background: #b87200;
     border-color: #f5a623;
     color: #fff8ec;
+}
+
+/* Collapsible sidebar (mini-rail mode) -------------------------------------- */
+.app-sidebar-toggle {
+    margin-right: 8px;
+    font-size: 18px;
+    color: inherit;
+}
+
+/*
+ * PF6 layout truth:
+ *   .pf-v6-c-page is a CSS grid:
+ *     grid-template-columns: var(--pf-v6-c-page__sidebar--Width) 1fr;
+ *   .pf-v6-c-page__sidebar uses width: var(--pf-v6-c-page__sidebar--Width);
+ * So flipping that ONE custom property on the page shrinks the sidebar AND
+ * the grid column the main content occupies — main reflows automatically.
+ */
+.pf-v6-c-page {
+    transition: none;
+}
+.pf-v6-c-page__sidebar {
+    z-index: 20;
+    transition: width 0.2s ease;
+}
+.pf-v6-c-page__main,
+.pf-v6-c-page__main-container {
+    transition: margin-inline-start 0.2s ease;
+}
+
+/* Mini-rail width: 4rem (~64px) — circle + breathing room. */
+html.app-sidebar-collapsed .pf-v6-c-page {
+    --pf-v6-c-page__sidebar--Width: 4rem;
+    --pf-v6-c-page__sidebar--Width--base: 4rem;
+    --pf-v6-c-page__sidebar--xl--Width: 4rem;
+}
+
+/* Tighten sidebar body padding in mini mode. */
+html.app-sidebar-collapsed .app-sidebar {
+    padding: 1.25rem 0 1.5rem;
+}
+
+/* Mini-rail spacing + hover are defined in the inline <style> block in
+   base.html. The rules that previously lived here targeted .__step
+   directly — but PF6 sets that element to `display: contents`, so all
+   box-related styles on it were silent no-ops. */
+
+/* PatternFly progress wrapper injected by wireRunButton ---------------------- */
+.app-indeterminate-progress {
+    margin: 12px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.app-indeterminate-progress .pf-v6-c-progress__indicator,
+#batch-progress .pf-v6-c-progress__indicator {
+    transition: width 1.1s ease-in-out;
 }

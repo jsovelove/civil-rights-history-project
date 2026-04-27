@@ -29,7 +29,6 @@
     {% endcall %}
     <div class="app-actions">
         <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-main-btn">{% if state.main_summary %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run main summary</button>
-        <span class="app-muted app-run-hint">Takes about 30–60 seconds.</span>
     </div>
 </form>
 
@@ -85,16 +84,8 @@
     {% endcall %}
     <div class="app-actions">
         <button type="submit" class="pf-v6-c-button pf-m-primary" id="run-ch-btn">{% if state.chapters %}<i class="fas fa-check app-btn-check" aria-hidden="true"></i> {% endif %}Run chapter summaries</button>
-        <span class="app-muted app-run-hint">Takes about 1–2 minutes depending on chapter count.</span>
     </div>
 </form>
-
-{% if state.main_summary or state.chapters %}
-<div class="btn-row" style="margin-top: 16px; margin-bottom: 16px;">
-    <a href="{{ url_for('questions_page') if state.steps_enabled.questions and state.question_placement == 'after_summary' else url_for('tuning_page') }}" class="btn btn-primary">Continue to {{ 'Questions' if state.steps_enabled.questions and state.question_placement == 'after_summary' else 'Tuning' }} →</a>
-    <a href="{{ url_for('chapterization_page') }}" class="btn btn-secondary">← Back</a>
-</div>
-{% endif %}
 
 {% if state.chapters %}
 <section class="pf-v6-c-card">
@@ -109,7 +100,7 @@
             <div class="app-row-start">
                 <div class="app-fill">
                     <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-                    <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+                    <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }}</div>
                     <div class="app-mt-md">{{ ch.summary }}</div>
                     {% if ch.keywords %}
                     <div class="app-muted app-mt-sm">Keywords: {{ ch.keywords | join(', ') }}</div>

@@ -8,7 +8,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .shared import (
     ProcessorContext, MAIN_TOPICS, CIVIL_RIGHTS_EVENTS,
     call_openai_json, load_prompt,
-    get_relevant_facts, format_facts_for_prompt, format_primary_source_for_prompt
+    get_relevant_facts, format_facts_for_prompt, format_primary_source_for_prompt,
+    report_progress
 )
 
 
@@ -279,6 +280,8 @@ def run_tuning_loop(
 
     for attempt in range(max_retries):
         print(f"Scoring {content_type} (attempt {attempt + 1}/{max_retries})...")
+        label = "main summary" if content_type == "main_summary" else f"chapter {chapter_num or ''}".strip()
+        report_progress(ctx, "Tuning", attempt, max_retries, f"Scoring {label}, attempt {attempt + 1} of {max_retries}")
 
         scores = score_fn(ctx, summary, transcript,
                           system_prompt=eval_sys_prompt,
@@ -302,6 +305,7 @@ def run_tuning_loop(
 
         if acc >= accuracy_threshold and qual >= quality_threshold:
             print("  ✓ Passed threshold")
+            report_progress(ctx, "Tuning", max_retries, max_retries, f"{label.title()} passed thresholds")
             summary['quality_metrics'] = scores
             if ctx.logger:
                 ctx.logger.log_tuning_final(content_type, acc, qual, chapter_num)
@@ -317,6 +321,7 @@ def run_tuning_loop(
             and qual >= quality_threshold - near_threshold_tolerance
         ):
             print(f"  ✓ Near-threshold (within {near_threshold_tolerance} pts). Accepting.")
+            report_progress(ctx, "Tuning", max_retries, max_retries, f"{label.title()} accepted near threshold")
             summary['quality_metrics'] = scores
             if ctx.logger:
                 ctx.logger.log_tuning_final(content_type, acc, qual, chapter_num)
@@ -330,6 +335,7 @@ def run_tuning_loop(
 
         if prev_total is not None and total < prev_total + min_improvement:
             print(f"  ✗ No meaningful improvement ({prev_total} → {total}). Stopping.")
+            report_progress(ctx, "Tuning", max_retries, max_retries, f"{label.title()} tuning stopped after plateau")
             best_scores = best.get('quality_metrics', {})
             if ctx.logger:
                 ctx.logger.log_tuning_final(
@@ -351,6 +357,7 @@ def run_tuning_loop(
         if attempt < max_retries - 1:
             issues = scores.get('errors', [])
             print(f"  ✗ Below threshold. Regenerating with {len(issues)} issues...")
+            report_progress(ctx, "Tuning", attempt + 1, max_retries, f"Regenerating {label} from {len(issues)} issue{'s' if len(issues) != 1 else ''}")
             summary = regenerate_with_feedback(
                 ctx, summary, issues, content_type, transcript,
                 system_prompt=revision_sys_prompt,
@@ -421,6 +428,7 @@ def run_chapter_tuning_parallel(
         return []
 
     n = len(chapters_with_text)
+    report_progress(ctx, "Tuning", 0, n, f"Tuning {n} chapter summaries")
 
     # Pre-load prompt templates once instead of each worker hitting disk
     # on every loop iteration.
@@ -467,6 +475,7 @@ def run_chapter_tuning_parallel(
     # Single chapter — skip thread pool overhead.
     if n == 1:
         _, result = _tune_one(0)
+        report_progress(ctx, "Tuning", 1, 1, "Finished tuning chapter summary")
         if ctx.logger:
             ctx.logger.log_chapter_tuning_summary([result])
             ctx.logger.log_tuning_total(
@@ -481,6 +490,8 @@ def run_chapter_tuning_parallel(
         for future in as_completed(futures):
             idx, result = future.result()
             results[idx] = result
+            finished = sum(1 for item in results if item is not None)
+            report_progress(ctx, "Tuning", finished, n, f"Finished tuning {finished} of {n} chapter summaries")
 
     if ctx.logger:
         ctx.logger.log_chapter_tuning_summary(results)

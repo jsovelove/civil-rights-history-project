@@ -20,7 +20,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, List, Optional, Tuple
 
-from .shared import ProcessorContext, call_openai_json, load_prompt
+from .shared import ProcessorContext, call_openai_json, load_prompt, report_progress
 
 # Estimated INPUT tokens per word of transcript in SRT format.
 # SRT adds index numbers and timestamps (~40 chars/segment overhead), so the
@@ -112,6 +112,7 @@ def run_clip_extraction(
         batches = [(None, None)]  # single call, no chapter scoping
 
     print(f"  → {len(batches)} batch(es)")
+    report_progress(ctx, "Clip Extraction", 0, len(batches), f"Prepared {len(batches)} clip extraction batch{'es' if len(batches) != 1 else ''}")
 
     _clips_model = "gpt-4o"
     _clips_tokens_before = ctx.total_tokens_used
@@ -161,10 +162,12 @@ def run_clip_extraction(
         if result is not None:
             batch_results.append(result)
             clip_offset += len(result.get("clips", []))
+        report_progress(ctx, "Clip Extraction", 1, 1, "Finished clip extraction batch")
     else:
         # Multiple batches — run concurrently. Each batch hits a different
         # chapter range with its own dedicated gpt-4o call; no shared state.
         indexed_results: List[Optional[Dict]] = [None] * len(batches)
+        completed = 0
         with ThreadPoolExecutor(max_workers=min(4, len(batches))) as executor:
             futures = {
                 executor.submit(_run_batch, i, s, e): i
@@ -174,6 +177,8 @@ def run_clip_extraction(
                 idx, result = future.result()
                 if result is not None:
                     indexed_results[idx] = result
+                completed += 1
+                report_progress(ctx, "Clip Extraction", completed, len(batches), f"Finished {completed} of {len(batches)} clip extraction batches")
 
         # Preserve original batch order for deterministic merging.
         batch_results = [r for r in indexed_results if r is not None]
@@ -182,6 +187,7 @@ def run_clip_extraction(
         return {"error": "All extraction batches failed", "clips": []}
 
     combined = batch_results[0] if len(batch_results) == 1 else _merge_batches(batch_results)
+    report_progress(ctx, "Clip Extraction", len(batches), len(batches), "Validating extracted clips")
     _renumber_clips(combined, last_name)
 
     is_valid, errors = validate_extraction(combined)

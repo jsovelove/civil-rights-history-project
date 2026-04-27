@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from processor.shared import ProcessorContext, call_openai_json, load_prompt
+from processor.shared import ProcessorContext, call_openai_json, load_prompt, report_progress
 
 LOW_THRESHOLD = 0.65
 HIGH_THRESHOLD = 0.80
@@ -705,6 +705,7 @@ def generate_questions(
     candidates = _build_candidates(segments)
     if not candidates:
         return []
+    report_progress(ctx, "Questions", 0, 3, f"Built {len(candidates)} question candidates")
 
     # Clamp context parameters (mirrors the clamping done before _rewrite_for_readability)
     try:
@@ -751,6 +752,7 @@ def generate_questions(
     user_text = _render_prompt(user_prompt, values)
 
     model = os.getenv("QUESTION_DETECT_MODEL", "gpt-4o-mini")
+    report_progress(ctx, "Questions", 1, 3, "Detecting likely interviewer questions")
     payload = call_openai_json(
         ctx,
         system_prompt=system_text,
@@ -814,6 +816,7 @@ def generate_questions(
         generated_rows.append(row)
 
     normalized = normalize_question_rows(generated_rows)
+    report_progress(ctx, "Questions", 2, 3, f"Normalizing {len(normalized)} detected questions")
 
     # Fallback: if model returns no valid rows, keep top heuristic candidates.
     if not normalized:
@@ -868,6 +871,7 @@ def generate_questions(
         after_char_budget=after_char_budget,
     )
     final_rows = normalize_question_rows(rewritten_rows)
+    report_progress(ctx, "Questions", 3, 3, f"Finished {len(final_rows)} questions")
 
     if ctx.logger:
         stats = compute_question_stats(final_rows)

@@ -39,21 +39,6 @@
     gap: 8px;
     margin-top: 10px;
 }
-.results-preview-item {
-    padding: 10px 12px;
-    border: 1px solid #242a31;
-    border-radius: 8px;
-    background: #101419;
-}
-.results-preview-item-title {
-    font-size: 13px;
-    color: #d6dde6;
-}
-.results-preview-item-meta {
-    font-size: 12px;
-    color: #77808a;
-    margin-top: 4px;
-}
 .results-more-note {
     margin-top: 8px;
     font-size: 12px;
@@ -145,6 +130,17 @@
 }
 </style>
 
+{% macro preview_item(title, meta) %}
+<article class="pf-v6-c-card pf-m-compact results-preview-item">
+    <div class="pf-v6-c-card__body">
+        <div class="pf-v6-c-content">
+            <p><strong>{{ title }}</strong></p>
+            <small>{{ meta }}</small>
+        </div>
+    </div>
+</article>
+{% endmacro %}
+
 <div class="app-actions">
     <a href="{{ url_for('results_download') }}" class="pf-v6-c-button pf-m-primary">Download results.json</a>
     {% if pending_batch_count > 0 %}
@@ -154,7 +150,9 @@
     {% else %}
     <a href="{{ url_for('batch_page') }}" class="pf-v6-c-button pf-m-secondary">Run batch with these settings</a>
     {% endif %}
-    <a href="{{ url_for('upload_page') }}" class="pf-v6-c-button pf-m-secondary" onclick="return confirm('Start over? All pipeline results for this session will be cleared.');">Start over</a>
+    <form method="POST" action="{{ url_for('reset_session') }}" class="pf-v6-u-display-inline" onsubmit="return confirm('Start over? All pipeline results for this session will be cleared.');">
+        <button type="submit" class="pf-v6-c-button pf-m-secondary">Start over</button>
+    </form>
 </div>
 
 <div class="app-summary-grid">
@@ -314,10 +312,7 @@
     <div class="panel-label">Chapters ({{ state.chapters|length }})</div>
     <div class="results-preview-list">
         {% for ch in state.chapters[:3] %}
-        <div class="results-preview-item">
-            <div class="results-preview-item-title">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-            <div class="results-preview-item-meta">{{ ch.start_time }} → {{ ch.end_time }}</div>
-        </div>
+        {{ preview_item("Chapter " ~ ch.chapter_number ~ " — " ~ ch.title, (ch.start_time | hms) ~ " → " ~ (ch.end_time | hms)) }}
         {% endfor %}
     </div>
     {% if state.chapters|length > 3 %}
@@ -332,7 +327,7 @@
             {% for ch in state.chapters %}
             <div class="chapter-card">
                 <div class="chapter-num">Chapter {{ ch.chapter_number }} — {{ ch.title }}</div>
-                <div class="chapter-time">{{ ch.start_time }} → {{ ch.end_time }}</div>
+                <div class="chapter-time">{{ ch.start_time | hms }} → {{ ch.end_time | hms }}</div>
                 {% if ch.main_topic_category %}
                 <div style="font-size: 12px; color: #2d5a8e; margin-top: 4px;">{{ ch.main_topic_category }}</div>
                 {% endif %}
@@ -352,6 +347,20 @@
                     <span class="pf-v6-c-label pf-m-red pf-m-compact"><span class="pf-v6-c-label__content">Scoring failed: {{ ch.quality_metrics.error }}</span></span>
                     {% endif %}
                 </div>
+                {% if ch.quality_metrics.errors is defined and ch.quality_metrics.errors %}
+                <div style="margin-top: 6px; font-size: 12px; color: #e88;">
+                    {% for err in ch.quality_metrics.errors %}
+                    <div>• {{ err }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if ch.quality_metrics.improvements %}
+                <div style="margin-top: 4px; font-size: 12px; color: #8ad;">
+                    {% for imp in ch.quality_metrics.improvements %}
+                    <div>↳ {{ imp }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
             {% endfor %}
@@ -376,10 +385,7 @@
         {% set shown_questions = 0 %}
         {% for q in state.questions_rows if q.status != 'rejected' %}
         {% if shown_questions < 3 %}
-        <div class="results-preview-item">
-            <div class="results-preview-item-title">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
-            <div class="results-preview-item-meta">{{ q.question_text }}</div>
-        </div>
+        {{ preview_item((q.status | upper) ~ " · " ~ (q.start_time | hms) ~ " → " ~ (q.end_time | hms), q.question_text) }}
         {% set shown_questions = shown_questions + 1 %}
         {% endif %}
         {% endfor %}
@@ -393,7 +399,7 @@
             {% for q in state.questions_rows %}
             {% if q.status != 'rejected' %}
             <div class="chapter-card">
-                <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time }} → {{ q.end_time }}</div>
+                <div class="chapter-num">{{ q.status|upper }} · {{ q.start_time | hms }} → {{ q.end_time | hms }}</div>
                 <div style="font-size: 13px; color: #bbb; margin-top: 6px;">{{ q.question_text }}</div>
                 <div style="margin-top: 6px; font-size: 12px; color: #777;">Confidence: {{ q.confidence }} ({{ q.confidence_band }})</div>
                 {% if q.notes %}
@@ -412,10 +418,7 @@
     <div class="panel-label">Table of Contents ({{ state.toc_bundle.toc|length }})</div>
     <div class="results-preview-list">
         {% for entry in state.toc_bundle.toc[:4] %}
-        <div class="results-preview-item">
-            <div class="results-preview-item-title">{{ entry.topic }}</div>
-            <div class="results-preview-item-meta">{{ entry.start_time }} → {{ entry.end_time }}</div>
-        </div>
+        {{ preview_item(entry.topic, (entry.start_time | hms) ~ " → " ~ (entry.end_time | hms)) }}
         {% endfor %}
     </div>
     {% if state.toc_bundle.toc|length > 4 %}
@@ -430,7 +433,7 @@
             {% for entry in state.toc_bundle.toc %}
             <div class="chapter-card">
                 <div class="chapter-num">{{ entry.topic }}</div>
-                <div class="chapter-time">{{ entry.start_time }} → {{ entry.end_time }}</div>
+                <div class="chapter-time">{{ entry.start_time | hms }} → {{ entry.end_time | hms }}</div>
                 {% for sub in entry.subtopics %}
                 <div style="font-size: 12px; color: #777; margin-left: 16px;">↳ {{ sub.label }}</div>
                 {% endfor %}
@@ -446,10 +449,7 @@
     <div class="panel-label">Chapter Breaks ({{ state.chapter_breaks_preview|length }})</div>
     <div class="results-preview-list">
         {% for ch in state.chapter_breaks_preview[:4] %}
-        <div class="results-preview-item">
-            <div class="results-preview-item-title">Ch {{ ch.chapter }} · {{ ch.start_time }} → {{ ch.end_time }}</div>
-            <div class="results-preview-item-meta">{{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}</div>
-        </div>
+        {{ preview_item("Ch " ~ ch.chapter ~ " · " ~ (ch.start_time | hms) ~ " → " ~ (ch.end_time | hms), ch.words ~ " words · idx " ~ ch.start_idx ~ "–" ~ ch.end_idx) }}
         {% endfor %}
     </div>
     {% if state.chapter_breaks_preview|length > 4 %}
@@ -463,7 +463,7 @@
         <div style="margin-top: 12px;">
             {% for ch in state.chapter_breaks_preview %}
             <div style="font-size: 13px; color: #888; margin-bottom: 4px;">
-                Ch {{ ch.chapter }}: {{ ch.start_time }} → {{ ch.end_time }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
+                Ch {{ ch.chapter }}: {{ ch.start_time | hms }} → {{ ch.end_time | hms }} · {{ ch.words }} words · idx {{ ch.start_idx }}–{{ ch.end_idx }}
             </div>
             {% endfor %}
         </div>
@@ -476,10 +476,7 @@
     <div class="panel-label">Block Topics ({{ state.block_topics|length }})</div>
     <div class="results-preview-list">
         {% for bt in state.block_topics[:4] %}
-        <div class="results-preview-item">
-            <div class="results-preview-item-title">B{{ bt.block_number }}: {{ bt.main_topic_category }}</div>
-            <div class="results-preview-item-meta">{{ bt.subtopics | join(', ') }}</div>
-        </div>
+        {{ preview_item("B" ~ bt.block_number ~ ": " ~ bt.main_topic_category, bt.subtopics | join(', ')) }}
         {% endfor %}
     </div>
     {% if state.block_topics|length > 4 %}
@@ -572,10 +569,7 @@
     <div class="results-preview-list">
         {% for clip in cd.clips[:4] %}
         {% set clip_score = clip.scores.total_score | default(0) %}
-        <div class="results-preview-item">
-            <div class="results-preview-item-title">{{ clip.clip_id }} — {{ clip.clip_title }}</div>
-            <div class="results-preview-item-meta">{{ clip.timestamp_start }} → {{ clip.timestamp_end }} · score {{ clip_score }}</div>
-        </div>
+        {{ preview_item(clip.clip_id ~ " — " ~ clip.clip_title, (clip.timestamp_start | hms) ~ " → " ~ (clip.timestamp_end | hms) ~ " · score " ~ clip_score) }}
         {% endfor %}
     </div>
     {% if cd.clips|length > 4 %}
@@ -588,6 +582,15 @@
             <span class="results-expand-label-closed">Show clip details</span>
             <span class="results-expand-label-open">Hide clip details</span>
         </summary>
+        {% if cd.extraction_summary is defined and cd.extraction_summary.score_distribution is defined %}
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px;">
+            {% for range_label, count in cd.extraction_summary.score_distribution.items() %}
+            {% if count > 0 %}
+            {{ ui.score_label(range_label ~ ": " ~ count, 90 if range_label.startswith('9') or range_label.startswith('8') else 50, 80, 60) }}
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
         {% if cd.clips %}
         <div class="results-divider-top">
             {% for clip in cd.clips %}
@@ -595,7 +598,7 @@
             <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; margin-bottom: 5px; gap: 8px;">
                 <span style="color: #666; flex-shrink: 0;">{{ clip.clip_id }}</span>
                 <span style="color: #bbb; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ clip.clip_title }}</span>
-                <span style="color: #888; flex-shrink: 0;">{{ clip.timestamp_start }} → {{ clip.timestamp_end }}</span>
+                <span style="color: #888; flex-shrink: 0;">{{ clip.timestamp_start | hms }} → {{ clip.timestamp_end | hms }}</span>
                 <span style="font-weight: 600; flex-shrink: 0; color: {% if clip_score >= 80 %}#8e8{% elif clip_score >= 60 %}#ee8{% else %}#e88{% endif %};">{{ clip_score }}</span>
             </div>
             {% endfor %}

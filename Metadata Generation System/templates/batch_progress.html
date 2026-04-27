@@ -16,12 +16,16 @@
     <div class="pf-v6-c-card__body app-stack">
         <div>
             <div id="progress-text" class="app-masthead-value">Starting...</div>
-            <div id="progress-detail" class="app-muted"></div>
         </div>
-        <div class="batch-progress-bar">
-            <div class="batch-progress-fill" id="progress-fill" style="width: 0%;"></div>
+        <div class="pf-v6-c-progress" id="batch-progress" role="progressbar" aria-label="Batch progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="pf-v6-c-progress__description" id="progress-count">0 / 0 interviews</div>
+            <div class="pf-v6-c-progress__status" aria-hidden="true">
+                <span class="pf-v6-c-progress__measure" id="progress-percent">0%</span>
+            </div>
+            <div class="pf-v6-c-progress__bar" role="presentation">
+                <div class="pf-v6-c-progress__indicator" id="progress-fill" style="width: 0%;"></div>
+            </div>
         </div>
-        <div id="progress-count" class="app-muted">0 / 0 interviews</div>
     </div>
 </section>
 
@@ -45,8 +49,9 @@
 {% block scripts %}
 <script>
     const progressText = document.getElementById('progress-text');
-    const progressDetail = document.getElementById('progress-detail');
+    const progress = document.getElementById('batch-progress');
     const progressFill = document.getElementById('progress-fill');
+    const progressPercent = document.getElementById('progress-percent');
     const progressCount = document.getElementById('progress-count');
     const interviewQueue = document.getElementById('interview-queue');
     const doneActions = document.getElementById('done-actions');
@@ -116,17 +121,22 @@
                 const p = data.progress;
                 const completed = (p.completed || []).length;
                 const pct = p.total > 0 ? Math.round((completed / p.total) * 100) : 0;
+                const visualPct = pct < 100 ? Math.max(pct, 12) : pct;
 
-                progressFill.style.width = pct + '%';
+                requestAnimationFrame(() => {
+                    progressFill.style.width = visualPct + '%';
+                });
+                progress.setAttribute('aria-valuenow', String(pct));
+                progressPercent.textContent = pct + '%';
                 progressCount.textContent = completed + ' / ' + p.total + ' interviews';
 
                 if (data.running) {
                     progressText.textContent = 'Processing: ' + p.current_name;
-                    progressDetail.textContent = 'Current step: ' + p.current_step + ' (' + (completed + 1) + ' of ' + p.total + ')';
                 } else {
                     progressText.textContent = 'Batch complete';
-                    progressDetail.textContent = p.total + ' interviews processed.';
                     progressFill.style.width = '100%';
+                    progress.setAttribute('aria-valuenow', '100');
+                    progressPercent.textContent = '100%';
                     doneActions.classList.remove('app-hidden');
                 }
 
@@ -137,7 +147,7 @@
                 }
             })
             .catch(() => {
-                progressDetail.textContent = 'Polling failed. Retrying shortly.';
+                progressText.textContent = 'Polling failed. Retrying shortly.';
                 setTimeout(poll, 5000);
             });
     }

@@ -78,6 +78,28 @@ def fmt_duration_filter(seconds: float) -> str:
     return f"{int(h)}h {int(m)}m {int(rem)}s"
 
 
+@app.template_filter('hms')
+def hms_filter(time_str):
+    """Strip milliseconds from an SRT-style timestamp (HH:MM:SS,mmm → HH:MM:SS).
+
+    Accepts strings with either ',' or '.' as the ms separator. If the input is
+    not a recognizable timestamp, returns it unchanged.
+    """
+    if not time_str:
+        return time_str
+    s = str(time_str)
+    # Strip ms portion regardless of separator
+    for sep in (',', '.'):
+        if sep in s:
+            head, _, _ = s.rpartition(sep)
+            # Only strip if the part after sep looks like ms (3 digits)
+            tail = s.rpartition(sep)[2]
+            if tail.isdigit() and len(tail) <= 3:
+                s = head
+                break
+    return s.strip()
+
+
 @app.template_filter('to_seconds')
 def to_seconds_filter(time_str):
     """Convert SRT timestamp (HH:MM:SS,mmm or HH:MM:SS) to integer seconds."""
@@ -122,7 +144,8 @@ def _step_complete(step_id: str, state_obj: dict) -> bool:
     if step_id == "chapterization":
         return bool(state_obj.get("chapter_breaks_preview"))
     if step_id == "summarization":
-        return bool(state_obj.get("main_summary") or state_obj.get("chapters"))
+        # Both main summary AND chapter summaries must be run to count as complete
+        return bool(state_obj.get("main_summary") and state_obj.get("chapters"))
     if step_id == "questions":
         return bool(state_obj.get("questions_ran"))
     if step_id == "tuning":
@@ -134,9 +157,11 @@ def _step_complete(step_id: str, state_obj: dict) -> bool:
         clips_data = state_obj.get("clips_data")
         return bool(isinstance(clips_data, dict) and clips_data.get("clips") is not None)
     if step_id == "results":
-        return bool(state_obj.get("main_summary") or state_obj.get("chapters") or state_obj.get("toc_bundle"))
+        # Results is a destination page — only mark complete after the user has visited it
+        return bool(state_obj.get("results_visited"))
     if step_id == "batch":
-        return bool(state_obj.get("pending_batch_files") or state_obj.get("main_summary"))
+        # Batch is a destination page — only mark complete after a batch has actually been started
+        return bool(state_obj.get("batch_started"))
     return False
 
 
@@ -227,8 +252,23 @@ def get_metrics_summary(state_obj: dict):
     return {
         "total_time": final_metric.get("cumulative_s"),
         "total_tokens": final_metric.get("cumulative_tokens", 0),
+        "total_cost_usd": final_metric.get("cumulative_cost_usd", 0.0),
         "rows": metrics,
     }
+
+
+def static_version(filename: str) -> str:
+    """Return the mtime of a static file as a cache-buster query value.
+
+    Templates use this with `url_for('static', ..., v=static_version(...))`
+    so a CSS/JS edit invalidates the browser cache without manual versioning.
+    Falls back to '0' if the file is missing.
+    """
+    try:
+        path = os.path.join(app.static_folder, filename)
+        return str(int(os.path.getmtime(path)))
+    except OSError:
+        return '0'
 
 
 @app.context_processor
@@ -237,6 +277,7 @@ def inject_template_helpers():
         "get_pipeline_steps": get_pipeline_steps,
         "get_metrics_summary": get_metrics_summary,
         "dev_mode": session.get('dev_mode', False),
+        "static_version": static_version,
     }
 
 # ── YouTube helpers ────────────────────────────────────────────────────
@@ -328,6 +369,10 @@ def _new_state():
         "clips_token_limit": 30000,
         "clips_data": None,
 
+        # destination-page visit flags (drive sidebar checkmarks for non-processing steps)
+        "results_visited": False,
+        "batch_started": False,
+
         # module toggles (set on upload page)
         "steps_enabled": {
             "questions": True,
@@ -344,6 +389,9 @@ def _new_state():
 
         # per-step metrics  [{step, elapsed_s, tokens, cumulative_s, cumulative_tokens}]
         "step_metrics": [],
+
+        # live progress for the currently running form step
+        "active_progress": None,
         
         # pending batch files from zip upload (list of (name, path) tuples)
         "pending_batch_files": None,
@@ -370,6 +418,54 @@ def _get_state():
 
 
 state = LocalProxy(_get_state)
+
+
+def _set_active_progress(sid: str, payload: dict):
+    with _STATE_LOCK:
+        state_obj = _SESSION_STATES.get(sid)
+        if state_obj is None:
+            return
+        existing = state_obj.get("active_progress") or {}
+        merged = {**existing, **payload, "updated_at": time.time()}
+        state_obj["active_progress"] = merged
+
+
+def _begin_active_progress(step: str, detail: str = "Starting"):
+    sid = _get_session_id()
+    _set_active_progress(sid, {
+        "step": step,
+        "detail": detail,
+        "current": 0,
+        "total": 0,
+        "running": True,
+    })
+
+
+def _finish_active_progress(step: str, detail: str = "Complete"):
+    sid = _get_session_id()
+    current = 1
+    total = 1
+    progress = state.get("active_progress") or {}
+    if progress.get("total"):
+        current = progress.get("total", 1)
+        total = progress.get("total", 1)
+    _set_active_progress(sid, {
+        "step": step,
+        "detail": detail,
+        "current": current,
+        "total": total,
+        "running": False,
+    })
+
+
+def _update_active_progress(step: str, current: int, total: int, detail: str):
+    _set_active_progress(_get_session_id(), {
+        "step": step,
+        "detail": detail,
+        "current": current,
+        "total": total,
+        "running": True,
+    })
 
 
 def current_api_key():
@@ -430,6 +526,8 @@ def _reset_downstream():
     state["clips_data"] = None
     state["clips_prompt_sections"] = {}
     state["clips_token_limit"] = 30000
+    state["results_visited"] = False
+    state["batch_started"] = False
     # Reset prompts so they reload from files
     state["labeling_sys_prompt"] = ""
     state["labeling_user_prompt"] = ""
@@ -453,6 +551,7 @@ def _reset_downstream():
     # Reset processor so it reinits with the current API key and block size
     state["processor"] = None
     state["step_metrics"] = []
+    state["active_progress"] = None
     state["primary_source_info"] = None
 
 
@@ -468,6 +567,7 @@ def _reset_after_summary_changes():
 
 def get_ctx():
     """Lazy-init the ProcessorContext so we only create it once per browser session."""
+    sid = _get_session_id()
     if state["processor"] is None:
         from processor import ProcessorContext
         from processor.logger import ProcessingLogger
@@ -486,12 +586,13 @@ def get_ctx():
 
         ctx.logger = ProcessingLogger(
             logs_dir=os.path.join(BASE_DIR, 'logs'),
-            session_id=_get_session_id(),
+            session_id=sid,
             interview_filename=state.get("srt_path") or "unknown.srt",
             api_key=current_api_key(),
         )
 
         state["processor"] = ctx
+    state["processor"].progress_callback = lambda payload: _set_active_progress(sid, {**payload, "running": True})
     return state["processor"]
 
 
@@ -500,12 +601,18 @@ def _record_step_metric(step_name: str, elapsed_s: float, tokens_used: int):
     metrics = state.setdefault("step_metrics", [])
     prev_cum_s = metrics[-1]["cumulative_s"] if metrics else 0.0
     prev_cum_tok = metrics[-1]["cumulative_tokens"] if metrics else 0
+    prev_cum_cost = metrics[-1].get("cumulative_cost_usd", 0.0) if metrics else 0.0
+    ctx = state.get("processor")
+    cumulative_cost = float(getattr(ctx, "total_cost_usd", prev_cum_cost) or 0.0)
+    step_cost = max(0.0, cumulative_cost - prev_cum_cost)
     metrics.append({
         "step": step_name,
         "elapsed_s": round(elapsed_s, 2),
         "tokens": tokens_used,
+        "cost_usd": round(step_cost, 6),
         "cumulative_s": round(prev_cum_s + elapsed_s, 2),
         "cumulative_tokens": prev_cum_tok + tokens_used,
+        "cumulative_cost_usd": round(cumulative_cost, 6),
     })
 
 
@@ -798,9 +905,31 @@ def upload_page():
     return _render_upload()
 
 
+@app.route('/reset', methods=['POST'])
+def reset_session():
+    """Wipe all per-session pipeline state and return to upload.
+
+    Clears uploaded transcript, all downstream outputs, prompts, processor
+    context, and pending batch state — but keeps the API key so the user
+    doesn't have to re-enter it. Sidebar checkmarks and per-button checks
+    reset because they're driven entirely off this state.
+    """
+    _reset_downstream()
+    state["text_blocks"] = None
+    state["srt_path"] = None
+    state["segments"] = None
+    state["plaintext_transcript"] = None
+    state["pending_batch_files"] = None
+    state["youtube_url"] = ""
+    state["youtube_video_id"] = None
+    state["using_sample"] = False
+    return redirect(url_for('upload_page'))
+
+
 @app.route('/upload', methods=['POST'])
 def upload_run():
     """Parse an uploaded SRT file or the bundled sample and build text blocks."""
+    _begin_active_progress("Upload", "Validating upload")
     submitted_api_key = (request.form.get('api_key') or '').strip()
     if submitted_api_key and submitted_api_key != current_api_key():
         state["api_key"] = submitted_api_key
@@ -810,12 +939,14 @@ def upload_run():
             state["api_key"] = "dev-mode"
             state["processor"] = None
         else:
+            _finish_active_progress("Upload", "API key required")
             return _render_upload('Enter an API key before running the pipeline.')
 
     use_sample = request.form.get('use_sample') == 'on'
     use_transcripts = request.form.get('use_transcripts') == 'on'
     uploaded_file = request.files.get('srt_file')
     if not use_sample and not use_transcripts and (not uploaded_file or not uploaded_file.filename):
+        _finish_active_progress("Upload", "No file selected")
         return _render_upload('Select an .srt file or use the bundled sample interview.')
     
     block_size = int(request.form.get('block_size', 23))
@@ -843,8 +974,10 @@ def upload_run():
     
     # Handle "Use sample batch" — bundled zip of 4 transcripts
     if use_transcripts:
+        _update_active_progress("Upload", 0, 3, "Loading sample batch")
         sample_zip = os.path.join(BASE_DIR, 'sample_batch.zip')
         if not os.path.isfile(sample_zip):
+            _finish_active_progress("Upload", "Sample batch missing")
             return _render_upload('Bundled sample batch zip not found on server.')
 
         session_dir = _session_upload_dir(reset=True)
@@ -861,6 +994,7 @@ def upload_run():
                     srt_files.append((basename.replace('.srt', ''), dest))
 
         if not srt_files:
+            _finish_active_progress("Upload", "No SRT files found")
             return _render_upload('No .srt files found in the sample batch zip.')
 
         srt_files.sort(key=lambda x: x[0])
@@ -870,6 +1004,7 @@ def upload_run():
         state["pending_batch_files"] = srt_files[1:] if len(srt_files) > 1 else None
 
         from srt_parser import parse_srt_file
+        _update_active_progress("Upload", 1, 3, "Parsing first transcript")
         segments = parse_srt_file(first_path)
         plaintext = ' '.join([s.text for s in segments])
 
@@ -882,13 +1017,16 @@ def upload_run():
         ctx.chapter_block_size = block_size
 
         from processor.blocking import build_text_blocks
+        _update_active_progress("Upload", 2, 3, "Building text blocks")
         text_blocks = build_text_blocks(ctx, segments, plaintext)
         state["text_blocks"] = text_blocks
 
+        _finish_active_progress("Upload")
         return redirect(url_for('blocking_output'))
 
     # Handle zip upload: extract all SRTs, load first one, queue the rest
     if not use_sample and uploaded_file.filename.lower().endswith('.zip'):
+        _update_active_progress("Upload", 0, 3, "Extracting uploaded zip")
         session_dir = _session_upload_dir(reset=True)
         zip_path = os.path.join(session_dir, secure_filename(uploaded_file.filename))
         uploaded_file.save(zip_path)
@@ -906,9 +1044,11 @@ def upload_run():
                             dst.write(src.read())
                         srt_files.append((basename.replace('.srt', ''), dest))
         except zipfile.BadZipFile:
+            _finish_active_progress("Upload", "Invalid zip file")
             return _render_upload('Invalid zip file.')
         
         if not srt_files:
+            _finish_active_progress("Upload", "No SRT files found")
             return _render_upload('No .srt files found in the zip.')
         
         srt_files.sort(key=lambda x: x[0])
@@ -924,6 +1064,7 @@ def upload_run():
         state["using_sample"] = False
         
         from srt_parser import parse_srt_file
+        _update_active_progress("Upload", 1, 3, "Parsing first transcript")
         segments = parse_srt_file(filepath)
         plaintext = ' '.join([s.text for s in segments])
         
@@ -936,12 +1077,15 @@ def upload_run():
         ctx.chapter_block_size = block_size
         
         from processor.blocking import build_text_blocks
+        _update_active_progress("Upload", 2, 3, "Building text blocks")
         text_blocks = build_text_blocks(ctx, segments, plaintext)
         state["text_blocks"] = text_blocks
-        
+
+        _finish_active_progress("Upload")
         return redirect(url_for('blocking_output'))
 
     if not use_sample and not uploaded_file.filename.lower().endswith('.srt'):
+        _finish_active_progress("Upload", "Invalid file type")
         return _render_upload('Please upload an .srt or .zip file.')
 
     # Reset all downstream state from previous runs
@@ -960,6 +1104,7 @@ def upload_run():
         state["using_sample"] = False
 
     from srt_parser import parse_srt_file
+    _update_active_progress("Upload", 1, 3, "Parsing transcript")
     segments = parse_srt_file(filepath)
     plaintext = ' '.join([s.text for s in segments])
 
@@ -974,9 +1119,11 @@ def upload_run():
     ctx.chapter_block_size = block_size
 
     from processor.blocking import build_text_blocks
+    _update_active_progress("Upload", 2, 3, "Building text blocks")
     text_blocks = build_text_blocks(ctx, segments, plaintext)
     state["text_blocks"] = text_blocks
 
+    _finish_active_progress("Upload")
     return redirect(url_for('blocking_output'))
 
 
@@ -1002,16 +1149,19 @@ def labeling_page():
 @app.route('/labeling/run', methods=['POST'])
 def labeling_run():
     """Run labeling with user-edited prompts."""
+    _begin_active_progress("Labeling", "Starting labeling")
     state["labeling_sys_prompt"] = request.form.get('sys_prompt', '')
     state["labeling_user_prompt"] = request.form.get('user_prompt', '')
 
     text_blocks = state["text_blocks"]
     if not text_blocks:
+        _finish_active_progress("Labeling", "No transcript loaded")
         return redirect(url_for('upload_page'))
 
     if _is_dev_mode():
         state["block_topics"] = _dev_block_topics(text_blocks)
         _record_step_metric("Labeling", 0.1, 0)
+        _finish_active_progress("Labeling")
         return render_template('labeling.html', state=state, just_ran=True)
 
     try:
@@ -1027,6 +1177,7 @@ def labeling_run():
         _record_step_metric("Labeling", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
         state["block_topics"] = None
+        _finish_active_progress("Labeling", "Labeling failed")
         return render_template(
             'labeling.html',
             state=state,
@@ -1038,6 +1189,7 @@ def labeling_run():
         )
 
     state["block_topics"] = block_topics
+    _finish_active_progress("Labeling")
     return render_template('labeling.html', state=state, just_ran=True)
 
 
@@ -1097,6 +1249,7 @@ def chapterization_page():
 @app.route('/chapterization/run', methods=['POST'])
 def chapterization_run():
     """Run chapterization with user-edited prompts."""
+    _begin_active_progress("Chapterization", "Starting chapterization")
     state["chapterization_sys_prompt"] = request.form.get('sys_prompt', '')
     state["chapterization_user_prompt"] = request.form.get('user_prompt', '')
 
@@ -1105,6 +1258,7 @@ def chapterization_run():
     block_topics = state["block_topics"]
 
     if not text_blocks:
+        _finish_active_progress("Chapterization", "No transcript loaded")
         return redirect(url_for('upload_page'))
 
     if _is_dev_mode():
@@ -1114,6 +1268,7 @@ def chapterization_run():
         preview = build_chapter_preview(chapter_breaks, state["segments"], state["plaintext_transcript"])
         state["chapter_breaks_preview"] = preview
         _record_step_metric("Chapterization", 0.1, 0)
+        _finish_active_progress("Chapterization")
         return render_template('chapterization.html', state=state, just_ran=True)
 
     from processor.chapterization import detect_topic_transitions, build_chapter_preview
@@ -1124,6 +1279,7 @@ def chapterization_run():
         system_prompt=state["chapterization_sys_prompt"],
         user_prompt=state["chapterization_user_prompt"]
     )
+    _update_active_progress("Chapterization", 1, 2, "Building chapter preview")
     _record_step_metric("Chapterization", time.time() - _t0, ctx.total_tokens_used - _tok0)
     state["chapter_breaks"] = chapter_breaks
 
@@ -1132,6 +1288,7 @@ def chapterization_run():
     )
     state["chapter_breaks_preview"] = preview
 
+    _finish_active_progress("Chapterization")
     return render_template('chapterization.html', state=state, just_ran=True)
 
 
@@ -1156,6 +1313,7 @@ def summarization_page():
 @app.route('/summarization/run_main', methods=['POST'])
 def summarization_run_main():
     """Generate main summary."""
+    _begin_active_progress("Main Summary", "Starting main summary")
     state["main_summary_sys_prompt"] = request.form.get('main_sys_prompt', '')
     state["main_summary_user_prompt"] = request.form.get('main_user_prompt', '')
 
@@ -1167,6 +1325,7 @@ def summarization_run_main():
         state["main_summary"] = copy.deepcopy(_DEV_MAIN_SUMMARY)
         _reset_after_summary_changes()
         _record_step_metric("Main Summary", 0.1, 0)
+        _finish_active_progress("Main Summary")
         return render_template('summarization.html', state=state, ran_main=True)
 
     from processor.summarization import generate_main_summary
@@ -1182,12 +1341,14 @@ def summarization_run_main():
     state["main_summary"] = main_summary
     _reset_after_summary_changes()
 
+    _finish_active_progress("Main Summary")
     return render_template('summarization.html', state=state, ran_main=True)
 
 
 @app.route('/summarization/run_chapters', methods=['POST'])
 def summarization_run_chapters():
     """Generate chapter summaries."""
+    _begin_active_progress("Chapter Summaries", "Starting chapter summaries")
     state["chapter_sys_prompt"] = request.form.get('chapter_sys_prompt', '')
     state["chapter_user_prompt"] = request.form.get('chapter_user_prompt', '')
 
@@ -1201,6 +1362,7 @@ def summarization_run_chapters():
         state["chapters"] = copy.deepcopy(_DEV_CHAPTERS)
         _reset_after_summary_changes()
         _record_step_metric("Chapter Summaries", 0.1, 0)
+        _finish_active_progress("Chapter Summaries")
         return render_template('summarization.html', state=state, ran_chapters=True)
 
     from processor.summarization import generate_chapters
@@ -1216,6 +1378,7 @@ def summarization_run_chapters():
     state["chapters"] = chapters
     _reset_after_summary_changes()
 
+    _finish_active_progress("Chapter Summaries")
     return render_template('summarization.html', state=state, ran_chapters=True)
 
 
@@ -1249,7 +1412,9 @@ def questions_page():
 
 @app.route('/questions/run', methods=['POST'])
 def questions_run():
+    _begin_active_progress("Questions", "Starting question detection")
     if not state["steps_enabled"].get("questions", True):
+        _finish_active_progress("Questions", "Questions disabled")
         return redirect(url_for('tuning_page'))
 
     state["questions_sys_prompt"] = request.form.get('questions_sys_prompt', '')
@@ -1274,6 +1439,7 @@ def questions_run():
 
     segments = state.get("segments")
     if not segments:
+        _finish_active_progress("Questions", "No transcript loaded")
         return redirect(url_for('upload_page'))
 
     if _is_dev_mode():
@@ -1283,6 +1449,7 @@ def questions_run():
         state["questions_error"] = None
         state["questions_ran"] = True
         _record_step_metric("Questions", 0.1, 0)
+        _finish_active_progress("Questions")
         return render_template('questions.html', state=state, questions_message=f"Generated {len(rows)} questions.")
 
     try:
@@ -1290,6 +1457,7 @@ def questions_run():
         interview_name = os.path.basename(state.get("srt_path") or "unknown")
         _t0 = time.time()
         _tok0 = ctx.total_tokens_used
+        _update_active_progress("Questions", 0, 1, "Detecting and rewriting interview questions")
         rows = generate_questions(
             ctx=ctx,
             segments=segments,
@@ -1312,6 +1480,7 @@ def questions_run():
         state["questions_rows"] = []
         state["questions_stats"] = compute_question_stats([])
         state["questions_ran"] = True
+        _finish_active_progress("Questions", "Question detection failed")
         return render_template('questions.html', state=state)
 
     state["questions_rows"] = rows
@@ -1319,6 +1488,7 @@ def questions_run():
     state["questions_error"] = None
     state["questions_ran"] = True
 
+    _finish_active_progress("Questions")
     return render_template('questions.html', state=state, questions_message=f"Generated {len(rows)} questions.")
 
 
@@ -1363,7 +1533,9 @@ def tuning_page():
 @app.route('/tuning/run', methods=['POST'])
 def tuning_run():
     """Run scoring and regeneration loop with user-set thresholds."""
+    _begin_active_progress("Tuning", "Starting tuning")
     if state["steps_enabled"].get("questions", True) and state.get("question_placement") == "after_summary" and not state.get("questions_ran", False):
+        _finish_active_progress("Tuning", "Questions must run first")
         return redirect(url_for('questions_page'))
 
     state["quality_threshold"] = int(request.form.get('quality_threshold', 80))
@@ -1392,6 +1564,7 @@ def tuning_run():
             ],
         }
         _record_step_metric("Tuning", 0.1, 0)
+        _finish_active_progress("Tuning")
         return render_template('tuning.html', state=state, just_ran=True)
 
     ctx = get_ctx()
@@ -1406,6 +1579,7 @@ def tuning_run():
 
     # Score and regenerate main summary
     if state["main_summary"]:
+        _update_active_progress("Tuning", 0, 2 if state.get("chapters") else 1, "Scoring main summary")
         result = run_tuning_loop(
             ctx,
             summary=state["main_summary"],
@@ -1429,6 +1603,7 @@ def tuning_run():
     # scoring. Both paths produce identical output structure.
     if state["chapters"] and state["chapter_breaks"]:
         from concurrent.futures import ThreadPoolExecutor
+        _update_active_progress("Tuning", 1 if state.get("main_summary") else 0, 2, "Preparing chapter scoring")
 
         # Pre-extract all chapter texts once so both paths can reuse them.
         chapter_texts = []
@@ -1453,10 +1628,12 @@ def tuning_run():
                 {"chapter": ch, "chapter_text": txt}
                 for ch, txt in zip(state["chapters"], chapter_texts)
             ]
+            _update_active_progress("Tuning", 0, len(state["chapters"]), f"Batch scoring {len(state['chapters'])} chapter summaries")
             batch_results = score_chapters_batch(ctx, chapters_with_text)
             if batch_results:
                 for i, scores in enumerate(batch_results):
                     scores_by_index[i] = scores
+                    _update_active_progress("Tuning", i + 1, len(state["chapters"]), f"Scored {i + 1} of {len(state['chapters'])} chapter summaries")
 
         # Fallback: any chapters not scored by the batch call get scored
         # individually in parallel. Also handles the >BATCH_THRESHOLD case.
@@ -1468,6 +1645,7 @@ def tuning_run():
             with ThreadPoolExecutor(max_workers=5) as pool:
                 for i, scores in pool.map(_score_one, unscored):
                     scores_by_index[i] = scores
+                    _update_active_progress("Tuning", len(scores_by_index), len(state["chapters"]), f"Scored {len(scores_by_index)} of {len(state['chapters'])} chapter summaries")
 
         # Reassemble in chapter order.
         for i, chapter in enumerate(state["chapters"]):
@@ -1481,6 +1659,7 @@ def tuning_run():
     _record_step_metric("Tuning", time.time() - _t0, ctx.total_tokens_used - _tok0)
 
     state["tuning_results"] = tuning_results
+    _finish_active_progress("Tuning")
     return render_template('tuning.html', state=state, just_ran=True)
 
 
@@ -1506,6 +1685,7 @@ def engagement_page():
 @app.route('/engagement/run', methods=['POST'])
 def engagement_run():
     """Run engagement scoring on the current interview."""
+    _begin_active_progress("Engagement Scoring", "Starting engagement scoring")
     state["engagement_sys_prompt"] = request.form.get('sys_prompt', '')
     state["engagement_rubric"] = request.form.get('rubric', '')
     state["engagement_schema"] = request.form.get('schema', '')
@@ -1513,6 +1693,7 @@ def engagement_run():
     if _is_dev_mode():
         state["engagement_scores"] = copy.deepcopy(_DEV_ENGAGEMENT_SCORES)
         _record_step_metric("Engagement Scoring", 0.1, 0)
+        _finish_active_progress("Engagement Scoring")
         return render_template('engagement.html', state=state, just_ran=True)
 
     ctx = get_ctx()
@@ -1520,6 +1701,7 @@ def engagement_run():
     # Read raw SRT content for the engagement scorer
     srt_path = state["srt_path"]
     if not srt_path or not os.path.exists(srt_path):
+        _finish_active_progress("Engagement Scoring", "No SRT file found")
         return render_template('engagement.html', state=state,
                                engagement_error="No SRT file found. Go back to Upload.")
 
@@ -1538,6 +1720,7 @@ def engagement_run():
     try:
         _t0 = time.time()
         _tok0 = ctx.total_tokens_used
+        _update_active_progress("Engagement Scoring", 0, 1, "Scoring engagement rubric")
         scores = run_engagement_scoring(
             ctx, srt_content, pipeline_data,
             system_prompt=state["engagement_sys_prompt"],
@@ -1546,23 +1729,28 @@ def engagement_run():
         )
         _record_step_metric("Engagement Scoring", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
+        _finish_active_progress("Engagement Scoring", "Engagement scoring failed")
         return render_template('engagement.html', state=state,
                                engagement_error=f"Engagement scoring failed: {e}")
 
     if isinstance(scores, dict) and "error" in scores and len(scores) <= 2:
+        _finish_active_progress("Engagement Scoring", "Engagement API error")
         return render_template('engagement.html', state=state,
                                engagement_error=f"API error: {scores['error']}")
 
     # Validate that the scores have the expected structure before the template tries to render them
     if not isinstance(scores, dict) or "overall_score" not in scores:
+        _finish_active_progress("Engagement Scoring", "Unexpected engagement output")
         return render_template('engagement.html', state=state,
                                engagement_error="Engagement scoring returned an unexpected format. The API may have returned incomplete data.")
     os_obj = scores.get("overall_score", {})
     if not isinstance(os_obj, dict) or "total" not in os_obj:
+        _finish_active_progress("Engagement Scoring", "Incomplete engagement output")
         return render_template('engagement.html', state=state,
                                engagement_error="Engagement scoring returned incomplete results (missing overall_score.total). This can happen when the API is rate-limited or returns partial data.")
 
     state["engagement_scores"] = scores
+    _finish_active_progress("Engagement Scoring")
     return render_template('engagement.html', state=state, just_ran=True)
 
 
@@ -1604,6 +1792,7 @@ def clips_page():
 @app.route('/clips/run', methods=['POST'])
 def clips_run():
     """Run clip extraction on the current interview."""
+    _begin_active_progress("Clip Extraction", "Starting clip extraction")
     from processor.clips import PROMPT_SECTIONS, run_clip_extraction
     sections = {}
     for section_id, label, filename in PROMPT_SECTIONS:
@@ -1614,6 +1803,7 @@ def clips_run():
     if _is_dev_mode():
         state["clips_data"] = copy.deepcopy(_DEV_CLIPS_DATA)
         _record_step_metric("Clip Extraction", 0.1, 0)
+        _finish_active_progress("Clip Extraction")
         return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS, just_ran=True)
 
     combined_prompt = _assemble_clips_prompt(state["clips_prompt_sections"])
@@ -1622,6 +1812,7 @@ def clips_run():
     srt_path = state["srt_path"]
     if not srt_path or not os.path.exists(srt_path):
         from processor.clips import PROMPT_SECTIONS as PS
+        _finish_active_progress("Clip Extraction", "No SRT file found")
         return render_template('clips.html', state=state, prompt_sections=PS,
                                clips_error="No SRT file found. Go back to Upload.")
 
@@ -1642,6 +1833,7 @@ def clips_run():
     try:
         _t0 = time.time()
         _tok0 = ctx.total_tokens_used
+        _update_active_progress("Clip Extraction", 0, 1, "Extracting candidate clips")
         clips_data = run_clip_extraction(
             ctx, srt_content, pipeline_data,
             system_prompt=combined_prompt,
@@ -1650,18 +1842,22 @@ def clips_run():
         _record_step_metric("Clip Extraction", time.time() - _t0, ctx.total_tokens_used - _tok0)
     except Exception as e:
         traceback.print_exc()   # full stack trace in Flask console
+        _finish_active_progress("Clip Extraction", "Clip extraction failed")
         return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
                                clips_error=f"Clip extraction failed: {e}")
 
     if isinstance(clips_data, dict) and "error" in clips_data and len(clips_data) <= 2:
+        _finish_active_progress("Clip Extraction", "Clip extraction API error")
         return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
                                clips_error=f"API error: {clips_data['error']}")
 
     if not isinstance(clips_data, dict) or "clips" not in clips_data:
+        _finish_active_progress("Clip Extraction", "Unexpected clip extraction output")
         return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS,
                                clips_error="Clip extraction returned an unexpected format.")
 
     state["clips_data"] = clips_data
+    _finish_active_progress("Clip Extraction")
     return render_template('clips.html', state=state, prompt_sections=PROMPT_SECTIONS, just_ran=True)
 
 
@@ -1672,6 +1868,7 @@ def clips_run():
 @app.route('/results', methods=['GET'])
 def results_page():
     pending = state.get("pending_batch_files")
+    state["results_visited"] = True
     return render_template('results.html', state=state, pending_batch_count=len(pending) if pending else 0)
 
 
@@ -1790,6 +1987,24 @@ def api_costs():
     if not ctx:
         return jsonify({"error": "No pipeline run yet."})
     return jsonify(ctx.get_cost_summary())
+
+
+@app.route('/api/run_progress', methods=['GET'])
+def run_progress():
+    """Return live progress for the currently running single-interview step."""
+    progress = state.get("active_progress")
+    if not progress:
+        return jsonify({"running": False, "progress": None})
+    total = int(progress.get("total") or 0)
+    current = int(progress.get("current") or 0)
+    pct = int(round((current / total) * 100)) if total > 0 else None
+    return jsonify({
+        "running": bool(progress.get("running")),
+        "progress": {
+            **progress,
+            "percent": max(0, min(100, pct)) if pct is not None else None,
+        },
+    })
 
 # ══════════════════════════════════════════════════════════════════════
 #  BATCH PROCESSING
@@ -2255,6 +2470,7 @@ def batch_start():
         }
 
     # Start background thread
+    state["batch_started"] = True
     thread = threading.Thread(target=_run_batch, args=(sid, srt_files, params), daemon=True)
     thread.start()
 

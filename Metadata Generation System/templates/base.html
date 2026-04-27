@@ -9,13 +9,163 @@
     <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.4.0/patternfly.css">
     <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@6.4.0/patternfly-addons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=static_version('style.css')) }}">
+    <style>
+        /* Inline overrides — these load with the HTML so they are not cached
+           independently of the rest of the page. Last-loaded after style.css
+           so they win on equal specificity. */
+
+        /* Masthead: keep brand and controls in separate flex regions. The
+           min-width: 0 rules are what let long titles/current-file text
+           truncate instead of painting over neighboring masthead content. */
+        .pf-v6-c-masthead {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .pf-v6-c-masthead__main {
+            display: flex;
+            flex: 0 1 auto;
+            min-width: 0;
+            max-width: min(40rem, 45vw);
+            column-gap: 0.75rem;
+            align-items: center;
+        }
+        .pf-v6-c-masthead__content {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .app-brand-block {
+            min-width: 0;
+        }
+        .app-brand-block .pf-v6-c-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .app-masthead-row {
+            min-width: 0;
+        }
+        @media (max-width: 1100px) {
+            .pf-v6-c-masthead {
+                flex-wrap: wrap;
+            }
+            .pf-v6-c-masthead__main,
+            .pf-v6-c-masthead__content {
+                flex-basis: 100%;
+                max-width: none;
+            }
+        }
+
+        /* Mini-rail: hide labels and size the row so the connector line is
+           visible BETWEEN icons (not behind them).
+
+           Two-part fix:
+
+           1. Step-main contains ~400 chars of label text. With only
+              `width: 0; visibility: hidden` it wraps one-char-per-line and
+              balloons to ~600px tall, dragging the row's connector ::before
+              (height: 100%) along with it. Zero out font-size/line-height/
+              height so the text takes no vertical space.
+
+           2. With step-main flat, the row collapses to the icon's height
+              (~24px) and the connector line — drawn inside the connector
+              cell at height: 100% — has nowhere to show below the icon, so
+              it's hidden behind the icon. Force a min-height on the connector
+              cell so each row is tall enough for the line to extend down to
+              the next icon. */
+        html.app-sidebar-collapsed .app-stepper {
+            --pf-v6-c-progress-stepper--m-vertical__step-main--MarginBlockEnd: 0 !important;
+            --pf-v6-c-progress-stepper--GridTemplateColumns: 1fr !important;
+            --pf-v6-c-progress-stepper--m-vertical--GridTemplateColumns: 1fr !important;
+            --pf-v6-c-progress-stepper__step-connector--before--InsetInlineStart: 50% !important;
+            --pf-v6-c-progress-stepper--m-vertical__step-connector--before--InsetInlineStart: 50% !important;
+        }
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-main {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            font-size: 0 !important;
+            line-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-connector {
+            justify-content: center;
+            min-height: 44px;
+            height: 100%;
+        }
+
+        /* Stretch the rail to fill the sidebar height: each row gets a fair
+           share of the available vertical space (with a 44px floor so they
+           never get cramped on small screens). The connector ::before
+           inherits row height, so the lines visually link icon-to-icon
+           across the full sidebar. */
+        html.app-sidebar-collapsed .pf-v6-c-page__sidebar-body {
+            display: flex !important;
+            flex-direction: column;
+        }
+        html.app-sidebar-collapsed .pf-v6-c-page__sidebar,
+        html.app-sidebar-collapsed .pf-v6-c-page__sidebar-body,
+        html.app-sidebar-collapsed .app-sidebar {
+            overflow: visible !important;
+        }
+        html.app-sidebar-collapsed .app-stepper {
+            width: 100%;
+            flex: 1 1 auto;
+            justify-content: center;
+            grid-auto-rows: minmax(44px, 1fr) !important;
+        }
+        /* The <li> step has `display: contents` from PF6, so it has no box
+           of its own. Keep the connector cell for the line only; put hover,
+           cursor, tooltip, and click behavior on the visible bubble. */
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-connector {
+            position: relative;
+        }
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-icon {
+            cursor: pointer;
+            position: relative;
+            transition: transform 120ms ease, box-shadow 120ms ease, outline-color 120ms ease;
+        }
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-icon:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 0 4px rgba(45, 90, 142, 0.22), 0 2px 8px rgba(0, 0, 0, 0.18);
+            outline: 1px solid rgba(103, 179, 255, 0.55);
+            outline-offset: 2px;
+        }
+        /* Hover tooltip (uses data-label set on the <li>, but anchored to the
+           icon bubble since the <li> has no box). Pulls data-label from
+           the parent <li> via a custom property set by JS — see base.html. */
+        html.app-sidebar-collapsed .app-stepper .pf-v6-c-progress-stepper__step-icon:hover::after {
+            content: var(--app-step-label, attr(aria-label));
+            position: absolute;
+            left: calc(100% + 14px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1b1f24;
+            color: #e4e7eb;
+            border: 1px solid #2a2f36;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+    </style>
     <script>
         (function () {
             var stored = localStorage.getItem('theme');
             var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (stored === 'dark' || (!stored && prefersDark)) {
                 document.documentElement.classList.add('pf-v6-theme-dark');
+            }
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
+                document.documentElement.classList.add('app-sidebar-collapsed');
             }
         })();
     </script>
@@ -24,8 +174,16 @@
     <a class="pf-v6-c-button pf-m-primary pf-v6-u-screen-reader" href="#main-content">Skip to content</a>
 
     <div class="pf-v6-c-page app-page-shell">
-        <header class="pf-v6-c-masthead">
+        <header class="pf-v6-c-masthead pf-m-display-inline">
             <div class="pf-v6-c-masthead__main">
+                <button type="button"
+                        class="pf-v6-c-button pf-m-plain app-sidebar-toggle"
+                        id="sidebar-toggle-btn"
+                        aria-label="Toggle pipeline sidebar"
+                        aria-controls="app-sidebar"
+                        aria-expanded="true">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
                 <div class="pf-v6-c-masthead__brand app-brand-block">
                     <span class="pf-v6-c-title pf-m-xl">Metadata Generation System</span>
                     <span class="app-brand-subtitle">Civil Rights History Project</span>
@@ -46,25 +204,11 @@
                         </p>
                     </div>
                     <span class="app-masthead-divider" aria-hidden="true"></span>
-                    <div class="app-module-chips-wrap">
-                        <div class="pf-v6-c-label-group app-module-chips">
-                            <span class="pf-v6-c-label {% if state.steps_enabled.questions %}pf-m-blue{% endif %}">
-                                <span class="pf-v6-c-label__content">Questions {{ 'on' if state.steps_enabled.questions else 'off' }}</span>
-                            </span>
-                            <span class="pf-v6-c-label {% if state.steps_enabled.engagement %}pf-m-green{% endif %}">
-                                <span class="pf-v6-c-label__content">Engagement {{ 'on' if state.steps_enabled.engagement else 'off' }}</span>
-                            </span>
-                            <span class="pf-v6-c-label {% if state.steps_enabled.clips %}pf-m-gold{% endif %}">
-                                <span class="pf-v6-c-label__content">Clips {{ 'on' if state.steps_enabled.clips else 'off' }}</span>
-                            </span>
-                        </div>
-                    </div>
-                    <span class="app-masthead-divider" aria-hidden="true"></span>
                     <details class="app-metrics-popover">
                         <summary class="pf-v6-c-button pf-m-secondary pf-m-small">
                             Pipeline metrics
                             {% if metrics %}
-                            <span class="app-metrics-summary">{{ metrics.total_time | fmt_duration }} · {{ "{:,}".format(metrics.total_tokens) }} tokens</span>
+                            <span class="app-metrics-summary">{{ metrics.total_time | fmt_duration }} · {{ "{:,}".format(metrics.total_tokens) }} tokens · ${{ "%.4f"|format(metrics.total_cost_usd) }}</span>
                             {% else %}
                             <span class="app-metrics-summary">No runs yet</span>
                             {% endif %}
@@ -81,6 +225,10 @@
                                         <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">Total tokens</span></dt>
                                         <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">{{ "{:,}".format(metrics.total_tokens) }}</span></dd>
                                     </div>
+                                    <div class="pf-v6-c-description-list__group">
+                                        <dt class="pf-v6-c-description-list__term"><span class="pf-v6-c-description-list__text">Token cost</span></dt>
+                                        <dd class="pf-v6-c-description-list__description"><span class="pf-v6-c-description-list__text">${{ "%.4f"|format(metrics.total_cost_usd) }}</span></dd>
+                                    </div>
                                 </dl>
                                 <table class="pf-v6-c-table pf-m-compact app-metrics-table" role="grid" aria-label="Pipeline metrics">
                                     <thead>
@@ -88,6 +236,7 @@
                                             <th>Step</th>
                                             <th>Elapsed</th>
                                             <th>Tokens</th>
+                                            <th>Cost</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -96,6 +245,7 @@
                                             <td>{{ item.step }}</td>
                                             <td>{{ item.elapsed_s | fmt_duration }}</td>
                                             <td>{{ "{:,}".format(item.tokens) }}</td>
+                                            <td>${{ "%.4f"|format(item.cost_usd | default(0)) }}</td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
@@ -118,7 +268,7 @@
             </div>
         </header>
 
-        <div class="pf-v6-c-page__sidebar pf-m-light">
+        <div class="pf-v6-c-page__sidebar pf-m-light app-sidebar-wrapper" id="app-sidebar">
             <div class="pf-v6-c-page__sidebar-body app-sidebar">
                 {# <div class="pf-v6-c-content app-sidebar-header">
                     <h2>Pipeline</h2>
@@ -127,7 +277,8 @@
                 <ol class="pf-v6-c-progress-stepper pf-m-vertical app-stepper" aria-label="Pipeline steps">
                     {% for step in pipeline_steps %}
                     <li class="pf-v6-c-progress-stepper__step {% if step.status == 'success' %}pf-m-success{% elif step.status == 'warning' %}pf-m-warning{% elif step.status == 'danger' %}pf-m-danger{% elif step.is_current %}pf-m-current{% elif step.status == 'off' %}pf-m-pending app-step--off{% elif step.status == 'pending' %}pf-m-pending{% else %}pf-m-info{% endif %}"
-                        aria-label="{{ step.label }}{% if step.is_toggled_off %} (disabled){% else %} {{ step.status }}{% endif %}">
+                        aria-label="{{ step.label }}{% if step.is_toggled_off %} (disabled){% else %} {{ step.status }}{% endif %}"
+                        data-label="{{ step.number }}. {{ step.label }}{% if step.is_toggled_off %} (off){% endif %}">
                         <div class="pf-v6-c-progress-stepper__step-connector">
                             <span class="pf-v6-c-progress-stepper__step-icon" aria-hidden="true">
                                 {% if step.status == 'success' %}
@@ -184,9 +335,90 @@
         var form = document.getElementById(formId);
         var btn = document.getElementById(btnId);
         if (!form || !btn) return;
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (event) {
+            if (form.dataset.appSubmitting === '1') return;
+            event.preventDefault();
+            form.dataset.appSubmitting = '1';
             btn.innerHTML = '<span class="spinner"></span>' + runningLabel;
             btn.disabled = true;
+            // Disable any sibling submit buttons in the same form (e.g. main + chapters in summarization)
+            form.querySelectorAll('button[type="submit"]').forEach(function (b) {
+                if (b !== btn) b.disabled = true;
+            });
+            // Inject a sliding indeterminate progress bar inside the form so the user
+            // sees motion during long-running steps. Bar replaces itself if present.
+            var existing = form.querySelector('.app-indeterminate-progress');
+            if (existing) existing.remove();
+            var bar = document.createElement('div');
+            bar.className = 'app-indeterminate-progress';
+            bar.innerHTML = '<div class="pf-v6-c-progress pf-m-indeterminate pf-m-sm" role="progressbar" aria-label="' + (runningLabel || 'Processing') + '" aria-valuemin="0" aria-valuemax="100"><div class="pf-v6-c-progress__description app-live-progress-description">' + (runningLabel || 'Processing...') + '</div><div class="pf-v6-c-progress__bar" role="presentation"><div class="pf-v6-c-progress__indicator app-live-progress-indicator" style="width: 0%;"></div></div></div>';
+            // Place it just before the action row if we can find one; otherwise append to form
+            var actions = form.querySelector('.app-actions');
+            if (actions && actions.parentNode) {
+                actions.parentNode.insertBefore(bar, actions);
+            } else {
+                form.appendChild(bar);
+            }
+            var progressEl = bar.querySelector('.pf-v6-c-progress');
+            var indicator = bar.querySelector('.app-live-progress-indicator');
+            var description = bar.querySelector('.app-live-progress-description');
+            var detail = null;
+            var polling = true;
+            function updateProgress() {
+                if (!polling) return;
+                fetch('{{ url_for("run_progress") }}', { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var p = data.progress;
+                        if (!p || !data.running) return;
+                        var percent = p.percent;
+                        if (p.step && description) description.textContent = p.step;
+                        if (p.detail && detail) detail.textContent = p.detail;
+                        if (typeof percent === 'number') {
+                            var visualPercent = percent < 100 ? Math.max(percent, 12) : percent;
+                            progressEl.classList.remove('pf-m-indeterminate');
+                            progressEl.setAttribute('aria-valuenow', String(percent));
+                            requestAnimationFrame(function () {
+                                indicator.style.width = visualPercent + '%';
+                            });
+                        }
+                    })
+                    .catch(function () {});
+            }
+            var pollId = window.setInterval(updateProgress, 800);
+            updateProgress();
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    var formData = new FormData(form);
+                    if (btn.name && !formData.has(btn.name)) {
+                        formData.append(btn.name, btn.value || '');
+                    }
+                    fetch(form.action || window.location.href, {
+                        method: (form.method || 'POST').toUpperCase(),
+                        body: formData,
+                        headers: { 'X-Requested-With': 'pipeline-form' }
+                    })
+                        .then(function (response) {
+                            if (response.redirected && response.url) {
+                                window.history.replaceState(null, '', response.url);
+                            }
+                            return response.text();
+                        })
+                        .then(function (html) {
+                            polling = false;
+                            window.clearInterval(pollId);
+                            document.open();
+                            document.write(html);
+                            document.close();
+                        })
+                        .catch(function () {
+                            polling = false;
+                            window.clearInterval(pollId);
+                            form.dataset.appSubmitting = '0';
+                            form.submit();
+                        });
+                });
+            });
         });
     }
     </script>
@@ -285,6 +517,44 @@
     </div>
 
     <script>
+        (function () {
+            var btn = document.getElementById('sidebar-toggle-btn');
+            if (!btn) return;
+            var html = document.documentElement;
+            function sync() {
+                var collapsed = html.classList.contains('app-sidebar-collapsed');
+                btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                btn.setAttribute('aria-label', collapsed ? 'Show pipeline sidebar' : 'Hide pipeline sidebar');
+            }
+            sync();
+            btn.addEventListener('click', function () {
+                var collapsed = html.classList.toggle('app-sidebar-collapsed');
+                localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+                sync();
+            });
+
+            // PF6 sets `.pf-v6-c-progress-stepper__step { display: contents }`,
+            // so the <li> has no rendered box. Hoist click + label onto the
+            // visible step icon so the space between steps stays non-interactive.
+            document.querySelectorAll('.app-stepper .pf-v6-c-progress-stepper__step').forEach(function (step) {
+                var connector = step.querySelector('.pf-v6-c-progress-stepper__step-connector');
+                var icon = step.querySelector('.pf-v6-c-progress-stepper__step-icon');
+                var link = step.querySelector('a.app-step-link');
+                var label = step.getAttribute('data-label') || '';
+                if (icon && label) {
+                    icon.style.setProperty('--app-step-label', '"' + label.replace(/"/g, '\\"') + '"');
+                }
+                if (icon && link) {
+                    icon.addEventListener('click', function (e) {
+                        if (!html.classList.contains('app-sidebar-collapsed')) return;
+                        if (e.target.closest('a')) return;
+                        e.preventDefault();
+                        window.location.href = link.getAttribute('href');
+                    });
+                }
+            });
+        })();
+
         (function () {
             var btn = document.getElementById('theme-toggle-btn');
             var icon = document.getElementById('theme-icon');
